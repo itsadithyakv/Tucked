@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+.turbo/
+.expo/
+expo-env.d.ts
+*.tsbuildinfo
+
+# Environment & secrets — never committed
+.env
+.env.*
+!.env.example
+*.pem
+*.p8
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Test & coverage
+coverage/
+.nyc_output/
+
+# Logs
+*.log
+npm-debug.log*
