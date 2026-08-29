@@ -14,6 +14,7 @@ import { RecorderProvider, useRecorder } from '@/lib/recorder';
 import { loadRoomDay, presentByRoom } from '@/lib/roomData';
 import type { RoomDay } from '@/lib/roomData';
 import { Body, Button, Caption, Card, Field, Heading, Pill, Screen, Title } from '@/ui/components';
+import { SwipeChildCard } from '@/ui/SwipeChildCard';
 
 interface PickupOption {
   personId: string | null;
@@ -121,6 +122,20 @@ function Board() {
     );
   }
 
+  function markAbsent(childId: string) {
+    void act(childId, (recorder) =>
+      runCommand('record_attendance', {
+        p_centre: day!.centre.id,
+        p_child: childId,
+        p_event_type: 'absent',
+        p_room: null,
+        p_actual_time: new Date().toISOString(),
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
   async function openPickup(childId: string) {
     const { data } = await supabase
       .from('pickup_authorisation')
@@ -195,6 +210,7 @@ function Board() {
           {`Requires ${ratio?.required ?? '—'} in ratio${ratio?.reduced ? ' (reduced-ratio window)' : ''}`}
         </Caption>
       </Card>
+      <Caption>Swipe a child right to sign in — left to sign out or mark absent.</Caption>
       {notice ? (
         <Card wash="mist">
           <Body muted>{notice}</Body>
@@ -211,49 +227,39 @@ function Board() {
           const napping = sleep.get(item.id);
           const lastCheckMs = napping ? Date.parse(napping.lastCheck ?? napping.napStart) : 0;
           const checkDue = napping ? Date.now() - lastCheckMs >= interval * 60_000 : false;
+          const subtitle = napping
+            ? `Napping · last check ${napping.lastCheck ? new Date(napping.lastCheck).toLocaleTimeString('en-CA', { hour12: false, hour: '2-digit', minute: '2-digit' }) : 'not yet'}`
+            : busyChild === item.id
+              ? 'Saving…'
+              : isPresent
+                ? 'Present'
+                : 'Swipe right to sign in';
           return (
-            <Card>
-              <View style={styles.rowBetween}>
-                <Heading>{item.full_name}</Heading>
-                <Pill kind={isPresent ? 'ok' : 'due'}>{isPresent ? 'Present' : 'Not in'}</Pill>
-              </View>
-              {napping ? (
-                <Caption>
-                  {`Napping · last check ${napping.lastCheck ? new Date(napping.lastCheck).toLocaleTimeString('en-CA', { hour12: false, hour: '2-digit', minute: '2-digit' }) : 'not yet'}`}
-                </Caption>
+            <SwipeChildCard
+              name={item.full_name}
+              present={isPresent}
+              subtitle={subtitle}
+              onSignIn={() => signIn(item.id)}
+              onSignOut={() => void openPickup(item.id)}
+              onMarkAbsent={() => markAbsent(item.id)}
+            >
+              {isPresent && needsChecks ? (
+                <View style={styles.actions}>
+                  {!napping ? (
+                    <Button label="Start nap" kind="quiet" onPress={() => careLog(item.id, 'nap_start', {})} />
+                  ) : (
+                    <>
+                      <Button
+                        label={checkDue ? 'Sleep check due' : 'Record sleep check'}
+                        kind={checkDue ? 'primary' : 'quiet'}
+                        onPress={() => careLog(item.id, 'sleep_check', { breathing_ok: true, position: 'back' })}
+                      />
+                      <Button label="End nap" kind="quiet" onPress={() => careLog(item.id, 'nap_end', {})} />
+                    </>
+                  )}
+                </View>
               ) : null}
-              <View style={styles.actions}>
-                {isPresent ? (
-                  <>
-                    <Button
-                      label={`Sign out ${item.full_name.split(' ')[0]}`}
-                      kind="quiet"
-                      busy={busyChild === item.id}
-                      onPress={() => void openPickup(item.id)}
-                    />
-                    {needsChecks && !napping ? (
-                      <Button label="Start nap" kind="quiet" onPress={() => careLog(item.id, 'nap_start', {})} />
-                    ) : null}
-                    {napping ? (
-                      <>
-                        <Button
-                          label={checkDue ? 'Sleep check due' : 'Record sleep check'}
-                          kind={checkDue ? 'primary' : 'quiet'}
-                          onPress={() => careLog(item.id, 'sleep_check', { breathing_ok: true, position: 'back' })}
-                        />
-                        <Button label="End nap" kind="quiet" onPress={() => careLog(item.id, 'nap_end', {})} />
-                      </>
-                    ) : null}
-                  </>
-                ) : (
-                  <Button
-                    label={`Sign in ${item.full_name.split(' ')[0]}`}
-                    busy={busyChild === item.id}
-                    onPress={() => signIn(item.id)}
-                  />
-                )}
-              </View>
-            </Card>
+            </SwipeChildCard>
           );
         }}
       />
