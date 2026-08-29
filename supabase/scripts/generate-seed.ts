@@ -116,6 +116,106 @@ for (const m of f.householdMembers) {
   );
 }
 
+// ── demo day: a living centre for the program-advisor walkthrough ───────────
+// Direct inserts (service context); rule triggers still run. Times are
+// relative to seed time so the demo reads sensibly whenever it is loaded.
+const careStaff = f.personRoles.filter((r) =>
+  ['supervisor', 'rece', 'staff'].includes(r.role),
+);
+const supervisor = f.people.find((p) => p.email === f.demoLogins.supervisor)!;
+const educator = f.people.find((p) => p.email === f.demoLogins.educator)!;
+const demoParent = f.people.find((p) => p.email === f.demoLogins.parent)!;
+const roomsById = new Map(f.rooms.map((r) => [r.id, r]));
+const cfgById = new Map(f.ageGroupConfigs.map((g) => [g.id, g]));
+const infants = f.children.filter(
+  (ch) => cfgById.get(roomsById.get(ch.currentRoomId!)!.ageGroupConfigId)!.ageGroupId === 'infant',
+);
+const demoChildIds = new Set(
+  f.childHouseholds
+    .filter((l) => {
+      const hh = f.households.find((h) => h.id === l.householdId)!;
+      return f.householdMembers.some((m) => m.householdId === hh.id && m.personId === demoParent.id);
+    })
+    .map((l) => l.childId),
+);
+
+lines.push('', '-- ── demo day ──────────────────────────────────────────────');
+
+for (const r of careStaff) {
+  lines.push(
+    `insert into public.staff_shift (centre_id, person_id, room_id, shift_date, in_at, recorded_by) values ('${c.id}', '${r.personId}', '${f.rooms[0]!.id}', current_date, now() - interval '4 hours', '${supervisor.id}');`,
+  );
+}
+
+f.children.forEach((ch, i) => {
+  lines.push(
+    `insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by) values ('${c.id}', '${ch.id}', '${ch.currentRoomId}', 'arrive', now() - interval '${200 - i} minutes', '1970-01-01', '${educator.id}');`,
+  );
+});
+
+lines.push(
+  `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'health_observation', now() - interval '3 hours', '1970-01-01', '{"observation": "settled on arrival"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}' limit 5;`,
+  `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'meal', now() - interval '90 minutes', '1970-01-01', '{"meal": "lunch", "eaten": "most"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}';`,
+  `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'outdoor', now() - interval '2 hours', '1970-01-01', '{"minutes": 90}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}';`,
+);
+for (const inf of infants) {
+  lines.push(
+    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'nap_start', now() - interval '60 minutes', '1970-01-01', '{}', '${educator.id}');`,
+    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'sleep_check', now() - interval '45 minutes', '1970-01-01', '{"breathing_ok": true, "position": "back"}', '${educator.id}');`,
+    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'sleep_check', now() - interval '30 minutes', '1970-01-01', '{"breathing_ok": true, "position": "back"}', '${educator.id}');`,
+  );
+}
+
+const toddler = f.children[10]!;
+lines.push(
+  `insert into public.accident_report (centre_id, child_id, occurred_at, occurred_date, location, description, injury, severity, first_aid, head_injury, concussion_watch_note, completed_by)`,
+  `values ('${c.id}', '${toddler.id}', now() - interval '100 minutes', '1970-01-01', 'Playground', 'Tripped on the path and bumped her head on the edge of the planter', 'Small bump above the left eyebrow', 'minor', 'Ice pack for 10 minutes, comforted, observed', true, 'Watch for vomiting, drowsiness or unusual behaviour for 24 hours', '${educator.id}');`,
+);
+
+const mayaId = f.children[0]!.id;
+lines.push(
+  `insert into public.consent (centre_id, child_id, consent_type, purpose, status, granted_by, evidence)`,
+  `select '${c.id}', ch, t, 'enrolment', case when t in ('photo_third_party', 'social_media') then 'declined' else 'granted' end, '${demoParent.id}', 'in-app decision'`,
+  `from unnest(array[${[...demoChildIds].map((id) => `'${id}'`).join(',')}]::uuid[]) ch, unnest(enum_range(null::public.consent_type)) t;`,
+  `select app.ensure_record_items('${c.id}', ch) from unnest(array[${[...demoChildIds].map((id) => `'${id}'`).join(',')}]::uuid[]) ch;`,
+  `update public.child_record_item set status = case when item_type = 'discharge' then 'not_applicable'::public.record_item_status else 'provided'::public.record_item_status end,`,
+  `  content = case when item_type = 'health_immunisation' then '{"allergies": [], "immunisation": "up to date"}'::jsonb else '{"note": "provided at enrolment"}'::jsonb end,`,
+  `  updated_by = '${demoParent.id}', verified_by = '${supervisor.id}', verified_at = now()`,
+  `where child_id in (${[...demoChildIds].map((id) => `'${id}'`).join(',')});`,
+  `insert into public.pickup_authorisation (centre_id, child_id, person_id) select '${c.id}', ch, '${demoParent.id}' from unnest(array[${[...demoChildIds].map((id) => `'${id}'`).join(',')}]::uuid[]) ch;`,
+  `insert into public.medication_authorisation (centre_id, child_id, kind, drug_name, dose, schedule, original_container_checked, storage_instructions, parent_authorised_by, authorisation_evidence, recorded_by)`,
+  `values ('${c.id}', '${mayaId}', 'diaper_cream', 'Zinc barrier cream', null, null, true, 'Change table cupboard', '${demoParent.id}', 'blanket consent on enrolment form', '${supervisor.id}');`,
+  `insert into public.medication_administration (centre_id, child_id, authorisation_id, administered_at, administered_date, outcome, administered_by)`,
+  `select '${c.id}', '${mayaId}', a.id, now() - interval '50 minutes', '1970-01-01', 'applied at change', '${educator.id}' from public.medication_authorisation a where a.child_id = '${mayaId}';`,
+);
+
+lines.push('', '-- staff credentials (one VSC expiring soon for the exceptions demo)');
+careStaff.forEach((r, i) => {
+  lines.push(
+    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('${c.id}', '${r.personId}', 'first_aid_cpr', (current_date - interval '1 year')::date, (current_date + interval '${i === 1 ? '25 days' : '2 years'}')::date, '${supervisor.id}');`,
+    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('${c.id}', '${r.personId}', 'vsc', (current_date - interval '2 years')::date, (current_date + interval '3 years')::date, '${supervisor.id}');`,
+  );
+});
+
+lines.push('', '-- stories for the demo family, and one unacknowledged Now alert');
+for (const id of demoChildIds) {
+  const first = f.children.find((ch) => ch.id === id)!.fullName.split(' ')[0];
+  lines.push(
+    `insert into public.story (centre_id, child_id, story_date, draft_text, educator_note, published_at, published_by)`,
+    `values ('${c.id}', '${id}', current_date, 'We spent time outside today — the leaf pile was a hit. ${first} ate most of lunch and settled well for rest.', 'Lovely day. Ask about the leaf fort.', now(), '${educator.id}');`,
+    `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, created_by)`,
+    `values ('${c.id}', '${id}', '${demoParent.id}', 'later', 'story', 'Today''s story', 'The day''s story is ready.', '${educator.id}');`,
+  );
+}
+lines.push(
+  `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by)`,
+  `select '${c.id}', '${toddler.id}', hm.person_id, 'now', 'accident_report', 'Accident report for ${toddler.fullName.split(' ')[0]}', 'A minor accident was recorded today. Please read and acknowledge the report.', true, '${educator.id}'`,
+  `from public.child_household ch join public.household_member hm on hm.household_id = ch.household_id where ch.child_id = '${toddler.id}' and hm.revoked_at is null and hm.can_view;`,
+);
+
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'seed.sql');
 writeFileSync(out, lines.join('\n') + '\n', 'utf8');
 console.log(

@@ -151,7 +151,8 @@ select is(
 reset role;
 
 select is(
-  (select count(*) from public.audit_event where table_name = 'attendance_event'),
+  (select count(*) from public.audit_event
+   where table_name = 'attendance_event' and centre_id = '31000000-0000-4000-8000-000000000001'),
   2::bigint,
   'audit_every_attendance_write'
 );

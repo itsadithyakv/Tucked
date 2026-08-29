@@ -90,7 +90,8 @@ select lives_ok(
 
 reset role;
 create temporary table t_auth on commit drop as
-  select id, kind from public.medication_authorisation;
+  select id, kind from public.medication_authorisation
+  where centre_id = '3a000000-0000-4000-8000-000000000001';
 grant select on t_auth to authenticated;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"14000000-0000-4000-8000-000000000001","role":"authenticated"}', true);

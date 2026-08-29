@@ -123,7 +123,8 @@ select throws_ok(
 );
 
 select is(
-  (select count(*) from public.audit_event where table_name = 'care_log'),
+  (select count(*) from public.audit_event
+   where table_name = 'care_log' and centre_id = '34000000-0000-4000-8000-000000000001'),
   5::bigint,
   'audit_every_care_log_write'
 );

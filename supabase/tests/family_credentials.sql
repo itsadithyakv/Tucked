@@ -135,7 +135,8 @@ select lives_ok(
 reset role;
 
 select is(
-  (select expiry_state from public.credential_status where credential_type = 'vsc'),
+  (select expiry_state from public.credential_status
+   where credential_type = 'vsc' and centre_id = '30100000-0000-4000-8000-000000000001'),
   'expiring_soon',
   's60_vsc_five_year_renewal_flagged'
 );

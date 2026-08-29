@@ -125,7 +125,8 @@ select throws_ok(
 -- unrelated parent, so their subquery would be empty (which is itself correct).
 reset role;
 create temporary table t_report on commit drop as
-  select id from public.accident_report limit 1;
+  select id from public.accident_report
+  where centre_id = '37000000-0000-4000-8000-000000000001' limit 1;
 grant select on t_report to authenticated;
 set local role authenticated;
 
@@ -145,7 +146,7 @@ select lives_ok(
 );
 
 select is(
-  (select parent_ack_person_id from public.accident_report limit 1),
+  (select parent_ack_person_id from public.accident_report where id = (select id from t_report)),
   '43000000-0000-4000-8000-000000000002'::uuid,
   's36_4_acknowledgement_names_the_parent_with_timestamp'
 );
@@ -154,7 +155,7 @@ select is(
 reset role;
 
 select throws_ok(
-  $$update public.accident_report set description = 'edited later'$$,
+  $$update public.accident_report set description = 'edited later' where id = (select id from t_report)$$,
   'an acknowledged accident report never changes',
   's36_4_acknowledged_report_never_changes'
 );
