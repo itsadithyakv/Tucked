@@ -2,6 +2,22 @@
 
 *Why, not what. Newest at the top. A decision recorded here is settled — reopen it only with new evidence, and record the reopening here too.*
 
+## 2026-08-29 — Phase 0 build
+
+- **Versions pinned by the official scaffolders, not memory:** Expo SDK 57 (RN 0.86, React 19.2, TS 6), Next.js 16.3. `create-expo-app`/`create-next-app` ran with `--no-install`/`--skip-install`; the lockfile is the authority.
+- **Session storage on mobile is AsyncStorage for now** — SecureStore caps values at 2 KB (smaller than a session payload). TODO(security) before any pilot: encrypt the AsyncStorage payload with a key held in expo-secure-store. Storage is platform-gated: on web/Node prerender supabase-js picks its own (the web static export crashed otherwise).
+- **Sentry wiring deferred until accounts exist.** Local-only decision means no DSN; the dependency lands together with `eas init`. The scrubbing rules (no request bodies, no child names) are already recorded and non-negotiable.
+- **`@typescript-eslint/no-require-imports` is off for `apps/mobile` only** — Metro requires static `require()` for fonts and images.
+- **Web console uses a lazy `getSupabase()`** — Next prerenders client components in Node, so nothing may throw at module scope.
+- **App icons are generated from the master logo** (Pillow script): iOS icon on white, Android adaptive foreground at 58% for the safe zone, monochrome from the alpha channel, mist splash/adaptive background `#EAF2FD`.
+
+## 2026-08-29 — Phase 0 go-ahead answers (from the founder)
+
+- **`person` is global; roles, households and children are centre-scoped.** One login per human tied to the auth identity; `person_role` and `household_member` carry the centre scoping. An educator at two centres or a parent with children at two Tucked centres keeps one account; each centre sees and revokes only its own rows. Chosen for the Phase 3 agency model.
+- **Attendance is day-bounded.** No overnight care in v1: an attendance day = the centre-local calendar date. `timezone` column on `centre` from migration 0001 (Ontario now, Manitoba-ready). Reopen only if a discovery centre runs overnight care.
+- **Store identifiers: `ca.tucked.app`** (iOS bundle ID and Android package), display name "Tucked". Brand-first namespace tied to tucked.ca, not the company namespace.
+- **Local-only, no remote.** Supabase runs via CLI/Docker at $0; the git repo stays on this machine. Cloud project and GitHub remote wait for their cost-model triggers.
+
 ## 2026-08-29 — Phase 0 planning
 
 - **Local-only Supabase until a pilot centre exists.** Development runs entirely on the Supabase CLI stack (Docker). No cloud project, no monthly cost, offline-capable dev. Trigger to change: first real centre's data → Pro tier for backups/no-pause ([cost-model.md](../references/cost-model.md) §5).

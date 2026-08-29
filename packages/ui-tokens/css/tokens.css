@@ -1,0 +1,77 @@
+/* Tucked design tokens — CSS face. Mirrors src/tokens.ts; change both together.
+   Rules: references/design-language.md. Semantic names so dark mode is a swap later. */
+
+:root {
+  /* Brand blues (sampled from the logo) */
+  --blue-500: #3e89e8; /* Blanket — large text/UI only on white */
+  --blue-600: #2166c8; /* Deep — links, pressed */
+  --blue-700: #1c5ab5; /* focus rings, high-emphasis blue text */
+  --blue-100: #a0c8f8; /* Heart — DECORATIVE ONLY, never text */
+  --blue-50: #eaf2fd; /* Mist — tinted surfaces */
+  --ink: #17325c;
+
+  /* Neutrals */
+  --canvas: #f7f9fc;
+  --surface: #ffffff;
+  --line: #e3e9f2;
+  --slate: #4b5c74;
+  --slate-muted: #7c8aa0;
+
+  /* Semantic: green = fine, red = act now, amber = due soon */
+  --ok: #1e7a46;
+  --ok-wash: #e7f4ec;
+  --now: #c2362b;
+  --now-wash: #fbecea;
+  --due: #b45309;
+  --due-wash: #fbf1e4;
+
+  /* Space — 4pt grid */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-base: 16px;
+  --space-lg: 20px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 40px;
+  --space-4xl: 48px;
+  --space-5xl: 64px;
+  --gutter: 24px;
+  --card-padding: 16px;
+  --card-gap: 12px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  /* Elevation — ink-tinted, never black */
+  --shadow-resting: 0 1px 3px rgba(23, 50, 92, 0.08);
+  --shadow-raised: 0 8px 24px rgba(23, 50, 92, 0.14);
+
+  /* Motion */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-gentle: 300ms;
+
+  /* Type scale (family weights via fonts.css) */
+  --font-sans: 'Gilroy', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --type-display: 800 32px/38px var(--font-sans);
+  --type-title: 700 24px/30px var(--font-sans);
+  --type-heading: 700 20px/26px var(--font-sans);
+  --type-subheading: 500 17px/24px var(--font-sans);
+  --type-body: 400 16px/24px var(--font-sans);
+  --type-label: 500 15px/20px var(--font-sans);
+  --type-caption: 400 13px/18px var(--font-sans);
+  --type-overline: 500 12px/16px var(--font-sans); /* + letter-spacing .04em, uppercase */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-gentle: 0ms;
+  }
+}

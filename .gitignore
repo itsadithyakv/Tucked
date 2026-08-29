@@ -25,6 +25,11 @@ GoogleService-Info.plist
 supabase/.temp/
 supabase/.branches/
 
+# Expo prebuild output (managed workflow — native dirs are generated)
+apps/mobile/android/
+apps/mobile/ios/
+apps/mobile/.expo-export-check/
+
 # OS / editor
 .DS_Store
 Thumbs.db

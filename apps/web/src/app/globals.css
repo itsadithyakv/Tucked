@@ -1,0 +1,95 @@
+/* Console base styles. All values come from the token sheets (plain CSS with
+   custom properties — no Tailwind, no CSS-in-JS, decided). */
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+html,
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font: var(--type-body);
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space-2xl) var(--gutter);
+  display: grid;
+  gap: var(--card-gap);
+}
+
+h1 {
+  font: var(--type-title);
+}
+
+h2 {
+  font: var(--type-heading);
+}
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-resting);
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.muted {
+  color: var(--slate);
+}
+
+.caption {
+  font: var(--type-caption);
+  color: var(--slate-muted);
+}
+
+label {
+  font: var(--type-label);
+  display: grid;
+  gap: var(--space-xs);
+}
+
+input {
+  font: var(--type-body);
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  padding: 0 var(--space-md);
+}
+
+input:focus-visible {
+  outline: 2px solid var(--blue-700);
+  outline-offset: 2px;
+}
+
+button {
+  font: var(--type-label);
+  color: var(--surface);
+  background: var(--blue-600);
+  border: none;
+  border-radius: var(--radius-md);
+  min-height: 44px;
+  padding: 0 var(--space-base);
+  cursor: pointer;
+  transition: opacity var(--motion-fast) ease-out;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:focus-visible {
+  outline: 2px solid var(--blue-700);
+  outline-offset: 2px;
+}
+
+button.quiet {
+  background: var(--blue-50);
+  color: var(--blue-700);
+}

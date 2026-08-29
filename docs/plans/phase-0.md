@@ -1,6 +1,10 @@
 # Phase 0 — Foundation
 
-*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8. Target: 1–2 weeks. Status: **awaiting go-ahead** (and answers to the questions in §8 below — two of them change the data model).*
+*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8. Status: **built 29 Aug 2026** (same day as go-ahead). The §8 answers are recorded in [decisions.md](../decisions.md): global person, day-bounded attendance, `ca.tucked.app` identifiers, local-only Supabase with no git remote.*
+
+**Verified locally:** 62 domain tests green (97% branch coverage on the rule engine, gate ≥ 90%); lint + typecheck clean across all four workspaces; Next.js production build succeeds; the mobile app bundles for Android via Metro.
+
+**Blocked on this machine — Docker is not installed**, so the local Supabase stack cannot run yet: migrations, RLS policies, pgTAP tests and the generated seed are written but unexecuted. They run in CI (ubuntu has Docker) and locally once Docker Desktop (WSL2) is installed: `pnpm db:start && pnpm db:reset && pnpm db:test`. The done-when criterion (both apps signing in as supervisor/educator/parent against the seeded centre) needs that stack. Also deferred until accounts exist: `eas init` (Expo account) and Sentry (DSN).
 
 **Done when:** a fresh clone seeds the demo centre ("Maple Leaf Early Learning") and both apps sign in as supervisor, educator and parent.
 

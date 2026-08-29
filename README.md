@@ -18,4 +18,4 @@ Parents get one quiet daily story of their child's day plus loud alerts only for
 
 ## Status
 
-Pre-code. Phase 0 is planned in [docs/plans/phase-0.md](docs/plans/phase-0.md) and awaiting go-ahead.
+Phase 0 (foundation) is built — see [docs/plans/phase-0.md](docs/plans/phase-0.md) for what is verified and what awaits Docker/accounts. Monorepo: `pnpm install`, then `pnpm check` (lint + typecheck + tests). Local backend: install Docker Desktop, then `pnpm db:start && pnpm db:reset && pnpm db:test`. Demo logins (local stack only): `supervisor@` / `educator@` / `parent@mapleleaf.example`, password `tucked-demo`.
