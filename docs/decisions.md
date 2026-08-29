@@ -2,6 +2,12 @@
 
 *Why, not what. Newest at the top. A decision recorded here is settled — reopen it only with new evidence, and record the reopening here too.*
 
+## 2026-08-29 — Identity: bubbly claymorphic (founder direction)
+
+- **Typeface swap: Gilroy → Baloo 2 + Nunito.** The founder wants a bubblier, more childlike voice. Baloo 2 (OFL) carries everything that speaks — display, titles, buttons, nav; Nunito (OFL) carries everything that must be read — body, records, tables. Playfulness lives in the chrome, never in the gravity of an accident report. Bonus: the Gilroy commercial licence line item is gone. Gilroy stays archived in `assets/fonts`; nothing loads it.
+- **Claymorphic v2 surfaces.** Cards are soft solids: thick inner top highlight + inner bottom curvature shade + layered ink drop, faint vertical gradient. Buttons are chunky pills with a real 3-D bottom edge that squishes on press (Duolingo-style affordance).
+- **Sidebar behaviour.** Below 1600 px (laptops) the sidebar auto-collapses to a 76 px icon rail; hovering peeks the panel open as an overlay (the page never reflows). Wide screens rest expanded with a persisted pin toggle; under 900 px it is a drawer.
+
 ## 2026-08-29 — Phase 1 go-ahead answers (from the founder)
 
 - **Sign-in/out is staff-recorded in v1.** The educator records arrival/departure on the room device; the arrival health observation (s. 32) and authorised-pickup confirmation (s. 50) live inside that one flow. No parent kiosk yet — it adds a device mode and identity checks without serving the first 40-centre profile.

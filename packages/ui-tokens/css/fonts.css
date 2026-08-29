@@ -1,40 +1,20 @@
-/* Gilroy — self-hosted, no external font hosts (privacy stance).
-   The files internally declare five separate families with weight 400, so each
-   @font-face maps a file onto ONE family ('Gilroy') with an explicit weight.
-   Copy the woff2 files from /assets/fonts into the web app's public/fonts/. */
+/* Tucked type — self-hosted, no external font hosts (privacy stance).
+   Baloo 2 (bubbly display: headings, buttons, nav) + Nunito (rounded body).
+   Both are variable fonts served as single woff2 files; both OFL-licensed.
+   Copy from apps/web/public/fonts — sources live in /assets/fonts. */
 
 @font-face {
-  font-family: 'Gilroy';
-  src: url('/fonts/Gilroy-Light.woff2') format('woff2');
-  font-weight: 300;
+  font-family: 'Baloo 2';
+  src: url('/fonts/Baloo2-Variable.woff2') format('woff2');
+  font-weight: 400 800;
   font-style: normal;
   font-display: swap;
 }
+
 @font-face {
-  font-family: 'Gilroy';
-  src: url('/fonts/Gilroy-Regular.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Gilroy';
-  src: url('/fonts/Gilroy-Medium.woff2') format('woff2');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Gilroy';
-  src: url('/fonts/Gilroy-Bold.woff2') format('woff2');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Gilroy';
-  src: url('/fonts/Gilroy-Heavy.woff2') format('woff2');
-  font-weight: 800;
+  font-family: 'Nunito';
+  src: url('/fonts/Nunito-Variable.woff2') format('woff2');
+  font-weight: 200 1000;
   font-style: normal;
   font-display: swap;
 }

@@ -47,11 +47,24 @@ function readCollapsed(): boolean {
 function Shell({ children }: { children: ReactNode }) {
   const { fullName } = useConsole();
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(readCollapsed);
+  const [pinned, setPinned] = useState(readCollapsed);
+  const [narrow, setNarrow] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
+  // Laptop widths collapse automatically; hovering the rail peeks it open
+  // (pure CSS). The pin toggle only exists on wide screens.
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1599px)');
+    const apply = () => setNarrow(mq.matches);
+    apply();
+    mq.addEventListener('change', apply);
+    return () => mq.removeEventListener('change', apply);
+  }, []);
+
+  const collapsed = narrow || pinned;
+
   function toggleCollapsed() {
-    setCollapsed((c) => {
+    setPinned((c) => {
       try {
         localStorage.setItem('tucked.sidebar', c ? 'expanded' : 'collapsed');
       } catch {
@@ -70,39 +83,41 @@ function Shell({ children }: { children: ReactNode }) {
         <button className="backdrop" aria-label="Close menu" onClick={() => setDrawerOpen(false)} />
       ) : null}
       <aside className="sidebar">
-        <div className="side-brand">
-          <Image src="/tucked-mark.png" alt="" width={36} height={36} priority />
-          <span className="brand-name">tucked</span>
-        </div>
-        <nav>
-          {NAV.map(({ href, label, Icon }) => (
-            <Link
-              key={href}
-              href={href}
-              aria-current={pathname === href ? 'page' : undefined}
-              title={collapsed ? label : undefined}
+        <div className="side-panel">
+          <div className="side-brand">
+            <Image src="/tucked-mark.png" alt="" width={36} height={36} priority />
+            <span className="brand-name">tucked</span>
+          </div>
+          <nav>
+            {NAV.map(({ href, label, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={pathname === href ? 'page' : undefined}
+                title={collapsed ? label : undefined}
+              >
+                <Icon aria-hidden />
+                <span className="side-label">{label}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="side-foot">
+            <p className="side-user">{fullName}</p>
+            <button
+              type="button"
+              className="side-toggle"
+              onClick={toggleCollapsed}
+              aria-expanded={!collapsed}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
-              <Icon aria-hidden />
-              <span className="side-label">{label}</span>
-            </Link>
-          ))}
-        </nav>
-        <div className="side-foot">
-          <p className="side-user">{fullName}</p>
-          <button
-            type="button"
-            className="side-toggle"
-            onClick={toggleCollapsed}
-            aria-expanded={!collapsed}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
-            <span className="side-label">Collapse</span>
-          </button>
-          <button type="button" className="side-signout" onClick={() => getSupabase().auth.signOut()}>
-            <LogOut aria-hidden />
-            <span className="side-label">{enCA.auth.signOut}</span>
-          </button>
+              {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
+              <span className="side-label">Collapse</span>
+            </button>
+            <button type="button" className="side-signout" onClick={() => getSupabase().auth.signOut()}>
+              <LogOut aria-hidden />
+              <span className="side-label">{enCA.auth.signOut}</span>
+            </button>
+          </div>
         </div>
       </aside>
       <main>

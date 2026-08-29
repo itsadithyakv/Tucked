@@ -32,7 +32,7 @@ export default function Debug() {
         <Card>
           {(Object.keys(fontFamily) as (keyof typeof fontFamily)[]).map((w) => (
             <Text key={w} style={{ fontFamily: fontFamily[w], fontSize: type.body.fontSize, color: colour.ink }}>
-              Gilroy {w} — Maya is napping, since 12:40
+              {fontFamily[w]} — Maya is napping, since 12:40
             </Text>
           ))}
         </Card>

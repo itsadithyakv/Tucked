@@ -19,7 +19,7 @@ Three principles:
 | Google Play developer account | $25 once | First Android internal-testing build |
 | Apple Developer Program | $99/**yr** (recurring but annual) | First TestFlight build |
 | `tucked.ca` (+ `gettucked.ca`) | ~CA$15–20/yr each | Now — the plan says register immediately |
-| Gilroy font licence (app embedding + webfont tier) | ~$100–300 once (verify tier on purchase) | Before store submission — the woff2/ttf files in `assets/fonts` need a licence that covers embedding |
+| ~~Gilroy font licence~~ | $0 | Superseded 29 Aug 2026: the identity moved to Baloo 2 + Nunito, both OFL (free, embedding included) |
 | CIPO trademark filing (classes 42 + 9) + agent opinion | ~CA$500–1,200 | Business decision per the plan §12 — not an infra cost |
 
 ## 3. Recurring costs by stage

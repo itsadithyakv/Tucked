@@ -31,16 +31,18 @@ export const colour = {
 } as const;
 
 /**
- * Gilroy ships as five separate internal families (each weight class 400).
- * Select by family name ONLY — never set fontWeight alongside a custom family
- * on React Native. Load each ttf under exactly these keys.
+ * Baloo 2 carries the bubbly display personality (headings, buttons, nav);
+ * Nunito keeps records readable. Mobile ships static instances, each under
+ * its own family name — select by family name ONLY, never set fontWeight
+ * alongside a custom family on React Native.
  */
 export const fontFamily = {
-  light: 'Gilroy-Light',
-  regular: 'Gilroy-Regular',
-  medium: 'Gilroy-Medium',
-  bold: 'Gilroy-Bold',
-  heavy: 'Gilroy-Heavy',
+  displaySemi: 'Baloo2-SemiBold',
+  displayBold: 'Baloo2-Bold',
+  displayHeavy: 'Baloo2-ExtraBold',
+  body: 'Nunito-Medium',
+  bodySemi: 'Nunito-SemiBold',
+  bodyBold: 'Nunito-Bold',
 } as const;
 
 export interface TypeStyle {
@@ -52,15 +54,15 @@ export interface TypeStyle {
 }
 
 export const type: Record<string, TypeStyle> = {
-  display: { fontFamily: fontFamily.heavy, fontSize: 32, lineHeight: 38 },
-  title: { fontFamily: fontFamily.bold, fontSize: 24, lineHeight: 30 },
-  heading: { fontFamily: fontFamily.bold, fontSize: 20, lineHeight: 26 },
-  subheading: { fontFamily: fontFamily.medium, fontSize: 17, lineHeight: 24 },
-  body: { fontFamily: fontFamily.regular, fontSize: 16, lineHeight: 24 },
-  label: { fontFamily: fontFamily.medium, fontSize: 15, lineHeight: 20 },
-  caption: { fontFamily: fontFamily.regular, fontSize: 13, lineHeight: 18 },
+  display: { fontFamily: fontFamily.displayHeavy, fontSize: 34, lineHeight: 40 },
+  title: { fontFamily: fontFamily.displayBold, fontSize: 26, lineHeight: 32 },
+  heading: { fontFamily: fontFamily.displaySemi, fontSize: 20, lineHeight: 26 },
+  subheading: { fontFamily: fontFamily.bodyBold, fontSize: 17, lineHeight: 24 },
+  body: { fontFamily: fontFamily.body, fontSize: 16, lineHeight: 24 },
+  label: { fontFamily: fontFamily.displaySemi, fontSize: 15, lineHeight: 20 },
+  caption: { fontFamily: fontFamily.bodySemi, fontSize: 13, lineHeight: 18 },
   overline: {
-    fontFamily: fontFamily.medium,
+    fontFamily: fontFamily.displaySemi,
     fontSize: 12,
     lineHeight: 16,
     letterSpacing: 0.48,
@@ -88,12 +90,13 @@ export const space = {
 
 /** Generous claymorphic radii, echoing the mark's roundness. */
 export const radius = {
-  sm: 10, // chips, inputs
-  md: 14, // buttons
-  lg: 16,
-  card: 20, // cards (the default)
-  xl: 24, // sheets, modals, tiles
-  pill: 999,
+  sm: 12, // chips, inputs
+  md: 16, // small controls
+  lg: 18,
+  card: 22, // cards (the default)
+  xl: 24, // sheets, modals
+  tile: 28, // stat tiles
+  pill: 999, // buttons, pills, avatars
 } as const;
 
 /** Two elevation levels only; shadows are always ink-tinted, never black. */

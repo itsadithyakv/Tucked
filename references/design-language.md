@@ -45,7 +45,7 @@ Derive and commit as needed: app icon (1024 × 1024 on solid ground — iOS requ
 
 ### Wordmark
 
-Set **"tucked"** in **Gilroy Bold, all lowercase**, in Ink `#17325C` (preferred) or Blanket Blue `#3E89E8` on light grounds; white on dark/blue grounds. Lowercase matches the bedtime softness of the mark. Letter-spacing: default (do not track lowercase). Lock-up: mark left of wordmark, gap = 40% of mark width, wordmark cap-height ≈ 42% of mark height. "by PaperKite" credit, when used, is Gilroy Medium at 35% of the wordmark size in Slate.
+Set **"tucked"** in **Baloo 2 Bold, all lowercase**, in Ink `#17325C` (preferred) or Blanket Blue `#3E89E8` on light grounds; white on dark/blue grounds. Lowercase matches the bedtime softness of the mark. Letter-spacing: default (do not track lowercase). Lock-up: mark left of wordmark, gap = 40% of mark width, wordmark cap-height ≈ 42% of mark height. "by PaperKite" credit, when used, is Nunito SemiBold at 35% of the wordmark size in Slate.
 
 ---
 
@@ -98,46 +98,37 @@ Calm surfaces, one accent: **green = fine, red = act now** (build prompt §3.2).
 
 ---
 
-## 4. Typography — Gilroy
+## 4. Typography — Baloo 2 + Nunito
+
+*(Founder decision 29 Aug 2026: replaced Gilroy for a bubblier, more childlike voice. Gilroy stays archived in `assets/fonts` but nothing loads it.)*
+
+A **pairing**: **Baloo 2** — chunky, round, bubbly — carries the personality on everything that speaks (display numerals, titles, headings, buttons, nav, overlines). **Nunito** — rounded terminals, highly readable — carries everything that must be read carefully (body, records, tables, captions). One playful voice, zero compromise on legibility for regulated records.
 
 ### Files and formats
 
-| Weight | Mobile (Expo) | Web (Next.js) |
+| Family | Web (Next.js) | Mobile (Expo) |
 |---|---|---|
-| Light | `Gilroy-Light.ttf` | `Gilroy-Light.woff2` |
-| Regular | `Gilroy-Regular.ttf` | `Gilroy-Regular.woff2` |
-| Medium | `Gilroy-Medium.ttf` | `Gilroy-Medium.woff2` |
-| Bold | `Gilroy-Bold.ttf` | `Gilroy-Bold.woff2` |
-| Heavy | `Gilroy-Heavy.ttf` | `Gilroy-Heavy.woff2` |
+| Baloo 2 (wght 400–800) | `Baloo2-Variable.woff2` — one variable file | Static instances: `Baloo2-SemiBold` (600), `Baloo2-Bold` (700), `Baloo2-ExtraBold` (800) |
+| Nunito (wght 200–1000) | `Nunito-Variable.woff2` — one variable file | Static instances: `Nunito-Medium` (500), `Nunito-SemiBold` (600), `Nunito-Bold` (700) |
 
-The `.ttf` files were converted from the `.woff2` sources with fontTools (same glyph tables, decompressed) because **React Native cannot load woff2** — Expo's `useFonts` needs ttf/otf. Web keeps woff2 (smallest). ~120–140 KB per ttf weight, 556 glyphs each, covering extended Latin — **fr-CA accents (é è à ç ô î û ë ï) are covered**, so the Quebec preset does not need a font change.
-
-**⚠ Metadata gotcha (verified in the files):** each file declares itself as its own family (`Gilroy-Bold`, `Gilroy-Light`, …) with an internal weight class of 400. Weight-based selection will silently fail:
-
-- **React Native:** select by `fontFamily` name only. Load each file under its own key (`Gilroy-Bold`, etc.) and never set `fontWeight` alongside — on Android, `fontWeight` on a custom family can drop to a fallback. Expose styles from `ui-tokens` (e.g. `type.title`) so screens never hand-pick fonts.
-- **Web:** declare all five files under **one** `font-family: 'Gilroy'` with explicit `font-weight: 300/400/500/700/800` in each `@font-face`, `font-display: swap`. Then normal `font-weight` CSS works. Self-host — no Google Fonts, no external requests (privacy stance, §7 of the build prompt).
-- Fallback stacks: mobile — system default (SF Pro / Roboto); web — `'Gilroy', -apple-system, 'Segoe UI', Roboto, sans-serif`.
-
-There is **no italic** (none supplied; faux italic is banned). Emphasis = weight or colour, never slant. Verify tabular figures (`tnum`) before shipping time columns (attendance, sleep checks); if Gilroy's default figures are proportional, times will jiggle — fall back to the platform's tabular numerals for dense time tables.
-
-**Licensing:** Gilroy is a commercial typeface by Radomir Tinkov (only Light and ExtraBold are free-for-personal-use). Before store submission, hold a licence tier that covers **app embedding + webfont** use. One-time cost; budget line lives in [cost-model.md](cost-model.md).
+Sources are the Google Fonts variable ttfs, kept in `assets/fonts`; the mobile statics were instantiated with fontTools and renamed so **each instance is its own family** — React Native selects by `fontFamily` name only, never `fontWeight`. Web self-hosts the two woff2 files (no external font hosts — privacy stance) and uses normal `font-weight` against the variable faces. Both families are **OFL licensed — free, including app embedding** (the old Gilroy licence budget line is gone). Extended-Latin coverage includes fr-CA accents, so the Quebec preset needs no font change. No italics are shipped; emphasis = weight or colour, never slant.
 
 ### Type scale
 
-Mobile in pt, web in px (same numbers). Line height ≈ 1.4 for body, tighter for display.
+Mobile in pt, web in px (same numbers).
 
-| Style | Weight | Size / line | Use |
+| Style | Face | Size / line | Use |
 |---|---|---|---|
-| `display` | Heavy | 32 / 38 | Big numerals and moments: ratio "3 : 10", evacuation headcount, onboarding. |
-| `title` | Bold | 24 / 30 | Screen titles ("Toddler room"). |
-| `heading` | Bold | 20 / 26 | Card titles, section heads. |
-| `subheading` | Medium | 17 / 24 | Child names in lists, key-value labels. |
-| `body` | Regular | 16 / 24 | Everything readable. The daily story is set in this. |
-| `label` | Medium | 15 / 20 | Buttons, tabs, chips. Sentence case — never all-caps buttons. |
-| `caption` | Regular | 13 / 18 | Timestamps, metadata, photo dates. `slate.muted`. |
-| `overline` | Medium | 12 / 16, +4% tracking, caps | The only all-caps style: tiny category labels ("NOW", "SLEEP CHECK"). |
+| `display` | Baloo 2 · 800 | 34 / 40 | Big numerals and moments: ratio "3 : 10", evacuation headcount, tiles. |
+| `title` | Baloo 2 · 700 | 26 / 32 | Screen titles ("Toddler room"). |
+| `heading` | Baloo 2 · 600 | 20 / 26 | Card titles, section heads. |
+| `subheading` | Nunito · 700 | 17 / 24 | Child names in lists, key-value labels. |
+| `body` | Nunito · 500 | 16 / 24 | Everything readable. The daily story is set in this. |
+| `label` | Baloo 2 · 600 | 15 / 20 | Buttons, tabs, nav, chips. Sentence case — never all-caps buttons. |
+| `caption` | Nunito · 600 | 13 / 18 | Timestamps, metadata, photo dates. `slate.muted`. |
+| `overline` | Baloo 2 · 600 | 12 / 16, +4% tracking, caps | The only all-caps style: tiny category labels ("NOW", "SLEEP CHECK"). |
 
-Rules: Heavy is display-only — never at body sizes. Light is reserved for large decorative numerals (32 pt+) and marketing; never in the app's working UI. Minimum UI text size 13. Family app body text respects the OS text-size setting (Dynamic Type / font scale) — parents at pickup, one-handed, in daylight.
+Rules: Baloo 2 never sets body copy or table cells — bubbly is for what speaks, Nunito for what informs. Minimum UI text size 13. Family app body text respects the OS text-size setting (Dynamic Type / font scale) — parents at pickup, one-handed, in daylight. Serious content (accident reports, Now alerts) keeps its body in Nunito; the playfulness lives in the chrome, never in the gravity.
 
 ---
 
@@ -163,7 +154,7 @@ Purposeful only; `prefers-reduced-motion` honoured on both platforms (build prom
 | `base` | 200 ms, ease-in-out | Card hover lift, label fades, tab changes, sheet content. |
 | `gentle` | 300 ms, `cubic-bezier(.2,.8,.3,1)` (no overshoot > 4%) | Page enter (8 px rise + fade via route template), sidebar collapse/expand, sheets, the daily story opening. |
 
-Console chrome: the sidebar collapses from 248 px to a 76 px icon rail (`gentle`; labels fade at `base`; state persisted per-browser); under 900 px it becomes an over-content drawer with an ink-tinted backdrop.
+Console chrome: below 1600 px (laptops) the sidebar is an automatic 76 px icon rail whose panel peeks open as an overlay on hover (`gentle`; labels fade at `base`; the page never reflows); on wide screens it rests expanded with a pin toggle (persisted per-browser); under 900 px it becomes an over-content drawer with an ink-tinted backdrop.
 
 No looping animations, no confetti, no bounce-for-delight. The one sanctioned flourish: the daily story may open with a single `gentle` settle — the "tucking in". Skeletons hold exact layout (no shift — §3.5); shimmer at low contrast (`line` on `canvas`), disabled under reduced motion.
 

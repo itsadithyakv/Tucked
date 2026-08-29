@@ -9,14 +9,16 @@ import { AuthProvider } from '@/lib/auth';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  // Gilroy ships as five internal families; load each under its family name and
-  // select by fontFamily only — never fontWeight (design-language.md §4).
+  // Static instances, each under its own family name; select by fontFamily
+  // only — never fontWeight (design-language.md §4). Baloo 2 = display
+  // personality, Nunito = readable body.
   const [fontsLoaded] = useFonts({
-    'Gilroy-Light': require('@/assets/fonts/Gilroy-Light.ttf'),
-    'Gilroy-Regular': require('@/assets/fonts/Gilroy-Regular.ttf'),
-    'Gilroy-Medium': require('@/assets/fonts/Gilroy-Medium.ttf'),
-    'Gilroy-Bold': require('@/assets/fonts/Gilroy-Bold.ttf'),
-    'Gilroy-Heavy': require('@/assets/fonts/Gilroy-Heavy.ttf'),
+    'Baloo2-SemiBold': require('@/assets/fonts/Baloo2-SemiBold.ttf'),
+    'Baloo2-Bold': require('@/assets/fonts/Baloo2-Bold.ttf'),
+    'Baloo2-ExtraBold': require('@/assets/fonts/Baloo2-ExtraBold.ttf'),
+    'Nunito-Medium': require('@/assets/fonts/Nunito-Medium.ttf'),
+    'Nunito-SemiBold': require('@/assets/fonts/Nunito-SemiBold.ttf'),
+    'Nunito-Bold': require('@/assets/fonts/Nunito-Bold.ttf'),
   });
 
   useEffect(() => {
