@@ -86,12 +86,13 @@ export const space = {
   cardGap: 12,
 } as const;
 
-/** Generous radii, echoing the mark's roundness. Nothing square-cornered. */
+/** Generous claymorphic radii, echoing the mark's roundness. */
 export const radius = {
-  sm: 8, // chips, inputs
-  md: 12, // buttons
-  lg: 16, // cards (the default)
-  xl: 24, // sheets, modals
+  sm: 10, // chips, inputs
+  md: 14, // buttons
+  lg: 16,
+  card: 20, // cards (the default)
+  xl: 24, // sheets, modals, tiles
   pill: 999,
 } as const;
 

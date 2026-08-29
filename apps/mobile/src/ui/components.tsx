@@ -1,7 +1,8 @@
 /**
- * Phase 0 primitives, styled entirely from @tucked/ui-tokens. Screens never
- * hard-code a hex, radius or font name — that rule is how the design language
- * survives (design-language.md §11).
+ * Phase 1 primitives, styled entirely from @tucked/ui-tokens — minimal
+ * claymorphic: generous radii, soft ink-tinted shadows, gentle press-scale
+ * feedback. Screens never hard-code a hex, radius or font name
+ * (design-language.md §11).
  */
 
 import type { ReactNode } from 'react';
@@ -14,14 +15,25 @@ import {
   View,
 } from 'react-native';
 import type { TextInputProps } from 'react-native';
-import { a11y, colour, radius, shadow, space, type } from '@tucked/ui-tokens';
+import { a11y, colour, radius, space, type } from '@tucked/ui-tokens';
 
 export function Screen({ children }: { children: ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
 }
 
-export function Card({ children }: { children: ReactNode }) {
-  return <View style={styles.card}>{children}</View>;
+export function Card({ children, wash }: { children: ReactNode; wash?: 'mist' | 'mint' | 'sand' }) {
+  return (
+    <View
+      style={[
+        styles.card,
+        wash === 'mist' && styles.cardMist,
+        wash === 'mint' && styles.cardMint,
+        wash === 'sand' && styles.cardSand,
+      ]}
+    >
+      {children}
+    </View>
+  );
 }
 
 export function Title({ children }: { children: ReactNode }) {
@@ -38,6 +50,14 @@ export function Body({ children, muted = false }: { children: ReactNode; muted?:
 
 export function Caption({ children }: { children: ReactNode }) {
   return <Text style={styles.caption}>{children}</Text>;
+}
+
+export function Pill({ children, kind }: { children: ReactNode; kind: 'ok' | 'due' | 'now' }) {
+  return (
+    <View style={[styles.pill, styles[`pill_${kind}`]]}>
+      <Text style={[styles.pillText, styles[`pillText_${kind}`]]}>{children}</Text>
+    </View>
+  );
 }
 
 export function Button({
@@ -94,26 +114,55 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colour.surface,
-    borderRadius: radius.lg,
-    padding: space.cardPadding,
+    borderRadius: radius.card,
+    padding: space.lg,
     gap: space.sm,
-    ...shadow.resting,
+    shadowColor: colour.ink,
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
+  cardMist: { backgroundColor: colour.blue50 },
+  cardMint: { backgroundColor: colour.okWash },
+  cardSand: { backgroundColor: colour.dueWash },
   title: { ...type.title, color: colour.ink } as const,
   heading: { ...type.heading, color: colour.ink } as const,
   body: { ...type.body, color: colour.ink } as const,
   bodyMuted: { color: colour.slate } as const,
   caption: { ...type.caption, color: colour.slateMuted } as const,
+  pill: {
+    alignSelf: 'flex-start',
+    borderRadius: radius.pill,
+    paddingHorizontal: space.md,
+    paddingVertical: 3,
+  },
+  pill_ok: { backgroundColor: colour.okWash },
+  pill_due: { backgroundColor: colour.dueWash },
+  pill_now: { backgroundColor: colour.nowWash },
+  pillText: { ...type.overline } as const,
+  pillText_ok: { color: colour.ok } as const,
+  pillText_due: { color: colour.due } as const,
+  pillText_now: { color: colour.now } as const,
   button: {
     backgroundColor: colour.blue600,
     borderRadius: radius.md,
-    minHeight: a11y.minTouchTarget,
+    minHeight: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: space.base,
+    paddingHorizontal: space.lg,
+    shadowColor: colour.blue600,
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 3,
   },
-  buttonQuiet: { backgroundColor: colour.blue50 },
-  buttonPressed: { opacity: 0.85 },
+  buttonQuiet: {
+    backgroundColor: colour.blue50,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  buttonPressed: { transform: [{ scale: 0.97 }], opacity: 0.92 },
   buttonLabel: { ...type.label, color: colour.surface } as const,
   buttonLabelQuiet: { color: colour.blue700 } as const,
   field: {
@@ -122,8 +171,8 @@ const styles = StyleSheet.create({
     backgroundColor: colour.surface,
     borderColor: colour.line,
     borderWidth: 1,
-    borderRadius: radius.sm,
-    minHeight: a11y.minTouchTarget,
-    paddingHorizontal: space.md,
+    borderRadius: radius.md,
+    minHeight: a11y.minTouchTarget + 4,
+    paddingHorizontal: space.base,
   },
 });

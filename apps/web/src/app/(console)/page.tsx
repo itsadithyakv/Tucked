@@ -84,8 +84,8 @@ export default function ExceptionsHome() {
     <>
       <h1>Today</h1>
       <section className="cards-row">
-        {rooms.map((r) => (
-          <div className="card" key={r.id}>
+        {rooms.map((r, i) => (
+          <div className={`card tile ${['tile-mist', 'tile-mint', 'tile-sand'][i % 3]}`} key={r.id}>
             <h2>{r.name}</h2>
             <p className="stat">{r.present}</p>
             <p className="muted">children present · {r.staff} staff in ratio</p>

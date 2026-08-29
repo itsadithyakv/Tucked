@@ -145,9 +145,9 @@ Rules: Heavy is display-only — never at body sizes. Light is reserved for larg
 
 **Spacing** — 4-pt grid: `4, 8, 12, 16, 20, 24, 32, 40, 48, 64`. Screen gutter 16 (mobile) / 24 (web). Card padding 16. Gap between cards 12.
 
-**Radius** — generous, echoing the mark's roundness: `sm 8` (chips, inputs), `md 12` (buttons), `lg 16` (cards — the default), `xl 24` (sheets, modals), `pill 999` (status pills, avatars). Nothing square-cornered except full-bleed dividers.
+**Radius** — generous, claymorphic, echoing the mark's roundness: `sm 10` (chips, inputs), `md 14` (buttons), `card 20` (cards — the default), `xl 24` (sheets, modals, stat tiles), `pill 999` (status pills, avatars). Nothing square-cornered except full-bleed dividers.
 
-**Elevation** — soft and low, like the logo's matte lighting. Two levels only: resting cards `0 1px 3px rgba(23,50,92,0.08)`, raised sheets/menus `0 8px 24px rgba(23,50,92,0.14)`. Never harsh black shadows; shadow colour is always ink-tinted.
+**Elevation — clay.** Surfaces read as soft pressed material, not floating paper: an ink-tinted layered drop shadow *plus* a 1 px inner top highlight (`inset 0 1px 0 rgba(255,255,255,.85)`). Resting: `0 1px 2px rgba(23,50,92,.04), 0 10px 24px -12px rgba(23,50,92,.12)` + highlight. Raised (hover, menus, sheets): deeper drop, same highlight. Pressed: `inset 0 2px 4px rgba(23,50,92,.08)` — inputs sit *into* the surface, buttons sink on press. Never harsh black shadows; shadow colour is always ink-tinted. **Stat tiles** are the one decorative clay moment: `xl`-radius blocks on the pastel washes (mist / ok-wash / due-wash), like a tray of clay blocks — numbers in `display`, always with a plain-language line under them.
 
 **Touch targets** — ≥ 44 × 44 pt, per the quality gates. Sign-in rows, sleep-check confirms and evacuation controls should be far larger — these get used with a toddler on one hip.
 
@@ -159,9 +159,11 @@ Purposeful only; `prefers-reduced-motion` honoured on both platforms (build prom
 
 | Token | Duration / easing | Use |
 |---|---|---|
-| `fast` | 120 ms, ease-out | Press feedback, toggles, checkmarks. |
-| `base` | 200 ms, ease-in-out | Card expansion, tab changes, sheet content. |
-| `gentle` | 300 ms, gentle spring (no overshoot > 4%) | Sheets sliding in, the daily story opening. |
+| `fast` | 120 ms, ease-out | Press feedback (buttons sink: 1 px down + scale 0.98–0.99), toggles, checkmarks. |
+| `base` | 200 ms, ease-in-out | Card hover lift, label fades, tab changes, sheet content. |
+| `gentle` | 300 ms, `cubic-bezier(.2,.8,.3,1)` (no overshoot > 4%) | Page enter (8 px rise + fade via route template), sidebar collapse/expand, sheets, the daily story opening. |
+
+Console chrome: the sidebar collapses from 248 px to a 76 px icon rail (`gentle`; labels fade at `base`; state persisted per-browser); under 900 px it becomes an over-content drawer with an ink-tinted backdrop.
 
 No looping animations, no confetti, no bounce-for-delight. The one sanctioned flourish: the daily story may open with a single `gentle` settle — the "tucking in". Skeletons hold exact layout (no shift — §3.5); shimmer at low contrast (`line` on `canvas`), disabled under reduced motion.
 
