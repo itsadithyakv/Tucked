@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
-import { fmtDate, fmtTime, useConsole } from '@/lib/console';
+import { downloadCsv, fmtDate, fmtTime, useConsole } from '@/lib/console';
 
 interface Auth {
   id: string;
@@ -58,6 +58,32 @@ export default function MedicationPage() {
   return (
     <>
       <h1>Medication</h1>
+      <div className="toolbar">
+        <button
+          className="quiet"
+          onClick={() =>
+            downloadCsv(
+              `medication-log-${centre.licence_number}.csv`,
+              ['When', 'Child', 'Medication', 'Kind', 'Dose given', 'Outcome', 'Self-administered', 'By'],
+              admins.map((a) => [
+                `${fmtDate(a.administered_at)} ${fmtTime(a.administered_at, centre.timezone)}`,
+                a.child?.full_name,
+                a.authorisation?.drug_name,
+                a.authorisation?.kind.replace(/_/g, ' '),
+                a.dose_given ?? '',
+                a.outcome ?? '',
+                a.self_administered ? 'yes' : 'no',
+                a.by?.full_name,
+              ]),
+            )
+          }
+        >
+          Download administration log CSV
+        </button>
+        <button className="quiet" onClick={() => window.print()}>
+          Print / save PDF
+        </button>
+      </div>
       <section className="card">
         <h2>Authorisations</h2>
         <table>

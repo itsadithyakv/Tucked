@@ -84,7 +84,16 @@ function Board() {
   const [obsNote, setObsNote] = useState('');
   const [obsParent, setObsParent] = useState('');
   const [moreFor, setMoreFor] = useState<{ childId: string; firstName: string } | null>(null);
-  const [moreView, setMoreView] = useState<'menu' | 'meal' | 'diaper' | 'note' | 'accident'>('menu');
+  const [moreView, setMoreView] = useState<
+    'menu' | 'meal' | 'diaper' | 'note' | 'accident' | 'medication' | 'illness'
+  >('menu');
+  const [medAuths, setMedAuths] = useState<
+    { id: string; drug_name: string; dose: string | null; schedule: string | null; symptoms: string | null; kind: string }[]
+  >([]);
+  const [medSelected, setMedSelected] = useState<string | null>(null);
+  const [doseGiven, setDoseGiven] = useState('');
+  const [medOutcome, setMedOutcome] = useState('');
+  const [illSymptoms, setIllSymptoms] = useState('');
   const [meal, setMeal] = useState<(typeof MEALS)[number]['value'] | null>(null);
   const [eaten, setEaten] = useState<(typeof EATEN)[number]['value'] | null>(null);
   const [diaper, setDiaper] = useState<(typeof DIAPERS)[number]['value'] | null>(null);
@@ -270,7 +279,60 @@ function Board() {
     setAccFirstAid('');
     setAccHead(false);
     setAccWatch('');
+    setMedAuths([]);
+    setMedSelected(null);
+    setDoseGiven('');
+    setMedOutcome('');
+    setIllSymptoms('');
     setMoreFor({ childId, firstName });
+    void supabase
+      .from('medication_authorisation')
+      .select('id, drug_name, dose, schedule, symptoms, kind')
+      .eq('child_id', childId)
+      .is('revoked_at', null)
+      .then(({ data }) => setMedAuths((data as never) ?? []));
+  }
+
+  function giveMedication() {
+    const target = moreFor;
+    const auth = medAuths.find((a) => a.id === medSelected);
+    if (!target || !auth) return;
+    setMoreFor(null);
+    void act(target.childId, (recorder) =>
+      runCommand('record_medication_administration', {
+        p_authorisation: auth.id,
+        p_administered_at: new Date().toISOString(),
+        p_dose_given: doseGiven.trim() || auth.dose,
+        p_outcome: medOutcome.trim() || null,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
+  // Illness (s. 32 / s. 36): record the observation and send the Now alert —
+  // the loud channel exists exactly for this.
+  async function sendHomeSick() {
+    const target = moreFor;
+    if (!target || !illSymptoms.trim() || !day) return;
+    setMoreFor(null);
+    const symptoms = illSymptoms.trim();
+    const obs = await careLog(target.childId, 'health_observation', {
+      observation: 'unwell — family contacted to arrange pickup',
+      symptoms: [symptoms],
+    });
+    if (obs?.ok) {
+      await act(target.childId, (recorder) =>
+        runCommand('create_now_alert', {
+          p_child: target.childId,
+          p_event_type: 'illness_sent_home',
+          p_title: `${target.firstName} is unwell`,
+          p_body: `${target.firstName} has ${symptoms}. Please call ${day.centre.name} to arrange pickup.`,
+          p_recorder: recorder.personId,
+          p_pin: recorder.pin,
+        }),
+      );
+    }
   }
 
   function saveAccident() {
@@ -466,8 +528,52 @@ function Board() {
             <Button label="Record meal" kind="quiet" onPress={() => setMoreView('meal')} />
             <Button label="Record diaper" kind="quiet" onPress={() => setMoreView('diaper')} />
             <Button label="Add note" kind="quiet" onPress={() => setMoreView('note')} />
+            {medAuths.length > 0 ? (
+              <Button label="Give medication" kind="quiet" onPress={() => setMoreView('medication')} />
+            ) : null}
             <Button label="Record accident report" kind="quiet" onPress={() => setMoreView('accident')} />
+            <Button label="Illness — send home" kind="quiet" onPress={() => setMoreView('illness')} />
             <Button label="Close" kind="quiet" onPress={() => setMoreFor(null)} />
+          </>
+        ) : null}
+        {moreView === 'medication' ? (
+          <>
+            <Body muted>
+              Every administration is logged — blanket items included (s. 40). Expired or revoked
+              authorisations are refused automatically.
+            </Body>
+            {medAuths.map((a) => (
+              <Button
+                key={a.id}
+                label={`${a.drug_name}${a.dose ? ` — ${a.dose}` : ''}${a.schedule ? ` (${a.schedule})` : a.symptoms ? ` (${a.symptoms})` : ''}`}
+                kind={medSelected === a.id ? 'primary' : 'quiet'}
+                onPress={() => {
+                  setMedSelected(a.id);
+                  setDoseGiven(a.dose ?? '');
+                }}
+              />
+            ))}
+            {medSelected ? (
+              <>
+                <Field placeholder="Dose given" value={doseGiven} onChangeText={setDoseGiven} />
+                <Field placeholder="Outcome (optional)" value={medOutcome} onChangeText={setMedOutcome} />
+                <Button label="Log administration" onPress={giveMedication} />
+              </>
+            ) : null}
+          </>
+        ) : null}
+        {moreView === 'illness' ? (
+          <>
+            <Body muted>
+              Records the observation and sends the family a Now alert to arrange pickup. The alert
+              stays until a parent acknowledges it.
+            </Body>
+            <Field
+              placeholder="Symptoms — e.g. a fever of 38.9°C"
+              value={illSymptoms}
+              onChangeText={setIllSymptoms}
+            />
+            <Button label="Record and alert the family" onPress={() => void sendHomeSick()} />
           </>
         ) : null}
         {moreView === 'meal' ? (

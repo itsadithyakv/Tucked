@@ -696,6 +696,12 @@ main.signin .mark {
   flex-wrap: wrap;
 }
 
+button.small {
+  min-height: 34px;
+  padding: 0 var(--space-md);
+  font-size: 13px;
+}
+
 /* ── print: the inspection copy ────────────────────────────────────────── */
 @media print {
   aside.sidebar,

@@ -95,3 +95,23 @@ export function fmtDate(iso: string | null): string {
     new Date(`${iso.slice(0, 10)}T12:00:00`),
   );
 }
+
+/** Per-section CSV exports (build prompt: exports by regulation section). */
+export function downloadCsv(filename: string, header: string[], rows: (string | null | undefined)[][]) {
+  const esc = (v: string | null | undefined) => `"${(v ?? '').replace(/"/g, '""')}"`;
+  const content = [header.join(','), ...rows.map((r) => r.map(esc).join(','))].join('\n');
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/** The UTC instant for a local date+time in the centre's timezone. */
+export function zonedToUtc(date: string, time: string, tz: string): Date {
+  const guess = new Date(`${date}T${time}:00Z`);
+  const inTz = new Date(guess.toLocaleString('en-US', { timeZone: tz }));
+  const inUtc = new Date(guess.toLocaleString('en-US', { timeZone: 'UTC' }));
+  return new Date(guess.getTime() - (inTz.getTime() - inUtc.getTime()));
+}

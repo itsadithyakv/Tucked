@@ -4,6 +4,7 @@
  * never blank, with supervisor verification state. */
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { getSupabase } from '@/lib/supabase';
 import { useConsole } from '@/lib/console';
 
@@ -89,7 +90,9 @@ export default function ChildrenPage() {
               const list = items.get(c.id) ?? [];
               return (
                 <tr key={c.id}>
-                  <td>{c.full_name}</td>
+                  <td>
+                    <Link href={`/children/${c.id}`}>{c.full_name}</Link>
+                  </td>
                   <td>{c.room?.name ?? '—'}</td>
                   <td>{c.date_of_birth}</td>
                   <td>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
+import { registerForPush } from './push';
 import { supabase } from './supabase';
 
 export interface RoleRow {
@@ -58,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         : null;
       if (!cancelled) setState({ session, profile, loading: false });
+      if (profile) void registerForPush(profile.personId);
     }
 
     supabase.auth.getSession().then(({ data }) => loadProfile(data.session));

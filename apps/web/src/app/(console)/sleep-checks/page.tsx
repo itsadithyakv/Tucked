@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
-import { fmtTime, useConsole } from '@/lib/console';
+import { downloadCsv, fmtTime, useConsole } from '@/lib/console';
 
 interface CheckRow {
   logged_at: string;
@@ -34,10 +34,34 @@ export default function SleepChecksPage() {
   return (
     <>
       <h1>Sleep checks</h1>
-      <label className="inline">
-        Day
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </label>
+      <div className="toolbar">
+        <label className="inline">
+          Day
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <button
+          className="quiet"
+          onClick={() =>
+            downloadCsv(
+              `sleep-checks-${centre.licence_number}-${date}.csv`,
+              ['Time', 'Child', 'Room', 'Breathing OK', 'Position', 'By'],
+              rows.map((r) => [
+                fmtTime(r.logged_at, centre.timezone),
+                r.child?.full_name,
+                r.room?.name,
+                r.payload.breathing_ok ? 'yes' : 'INTERVENTION',
+                r.payload.position ?? '',
+                r.by?.full_name,
+              ]),
+            )
+          }
+        >
+          Download CSV
+        </button>
+        <button className="quiet" onClick={() => window.print()}>
+          Print / save PDF
+        </button>
+      </div>
       <div className="card">
         <table>
           <thead>

@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
-import { fmtDate, fmtTime, useConsole } from '@/lib/console';
+import { downloadCsv, fmtDate, fmtTime, useConsole } from '@/lib/console';
 
 interface Report {
   id: string;
@@ -43,6 +43,36 @@ export default function AccidentsPage() {
   return (
     <>
       <h1>Accident reports</h1>
+      <div className="toolbar">
+        <button
+          className="quiet"
+          onClick={() =>
+            downloadCsv(
+              `accident-reports-${centre.licence_number}.csv`,
+              ['Date', 'Time', 'Child', 'Location', 'What happened', 'Injury', 'Severity', 'First aid', 'Head injury', 'Completed by', 'Acknowledged by', 'Acknowledged at'],
+              reports.map((r) => [
+                fmtDate(r.occurred_date),
+                fmtTime(r.occurred_at, centre.timezone),
+                r.child?.full_name,
+                r.location,
+                r.description,
+                r.injury,
+                r.severity.replace('_', ' '),
+                r.first_aid,
+                r.head_injury ? 'yes' : 'no',
+                r.completed_by_person?.full_name,
+                r.ack_person?.full_name ?? 'NOT ACKNOWLEDGED',
+                r.parent_ack_at ? `${fmtDate(r.parent_ack_at)} ${fmtTime(r.parent_ack_at, centre.timezone)}` : '',
+              ]),
+            )
+          }
+        >
+          Download CSV
+        </button>
+        <button className="quiet" onClick={() => window.print()}>
+          Print / save PDF
+        </button>
+      </div>
       {reports.map((r) => (
         <section className="card" key={r.id}>
           <h2>
