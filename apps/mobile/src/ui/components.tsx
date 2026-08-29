@@ -8,14 +8,16 @@
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
 import type { TextInputProps } from 'react-native';
-import { a11y, colour, radius, space, type } from '@tucked/ui-tokens';
+import { a11y, colour, radius, shadow, space, type } from '@tucked/ui-tokens';
 
 export function Screen({ children }: { children: ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -91,6 +93,68 @@ export function Button({
         </Text>
       )}
     </Pressable>
+  );
+}
+
+/** Clay bottom sheet — the room device's one modal pattern. */
+export function Sheet({
+  visible,
+  onClose,
+  title,
+  children,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.sheetBackdrop}>
+        <View style={styles.sheetPanel}>
+          <Heading>{title}</Heading>
+          <ScrollView
+            style={{ maxHeight: 460 }}
+            contentContainerStyle={{ gap: space.md }}
+            keyboardShouldPersistTaps="handled"
+          >
+            {children}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+/** A row of chunky choice chips (severity, meal, eaten…). */
+export function Choices<T extends string>({
+  options,
+  value,
+  onChange,
+}: {
+  options: { value: T; label: string }[];
+  value: T | null;
+  onChange: (v: T) => void;
+}) {
+  return (
+    <View style={styles.choices}>
+      {options.map((o) => (
+        <Pressable
+          key={o.value}
+          accessibilityRole="button"
+          onPress={() => onChange(o.value)}
+          style={({ pressed }) => [
+            styles.choice,
+            value === o.value && styles.choiceActive,
+            pressed && { transform: [{ scale: 0.96 }] },
+          ]}
+        >
+          <Text style={[styles.choiceText, value === o.value && styles.choiceTextActive]}>
+            {o.label}
+          </Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
 
@@ -184,4 +248,28 @@ const styles = StyleSheet.create({
     minHeight: a11y.minTouchTarget + 4,
     paddingHorizontal: space.base,
   },
+  sheetBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(23, 50, 92, 0.35)',
+    justifyContent: 'flex-end',
+    padding: space.base,
+  },
+  sheetPanel: {
+    backgroundColor: colour.surface,
+    borderRadius: radius.xl,
+    padding: space.lg,
+    gap: space.md,
+    ...shadow.raised,
+  },
+  choices: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
+  choice: {
+    backgroundColor: colour.canvas,
+    borderRadius: radius.pill,
+    paddingHorizontal: space.base,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+  choiceActive: { backgroundColor: colour.blue600 },
+  choiceText: { ...type.label, color: colour.slate } as const,
+  choiceTextActive: { color: colour.surface } as const,
 });

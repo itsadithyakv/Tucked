@@ -17,6 +17,7 @@ export interface CentreInfo {
   opens_at: string;
   closes_at: string;
   sleep_check_interval_minutes: number;
+  safe_arrival_cutoff: string;
 }
 
 export interface RoomInfo {
@@ -53,6 +54,11 @@ export interface CareLogRow {
   logged_at: string;
 }
 
+export interface SafeArrivalRow {
+  child_id: string;
+  resolved_at: string | null;
+}
+
 export interface RoomDay {
   centre: CentreInfo;
   rooms: RoomInfo[];
@@ -60,6 +66,7 @@ export interface RoomDay {
   attendance: AttendanceRow[];
   shifts: ShiftRow[];
   sleepLogs: CareLogRow[];
+  safeChecks: SafeArrivalRow[];
   staff: { personId: string; fullName: string; role: string }[];
 }
 
@@ -67,11 +74,11 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
   const today = new Date().toISOString().slice(0, 10);
   const { data: centre } = await supabase
     .from('centre')
-    .select('id, name, timezone, opens_at, closes_at, sleep_check_interval_minutes')
+    .select('id, name, timezone, opens_at, closes_at, sleep_check_interval_minutes, safe_arrival_cutoff')
     .limit(1)
     .maybeSingle();
   if (!centre) return null;
-  const [rooms, children, attendance, shifts, sleepLogs, staffRoles] = await Promise.all([
+  const [rooms, children, attendance, shifts, sleepLogs, safeChecks, staffRoles] = await Promise.all([
     supabase
       .from('room')
       .select('id, name, age_group:age_group_id(preset)')
@@ -102,6 +109,11 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
       .in('log_type', ['nap_start', 'nap_end', 'sleep_check'])
       .order('logged_at'),
     supabase
+      .from('safe_arrival_check')
+      .select('child_id, resolved_at')
+      .eq('centre_id', centre.id)
+      .eq('check_date', today),
+    supabase
       .from('person_role')
       .select('role, person:person_id(id, full_name)')
       .eq('centre_id', centre.id)
@@ -117,6 +129,7 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
     attendance: (attendance.data as AttendanceRow[]) ?? [],
     shifts: (shifts.data as never as ShiftRow[]) ?? [],
     sleepLogs: (sleepLogs.data as CareLogRow[]) ?? [],
+    safeChecks: (safeChecks.data as SafeArrivalRow[]) ?? [],
     staff: ((staffRoles.data as never as { role: string; person: { id: string; full_name: string } | null }[]) ?? [])
       .filter((r) => r.person)
       .map((r) => ({ personId: r.person!.id, fullName: r.person!.full_name, role: r.role })),

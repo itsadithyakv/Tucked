@@ -35,13 +35,44 @@ export default function AttendancePage() {
       .then(({ data }) => setRows((data as never) ?? []));
   }, [centre.id, date]);
 
+  function downloadCsv() {
+    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const lines = [
+      ['Child', 'Room', 'Event', 'Actual time', 'Recorded by', 'Correction reason'].join(','),
+      ...rows.map((r) =>
+        [
+          esc(r.child?.full_name ?? ''),
+          esc(r.room?.name ?? ''),
+          esc(r.event_type),
+          esc(fmtTime(r.actual_time, centre.timezone)),
+          esc(r.recorded_by_person?.full_name ?? ''),
+          esc(r.correction_of ? (r.correction_reason ?? '') : ''),
+        ].join(','),
+      ),
+    ];
+    const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `attendance-${centre.licence_number}-${date}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   return (
     <>
       <h1>Attendance</h1>
-      <label className="inline">
-        Day
-        <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-      </label>
+      <div className="toolbar">
+        <label className="inline">
+          Day
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+        </label>
+        <button className="quiet" onClick={downloadCsv}>
+          Download CSV
+        </button>
+        <button className="quiet" onClick={() => window.print()}>
+          Print / save PDF
+        </button>
+      </div>
       <div className="card">
         <table>
           <thead>

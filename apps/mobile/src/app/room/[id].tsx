@@ -1,25 +1,62 @@
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Modal, StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import {
-  activeWindow,
-  sleepCheckRequired,
-  staffRequiredEffective,
-} from '@tucked/domain';
-import { colour, radius, shadow, space } from '@tucked/ui-tokens';
+import { activeWindow, sleepCheckRequired, staffRequiredEffective } from '@tucked/domain';
+import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { runCommand } from '@/lib/queue';
+import type { RpcResult } from '@/lib/queue';
 import { RecorderProvider, useRecorder } from '@/lib/recorder';
 import { loadRoomDay, presentByRoom } from '@/lib/roomData';
 import type { RoomDay } from '@/lib/roomData';
-import { Body, Button, Caption, Card, Field, Heading, Pill, Screen, Title } from '@/ui/components';
+import {
+  Body,
+  Button,
+  Caption,
+  Card,
+  Choices,
+  Field,
+  Heading,
+  Pill,
+  Screen,
+  Sheet,
+  Title,
+} from '@/ui/components';
 import { SwipeChildCard } from '@/ui/SwipeChildCard';
 
 interface PickupOption {
   personId: string | null;
   label: string;
 }
+
+const MEALS = [
+  { value: 'breakfast', label: 'Breakfast' },
+  { value: 'lunch', label: 'Lunch' },
+  { value: 'snack_am', label: 'Morning snack' },
+  { value: 'snack_pm', label: 'Afternoon snack' },
+] as const;
+
+const EATEN = [
+  { value: 'all', label: 'Finished' },
+  { value: 'most', label: 'Most' },
+  { value: 'some', label: 'Some' },
+  { value: 'none', label: 'Not interested' },
+] as const;
+
+const DIAPERS = [
+  { value: 'wet', label: 'Wet' },
+  { value: 'soiled', label: 'Soiled' },
+  { value: 'both', label: 'Both' },
+  { value: 'dry', label: 'Dry' },
+] as const;
+
+const SEVERITIES = [
+  { value: 'none_apparent', label: 'No apparent injury' },
+  { value: 'minor', label: 'Minor' },
+  { value: 'moderate', label: 'Moderate' },
+  { value: 'serious', label: 'Serious' },
+] as const;
 
 function ageMonths(dob: string): number {
   const d = new Date(dob);
@@ -39,8 +76,28 @@ function Board() {
   const [day, setDay] = useState<RoomDay | null>(null);
   const [busyChild, setBusyChild] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // sheets
   const [pickupFor, setPickupFor] = useState<{ childId: string; options: PickupOption[] } | null>(null);
   const [namedPickup, setNamedPickup] = useState('');
+  const [obsFor, setObsFor] = useState<{ childId: string; firstName: string } | null>(null);
+  const [obsNote, setObsNote] = useState('');
+  const [obsParent, setObsParent] = useState('');
+  const [moreFor, setMoreFor] = useState<{ childId: string; firstName: string } | null>(null);
+  const [moreView, setMoreView] = useState<'menu' | 'meal' | 'diaper' | 'note' | 'accident'>('menu');
+  const [meal, setMeal] = useState<(typeof MEALS)[number]['value'] | null>(null);
+  const [eaten, setEaten] = useState<(typeof EATEN)[number]['value'] | null>(null);
+  const [diaper, setDiaper] = useState<(typeof DIAPERS)[number]['value'] | null>(null);
+  const [noteText, setNoteText] = useState('');
+  const [bulkOpen, setBulkOpen] = useState(false);
+  // accident form
+  const [accLocation, setAccLocation] = useState('');
+  const [accWhat, setAccWhat] = useState('');
+  const [accInjury, setAccInjury] = useState('');
+  const [accSeverity, setAccSeverity] = useState<(typeof SEVERITIES)[number]['value'] | null>(null);
+  const [accFirstAid, setAccFirstAid] = useState('');
+  const [accHead, setAccHead] = useState(false);
+  const [accWatch, setAccWatch] = useState('');
 
   const refresh = useCallback(() => {
     loadRoomDay().then(setDay);
@@ -57,13 +114,10 @@ function Board() {
     [day, roomId, present],
   );
 
-  // live ratio: staff on shift in this room and counted, vs required for the
-  // present count in the current window (ss. 8–11 via the domain engine)
   const ratio = useMemo(() => {
     if (!day || !room) return null;
     const counted = day.shifts.filter((s) => s.room_id === roomId && s.counted_in_ratio && !s.out_at).length;
-    const now = new Date();
-    const local = now.toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
+    const local = new Date().toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
     const nowMin = minutesOfDay(local);
     const openMin = minutesOfDay(day.centre.opens_at);
     const closeMin = minutesOfDay(day.centre.closes_at);
@@ -77,7 +131,6 @@ function Board() {
     return { counted, required, reduced, ok: counted >= required };
   }, [day, room, roomId, present]);
 
-  // sleep state per under-24-month child: napping since / last check
   const sleep = useMemo(() => {
     if (!day) return new Map<string, { napStart: string; lastCheck: string | null }>();
     const map = new Map<string, { napStart: string; lastCheck: string | null }>();
@@ -92,10 +145,13 @@ function Board() {
     return map;
   }, [day]);
 
-  async function act(childId: string, fn: (recorder: { personId: string; pin: string }) => Promise<{ ok: boolean; queued: boolean; error?: string }>) {
+  async function act(
+    childId: string | null,
+    fn: (recorder: { personId: string; pin: string }) => Promise<RpcResult>,
+  ): Promise<RpcResult | null> {
     setNotice(null);
     const recorder = await getRecorder();
-    if (!recorder) return;
+    if (!recorder) return null;
     setBusyChild(childId);
     const result = await fn(recorder);
     setBusyChild(null);
@@ -106,10 +162,12 @@ function Board() {
       if (result.queued) setNotice('Saved on this device — will sync when the connection returns.');
       refresh();
     }
+    return result;
   }
 
-  function signIn(childId: string) {
-    void act(childId, (recorder) =>
+  async function signIn(childId: string) {
+    const child = roomChildren.find((c) => c.id === childId);
+    const result = await act(childId, (recorder) =>
       runCommand('record_attendance', {
         p_centre: day!.centre.id,
         p_child: childId,
@@ -120,6 +178,12 @@ function Board() {
         p_pin: recorder.pin,
       }),
     );
+    if (result?.ok && child) {
+      // s. 32: each child is observed on arrival, before joining the others.
+      setObsNote('');
+      setObsParent('');
+      setObsFor({ childId, firstName: child.full_name.split(' ')[0]! });
+    }
   }
 
   function markAbsent(childId: string) {
@@ -169,7 +233,7 @@ function Board() {
   }
 
   function careLog(childId: string, logType: string, payload: Record<string, unknown>) {
-    void act(childId, (recorder) =>
+    return act(childId, (recorder) =>
       runCommand('record_care_log', {
         p_centre: day!.centre.id,
         p_child: childId,
@@ -177,6 +241,79 @@ function Board() {
         p_type: logType,
         p_logged_at: new Date().toISOString(),
         p_payload: payload,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
+  function saveObservation(observation: string, parentReported: string) {
+    const target = obsFor;
+    setObsFor(null);
+    if (!target) return;
+    void careLog(target.childId, 'health_observation', {
+      observation,
+      ...(parentReported.trim() ? { parent_reported: parentReported.trim() } : {}),
+    });
+  }
+
+  function openMore(childId: string, firstName: string) {
+    setMoreView('menu');
+    setMeal(null);
+    setEaten(null);
+    setDiaper(null);
+    setNoteText('');
+    setAccLocation('');
+    setAccWhat('');
+    setAccInjury('');
+    setAccSeverity(null);
+    setAccFirstAid('');
+    setAccHead(false);
+    setAccWatch('');
+    setMoreFor({ childId, firstName });
+  }
+
+  function saveAccident() {
+    const target = moreFor;
+    if (!target || !accSeverity || !accLocation.trim() || !accWhat.trim() || !accInjury.trim() || !accFirstAid.trim()) {
+      setNotice('An accident report needs the location, what happened, the injury, its severity and the first aid given.');
+      return;
+    }
+    if (accHead && !accWatch.trim()) {
+      setNotice('A head injury needs the concussion-watch note.');
+      return;
+    }
+    setMoreFor(null);
+    void act(target.childId, (recorder) =>
+      runCommand('record_accident_report', {
+        p_centre: day!.centre.id,
+        p_child: target.childId,
+        p_occurred_at: new Date().toISOString(),
+        p_location: accLocation.trim(),
+        p_description: accWhat.trim(),
+        p_injury: accInjury.trim(),
+        p_severity: accSeverity,
+        p_first_aid: accFirstAid.trim(),
+        p_head_injury: accHead,
+        p_concussion_watch_note: accHead ? accWatch.trim() : null,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
+  function saveBulkMeal() {
+    if (!meal || !eaten) return;
+    setBulkOpen(false);
+    const ids = roomChildren.filter((c) => present.has(c.id)).map((c) => c.id);
+    void act(null, (recorder) =>
+      runCommand('record_care_log_bulk', {
+        p_centre: day!.centre.id,
+        p_children: ids,
+        p_room: roomId,
+        p_type: 'meal',
+        p_logged_at: new Date().toISOString(),
+        p_payload: { meal, eaten },
         p_recorder: recorder.personId,
         p_pin: recorder.pin,
       }),
@@ -210,7 +347,10 @@ function Board() {
           {`Requires ${ratio?.required ?? '—'} in ratio${ratio?.reduced ? ' (reduced-ratio window)' : ''}`}
         </Caption>
       </Card>
-      <Caption>Swipe a child right to sign in — left to sign out or mark absent.</Caption>
+      <View style={styles.rowBetween}>
+        <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
+        <Button label="Room meal" kind="quiet" onPress={() => { setMeal(null); setEaten(null); setBulkOpen(true); }} />
+      </View>
       {notice ? (
         <Card wash="mist">
           <Body muted>{notice}</Body>
@@ -239,24 +379,30 @@ function Board() {
               name={item.full_name}
               present={isPresent}
               subtitle={subtitle}
-              onSignIn={() => signIn(item.id)}
+              onSignIn={() => void signIn(item.id)}
               onSignOut={() => void openPickup(item.id)}
               onMarkAbsent={() => markAbsent(item.id)}
             >
-              {isPresent && needsChecks ? (
+              {isPresent ? (
                 <View style={styles.actions}>
-                  {!napping ? (
-                    <Button label="Start nap" kind="quiet" onPress={() => careLog(item.id, 'nap_start', {})} />
-                  ) : (
+                  {needsChecks && !napping ? (
+                    <Button label="Start nap" kind="quiet" onPress={() => void careLog(item.id, 'nap_start', {})} />
+                  ) : null}
+                  {napping ? (
                     <>
                       <Button
                         label={checkDue ? 'Sleep check due' : 'Record sleep check'}
                         kind={checkDue ? 'primary' : 'quiet'}
-                        onPress={() => careLog(item.id, 'sleep_check', { breathing_ok: true, position: 'back' })}
+                        onPress={() => void careLog(item.id, 'sleep_check', { breathing_ok: true, position: 'back' })}
                       />
-                      <Button label="End nap" kind="quiet" onPress={() => careLog(item.id, 'nap_end', {})} />
+                      <Button label="End nap" kind="quiet" onPress={() => void careLog(item.id, 'nap_end', {})} />
                     </>
-                  )}
+                  ) : null}
+                  <Button
+                    label="More"
+                    kind="quiet"
+                    onPress={() => openMore(item.id, item.full_name.split(' ')[0]!)}
+                  />
                 </View>
               ) : null}
             </SwipeChildCard>
@@ -264,34 +410,147 @@ function Board() {
         }}
       />
 
-      <Modal visible={pickupFor !== null} transparent animationType="fade" onRequestClose={() => setPickupFor(null)}>
-        <View style={styles.backdrop}>
-          <View style={styles.sheet}>
-            <Heading>Released to</Heading>
-            <Body muted>Release only to an authorised person, with identity confirmed (s. 50).</Body>
-            {pickupFor?.options.map((option) => (
-              <Button
-                key={option.personId ?? option.label}
-                label={option.label}
-                kind="quiet"
-                onPress={() => signOut(pickupFor.childId, option, null)}
-              />
-            ))}
-            <Field
-              placeholder="Someone else on the authorised list (name)"
-              value={namedPickup}
-              onChangeText={setNamedPickup}
-            />
+      {/* s. 50: identity-confirmed release */}
+      <Sheet visible={pickupFor !== null} onClose={() => setPickupFor(null)} title="Released to">
+        <Body muted>Release only to an authorised person, with identity confirmed (s. 50).</Body>
+        {pickupFor?.options.map((option) => (
+          <Button
+            key={option.personId ?? option.label}
+            label={option.label}
+            kind="quiet"
+            onPress={() => signOut(pickupFor.childId, option, null)}
+          />
+        ))}
+        <Field
+          placeholder="Someone else on the authorised list (name)"
+          value={namedPickup}
+          onChangeText={setNamedPickup}
+        />
+        <Button
+          label="Confirm release"
+          onPress={() => {
+            if (pickupFor && namedPickup.trim()) signOut(pickupFor.childId, null, namedPickup.trim());
+          }}
+        />
+        <Button label="Cancel" kind="quiet" onPress={() => setPickupFor(null)} />
+      </Sheet>
+
+      {/* s. 32: arrival observation, one tap for the common case */}
+      <Sheet
+        visible={obsFor !== null}
+        onClose={() => saveObservation('settled and well on arrival', '')}
+        title={obsFor ? `How does ${obsFor.firstName} seem?` : ''}
+      >
+        <Button label="Settled and well" onPress={() => saveObservation('settled and well on arrival', obsParent)} />
+        <Field placeholder="Anything you noticed (optional)" value={obsNote} onChangeText={setObsNote} />
+        <Field
+          placeholder="Anything the parent mentioned (optional)"
+          value={obsParent}
+          onChangeText={setObsParent}
+        />
+        <Button
+          label="Save observation"
+          kind="quiet"
+          onPress={() => saveObservation(obsNote.trim() || 'settled and well on arrival', obsParent)}
+        />
+      </Sheet>
+
+      {/* per-child quick actions */}
+      <Sheet
+        visible={moreFor !== null}
+        onClose={() => setMoreFor(null)}
+        title={moreFor ? `${moreFor.firstName}` : ''}
+      >
+        {moreView === 'menu' ? (
+          <>
+            <Button label="Record meal" kind="quiet" onPress={() => setMoreView('meal')} />
+            <Button label="Record diaper" kind="quiet" onPress={() => setMoreView('diaper')} />
+            <Button label="Add note" kind="quiet" onPress={() => setMoreView('note')} />
+            <Button label="Record accident report" kind="quiet" onPress={() => setMoreView('accident')} />
+            <Button label="Close" kind="quiet" onPress={() => setMoreFor(null)} />
+          </>
+        ) : null}
+        {moreView === 'meal' ? (
+          <>
+            <Choices options={[...MEALS]} value={meal} onChange={setMeal} />
+            <Choices options={[...EATEN]} value={eaten} onChange={setEaten} />
             <Button
-              label="Confirm release"
+              label="Save meal"
               onPress={() => {
-                if (pickupFor && namedPickup.trim()) signOut(pickupFor.childId, null, namedPickup.trim());
+                if (moreFor && meal && eaten) {
+                  const id = moreFor.childId;
+                  setMoreFor(null);
+                  void careLog(id, 'meal', { meal, eaten });
+                }
               }}
             />
-            <Button label="Cancel" kind="quiet" onPress={() => setPickupFor(null)} />
-          </View>
-        </View>
-      </Modal>
+          </>
+        ) : null}
+        {moreView === 'diaper' ? (
+          <>
+            <Choices options={[...DIAPERS]} value={diaper} onChange={setDiaper} />
+            <Button
+              label="Save diaper"
+              onPress={() => {
+                if (moreFor && diaper) {
+                  const id = moreFor.childId;
+                  setMoreFor(null);
+                  void careLog(id, 'diaper', { kind: diaper });
+                }
+              }}
+            />
+          </>
+        ) : null}
+        {moreView === 'note' ? (
+          <>
+            <Field placeholder="Note for the day" value={noteText} onChangeText={setNoteText} />
+            <Button
+              label="Save note"
+              onPress={() => {
+                if (moreFor && noteText.trim()) {
+                  const id = moreFor.childId;
+                  setMoreFor(null);
+                  void careLog(id, 'note', { text: noteText.trim() });
+                }
+              }}
+            />
+          </>
+        ) : null}
+        {moreView === 'accident' ? (
+          <>
+            <Body muted>
+              The family receives a Now alert and acknowledges their copy in the app (s. 36(4)).
+            </Body>
+            <Field placeholder="Where it happened" value={accLocation} onChangeText={setAccLocation} />
+            <Field placeholder="What happened" value={accWhat} onChangeText={setAccWhat} />
+            <Field placeholder="The injury" value={accInjury} onChangeText={setAccInjury} />
+            <Choices options={[...SEVERITIES]} value={accSeverity} onChange={setAccSeverity} />
+            <Field placeholder="First aid given" value={accFirstAid} onChangeText={setAccFirstAid} />
+            <Button
+              label={accHead ? 'Head injury: yes' : 'Head injury: no'}
+              kind={accHead ? 'primary' : 'quiet'}
+              onPress={() => setAccHead(!accHead)}
+            />
+            {accHead ? (
+              <Field
+                placeholder="Concussion watch instructions for the family"
+                value={accWatch}
+                onChangeText={setAccWatch}
+              />
+            ) : null}
+            <Button label="Send accident report" onPress={saveAccident} />
+          </>
+        ) : null}
+      </Sheet>
+
+      {/* one tap logs the meal for everyone present */}
+      <Sheet visible={bulkOpen} onClose={() => setBulkOpen(false)} title="Meal for the room">
+        <Body muted>{`Logs one meal entry for each of the ${present.size} children present.`}</Body>
+        <Choices options={[...MEALS]} value={meal} onChange={setMeal} />
+        <Choices options={[...EATEN]} value={eaten} onChange={setEaten} />
+        <Button label="Log for the room" onPress={saveBulkMeal} />
+        <Button label="Cancel" kind="quiet" onPress={() => setBulkOpen(false)} />
+      </Sheet>
     </Screen>
   );
 }
@@ -323,17 +582,4 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   actions: { gap: space.sm },
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(23, 50, 92, 0.35)',
-    justifyContent: 'flex-end',
-    padding: space.base,
-  },
-  sheet: {
-    backgroundColor: colour.surface,
-    borderRadius: radius.xl,
-    padding: space.lg,
-    gap: space.md,
-    ...shadow.raised,
-  },
 });

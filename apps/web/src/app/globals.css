@@ -689,6 +689,38 @@ main.signin .mark {
   }
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+/* ── print: the inspection copy ────────────────────────────────────────── */
+@media print {
+  aside.sidebar,
+  .menu-button,
+  .toolbar button,
+  button {
+    display: none !important;
+  }
+
+  .console main {
+    max-width: none;
+    padding: 0;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid var(--line);
+  }
+
+  .page-enter > *,
+  .cards-row > * {
+    animation: none !important;
+  }
+}
+
 /* ── calm for everyone ─────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *,

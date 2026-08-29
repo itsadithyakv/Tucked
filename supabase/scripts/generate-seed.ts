@@ -169,10 +169,12 @@ for (const inf of infants) {
   );
 }
 
-const toddler = f.children[10]!;
+// The accident lands on a demo-household child so the parent@ login can
+// demonstrate the s. 36(4) acknowledge loop end to end.
+const accidentChild = f.children.find((ch) => demoChildIds.has(ch.id) && ch.id !== f.children[0]!.id)!;
 lines.push(
   `insert into public.accident_report (centre_id, child_id, occurred_at, occurred_date, location, description, injury, severity, first_aid, head_injury, concussion_watch_note, completed_by)`,
-  `values ('${c.id}', '${toddler.id}', now() - interval '100 minutes', '1970-01-01', 'Playground', 'Tripped on the path and bumped her head on the edge of the planter', 'Small bump above the left eyebrow', 'minor', 'Ice pack for 10 minutes, comforted, observed', true, 'Watch for vomiting, drowsiness or unusual behaviour for 24 hours', '${educator.id}');`,
+  `values ('${c.id}', '${accidentChild.id}', now() - interval '100 minutes', '1970-01-01', 'Playground', 'Tripped on the path and bumped their head on the edge of the planter', 'Small bump above the left eyebrow', 'minor', 'Ice pack for 10 minutes, comforted, observed', true, 'Watch for vomiting, drowsiness or unusual behaviour for 24 hours', '${educator.id}');`,
 );
 
 const mayaId = f.children[0]!.id;
@@ -210,11 +212,7 @@ for (const id of demoChildIds) {
     `values ('${c.id}', '${id}', '${demoParent.id}', 'later', 'story', 'Today''s story', 'The day''s story is ready.', '${educator.id}');`,
   );
 }
-lines.push(
-  `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by)`,
-  `select '${c.id}', '${toddler.id}', hm.person_id, 'now', 'accident_report', 'Accident report for ${toddler.fullName.split(' ')[0]}', 'A minor accident was recorded today. Please read and acknowledge the report.', true, '${educator.id}'`,
-  `from public.child_household ch join public.household_member hm on hm.household_id = ch.household_id where ch.child_id = '${toddler.id}' and hm.revoked_at is null and hm.can_view;`,
-);
+// (The accident's Now alerts are created by the 0015 database trigger.)
 
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'seed.sql');
 writeFileSync(out, lines.join('\n') + '\n', 'utf8');
