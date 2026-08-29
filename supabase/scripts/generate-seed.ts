@@ -83,6 +83,15 @@ for (const r of f.personRoles) {
   );
 }
 
+lines.push('', '-- staff PINs (demo: 1234 for every workforce member)');
+for (const r of f.personRoles) {
+  if (r.role !== 'family_adult') {
+    lines.push(
+      `insert into public.staff_pin (person_id, centre_id, pin_hash) values ('${r.personId}', '${r.centreId}', extensions.crypt('1234', extensions.gen_salt('bf')));`,
+    );
+  }
+}
+
 lines.push('', '-- families');
 for (const h of f.households) {
   lines.push(

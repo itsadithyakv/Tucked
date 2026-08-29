@@ -2,6 +2,18 @@
 
 *Why, not what. Newest at the top. A decision recorded here is settled — reopen it only with new evidence, and record the reopening here too.*
 
+## 2026-08-29 — Phase 1 go-ahead answers (from the founder)
+
+- **Sign-in/out is staff-recorded in v1.** The educator records arrival/departure on the room device; the arrival health observation (s. 32) and authorised-pickup confirmation (s. 50) live inside that one flow. No parent kiosk yet — it adds a device mode and identity checks without serving the first 40-centre profile.
+- **EAS set up during Phase 1.** Real push (the Now channel) needs a development build — Expo Go can't receive remote push. The founder signs in to expo.dev themselves; Claude never handles the credentials.
+- **Daily written record defaults to per-centre**, one record per operating day drafted from all rooms' logs, supervisor closes. Per-room remains a toggle (schema supports both).
+
+## 2026-08-29 — Phase 1 design decisions
+
+- **The daily story publishes at the child's sign-out** (their day is complete at pick-up), with a centre-close fallback for children never signed out. One push per child per day.
+- **Outdoor-log weather reason is manual entry** — no weather API (cost rule: no per-interaction third-party calls).
+- **Pickup authorisation/restriction tables ship with the attendance migration**, not the safety one — the SQL-level restricted-pickup block on sign-out needs them in place first.
+
 ## 2026-08-29 — Phase 0 build
 
 - **Versions pinned by the official scaffolders, not memory:** Expo SDK 57 (RN 0.86, React 19.2, TS 6), Next.js 16.3. `create-expo-app`/`create-next-app` ran with `--no-install`/`--skip-install`; the lockfile is the authority.

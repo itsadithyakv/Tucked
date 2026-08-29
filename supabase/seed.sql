@@ -110,6 +110,17 @@ insert into public.person_role (id, person_id, centre_id, role, qualified, activ
 insert into public.person_role (id, person_id, centre_id, role, qualified, active) values ('00000000-0000-4000-8000-000000000179', '00000000-0000-4000-8000-000000000178', '00000000-0000-4000-8000-000000000002', 'family_adult', false, true);
 insert into public.person_role (id, person_id, centre_id, role, qualified, active) values ('00000000-0000-4000-8000-000000000188', '00000000-0000-4000-8000-000000000187', '00000000-0000-4000-8000-000000000002', 'family_adult', false, true);
 
+-- staff PINs (demo: 1234 for every workforce member)
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000007', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000009', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000011', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000013', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000015', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000017', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+insert into public.staff_pin (person_id, centre_id, pin_hash) values ('00000000-0000-4000-8000-000000000019', '00000000-0000-4000-8000-000000000002', extensions.crypt('1234', extensions.gen_salt('bf')));
+
 -- families
 insert into public.household (id, centre_id, name) values ('00000000-0000-4000-8000-000000000024', '00000000-0000-4000-8000-000000000002', 'Osei household');
 insert into public.household (id, centre_id, name) values ('00000000-0000-4000-8000-000000000029', '00000000-0000-4000-8000-000000000002', 'Tremblay household');
