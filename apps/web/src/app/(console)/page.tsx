@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabase } from '@/lib/supabase';
 import { fmtTime, useConsole } from '@/lib/console';
+import { Sparkles } from '@/ui/sparkles';
 
 interface RoomPresence {
   id: string;
@@ -102,7 +103,10 @@ export default function ExceptionsHome() {
           </p>
         ) : (
           <p className="muted">
-            <span className="pill ok">Done</span> Every daily written record is closed.
+            <Sparkles>
+              <span className="pill ok">Done</span>
+            </Sparkles>{' '}
+            Every daily written record is closed.
           </p>
         )}
         {expiring.length > 0 ? (
@@ -114,7 +118,10 @@ export default function ExceptionsHome() {
           ))
         ) : (
           <p className="muted">
-            <span className="pill ok">Done</span> No credentials expiring in the next 60 days.
+            <Sparkles>
+              <span className="pill ok">Done</span>
+            </Sparkles>{' '}
+            No credentials expiring in the next 60 days.
           </p>
         )}
       </section>

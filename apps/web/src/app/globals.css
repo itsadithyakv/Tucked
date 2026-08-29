@@ -144,8 +144,29 @@ aside.sidebar {
   color: var(--ink);
 }
 
+.sidebar nav a:hover svg {
+  animation: wiggle 420ms ease-in-out;
+}
+
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  30% {
+    transform: rotate(-9deg) scale(1.12);
+  }
+  65% {
+    transform: rotate(7deg);
+  }
+}
+
 .sidebar nav a:active {
   transform: scale(0.98);
+}
+
+.side-brand img {
+  animation: float 6s ease-in-out 2s infinite;
 }
 
 .sidebar nav a[aria-current='page'] {
@@ -192,21 +213,60 @@ aside.sidebar {
   align-content: start;
 }
 
+/* pages pop in as a stagger of soft clay pieces */
 .page-enter {
   display: grid;
   gap: var(--space-base);
-  animation: page-in var(--motion-gentle) cubic-bezier(0.2, 0.8, 0.3, 1) both;
 }
 
-@keyframes page-in {
-  from {
+.page-enter > * {
+  animation: pop-in 380ms cubic-bezier(0.26, 1.2, 0.48, 1) both;
+}
+
+.page-enter > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.page-enter > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.page-enter > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.page-enter > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.page-enter > *:nth-child(n + 6) {
+  animation-delay: 250ms;
+}
+
+@keyframes pop-in {
+  0% {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(12px) scale(0.97);
   }
-  to {
+  65% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.005);
+  }
+  100% {
     opacity: 1;
     transform: none;
   }
+}
+
+/* the tray of tiles staggers too */
+.cards-row > * {
+  animation: pop-in 380ms cubic-bezier(0.26, 1.2, 0.48, 1) both;
+}
+
+.cards-row > *:nth-child(2) {
+  animation-delay: 70ms;
+}
+.cards-row > *:nth-child(3) {
+  animation-delay: 140ms;
+}
+.cards-row > *:nth-child(n + 4) {
+  animation-delay: 210ms;
 }
 
 h1 {
@@ -244,8 +304,14 @@ h2 {
   gap: var(--space-xs);
 }
 
+.tile {
+  transition:
+    transform var(--motion-base) cubic-bezier(0.26, 1.2, 0.48, 1),
+    box-shadow var(--motion-base) ease-out;
+}
+
 .tile:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02) rotate(-0.4deg);
   box-shadow: var(--shadow-raised);
 }
 
@@ -558,6 +624,68 @@ main.signin .mark {
 
   .console main {
     padding: var(--space-base);
+  }
+}
+
+/* ── sparkles — happy states only, never on Now/serious content ────────── */
+.sparkle-host {
+  position: relative;
+  display: inline-flex;
+}
+
+.sparkle {
+  position: absolute;
+  pointer-events: none;
+  color: var(--sparkle-gold);
+  animation: twinkle 2.6s ease-in-out infinite both;
+}
+
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  45% {
+    opacity: 1;
+    transform: scale(1) rotate(20deg);
+  }
+  60% {
+    opacity: 0.9;
+    transform: scale(0.8) rotate(28deg);
+  }
+}
+
+/* click bursts: little gold stars flying out of a happy press */
+.sparkle-burst {
+  position: fixed;
+  left: 0;
+  top: 0;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.sparkle-burst .fly {
+  position: absolute;
+  color: var(--sparkle-gold);
+  animation: burst-fly 620ms cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+.sparkle-burst .fly:nth-child(even) {
+  color: var(--blue-100);
+}
+
+@keyframes burst-fly {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.4) rotate(0deg);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(90deg);
   }
 }
 

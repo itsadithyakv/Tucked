@@ -23,6 +23,7 @@ import {
 import { enCA } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { ConsoleProvider, useConsole } from '@/lib/console';
+import { Sparkles, sparkleBurst } from '@/ui/sparkles';
 
 /** One fixed icon per regulated concept (design-language §8). */
 const NAV = [
@@ -76,6 +77,19 @@ function Shell({ children }: { children: ReactNode }) {
 
   // the drawer closes itself after navigation on small screens
   useEffect(() => setDrawerOpen(false), [pathname]);
+
+  // Primary presses sparkle. Quiet/chrome buttons stay quiet, and the helper
+  // itself refuses to spawn under prefers-reduced-motion.
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      const target = e.target instanceof Element ? e.target.closest('button') : null;
+      if (!target) return;
+      if (target.matches('.quiet, .side-toggle, .side-signout, .menu-button, .backdrop')) return;
+      sparkleBurst(e.clientX, e.clientY);
+    }
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, []);
 
   return (
     <div className={`console${collapsed ? ' collapsed' : ''}${drawerOpen ? ' drawer-open' : ''}`}>
@@ -164,7 +178,9 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
   if (!session) {
     return (
       <main className="signin">
-        <Image className="mark" src="/tucked-mark.png" alt="Tucked" width={96} height={96} priority />
+        <Sparkles count={3}>
+          <Image className="mark" src="/tucked-mark.png" alt="Tucked" width={96} height={96} priority />
+        </Sparkles>
         <form className="card" onSubmit={signIn}>
           <h2>{enCA.auth.staffSignInTitle}</h2>
           <label>

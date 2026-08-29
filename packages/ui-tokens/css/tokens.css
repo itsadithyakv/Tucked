@@ -17,6 +17,10 @@
   --slate: #4b5c74;
   --slate-muted: #7c8aa0;
 
+  /* Decorative only (like the heart blue): sparkle moments on happy states.
+     Never text, never on Now/serious content. */
+  --sparkle-gold: #ffc94d;
+
   /* Semantic: green = fine, red = act now, amber = due soon */
   --ok: #1e7a46;
   --ok-wash: #e7f4ec;

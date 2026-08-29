@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
 import { Link, Redirect } from 'expo-router';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { enCA } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
@@ -46,11 +47,13 @@ export default function RoomHome() {
         data={rooms}
         keyExtractor={(r) => r.id}
         contentContainerStyle={{ gap: space.cardGap }}
-        renderItem={({ item }) => (
-          <Card>
-            <Heading>{item.name}</Heading>
-            <Body muted>{`${item.child[0]?.count ?? 0} children enrolled`}</Body>
-          </Card>
+        renderItem={({ item, index }) => (
+          <Animated.View entering={FadeInDown.delay(index * 70).springify().damping(15)}>
+            <Card>
+              <Heading>{item.name}</Heading>
+              <Body muted>{`${item.child[0]?.count ?? 0} children enrolled`}</Body>
+            </Card>
+          </Animated.View>
         )}
       />
       <View style={{ marginTop: 'auto', gap: space.sm }}>
