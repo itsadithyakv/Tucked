@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
+import { Redirect } from 'expo-router';
 import { enCA } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
@@ -16,7 +17,7 @@ interface ChildRow {
 /** Family home placeholder. RLS scopes the query: a parent sees exactly the
  * children of households where they are an un-revoked viewing member. */
 export default function FamilyHome() {
-  const { profile } = useAuth();
+  const { session, loading, profile } = useAuth();
   const [children, setChildren] = useState<ChildRow[] | null>(null);
 
   useEffect(() => {
@@ -26,6 +27,8 @@ export default function FamilyHome() {
       .order('full_name')
       .then(({ data }) => setChildren((data as unknown as ChildRow[]) ?? []));
   }, []);
+
+  if (!loading && !session) return <Redirect href="/sign-in" />;
 
   return (
     <Screen>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FlatList, View } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { enCA } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
@@ -16,7 +16,7 @@ interface RoomRow {
 /** Room-mode placeholder: the centre's rooms with enrolled counts. The PIN
  * gate, live ratios and sign-in flows are Phase 1. */
 export default function RoomHome() {
-  const { profile } = useAuth();
+  const { session, loading, profile } = useAuth();
   const [centreName, setCentreName] = useState<string>('');
   const [rooms, setRooms] = useState<RoomRow[]>([]);
 
@@ -33,6 +33,8 @@ export default function RoomHome() {
       .order('name')
       .then(({ data }) => setRooms((data as unknown as RoomRow[]) ?? []));
   }, []);
+
+  if (!loading && !session) return <Redirect href="/sign-in" />;
 
   return (
     <Screen>

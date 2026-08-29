@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { Redirect } from 'expo-router';
 import { View } from 'react-native';
 import { enCA } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
+import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { Body, Button, Caption, Card, Field, Screen, Title } from '@/ui/components';
 
 export default function SignIn() {
+  const { session } = useAuth();
   const [mode, setMode] = useState<'family' | 'staff'>('family');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Navigation is driven by auth state, not imperative router calls — a
+  // replace() issued before the context processes SIGNED_IN bounces back here.
+  if (session) return <Redirect href="/" />;
 
   async function submit() {
     setBusy(true);
@@ -26,7 +32,6 @@ export default function SignIn() {
         password,
       });
       if (error) setNotice(enCA.errors.signInFailed);
-      else router.replace('/');
     }
     setBusy(false);
   }

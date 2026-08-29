@@ -2,9 +2,14 @@
 
 *Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8. Status: **built 29 Aug 2026** (same day as go-ahead). The §8 answers are recorded in [decisions.md](../decisions.md): global person, day-bounded attendance, `ca.tucked.app` identifiers, local-only Supabase with no git remote.*
 
-**Verified locally:** 62 domain tests green (97% branch coverage on the rule engine, gate ≥ 90%); lint + typecheck clean across all four workspaces; Next.js production build succeeds; the mobile app bundles for Android via Metro.
+**✅ Done-when met (verified 29 Aug 2026, after WSL2 + Docker Desktop install):**
 
-**Blocked on this machine — Docker is not installed**, so the local Supabase stack cannot run yet: migrations, RLS policies, pgTAP tests and the generated seed are written but unexecuted. They run in CI (ubuntu has Docker) and locally once Docker Desktop (WSL2) is installed: `pnpm db:start && pnpm db:reset && pnpm db:test`. The done-when criterion (both apps signing in as supervisor/educator/parent against the seeded centre) needs that stack. Also deferred until accounts exist: `eas init` (Expo account) and Sentry (DSN).
+- 62 domain tests green (97% branch coverage on the rule engine, gate ≥ 90%); lint + typecheck clean across all four workspaces; Next.js production build succeeds; the mobile app bundles for Android via Metro.
+- All four migrations and the generated seed applied cleanly to the local stack on first run; **pgTAP 16/16 passing** (wrong-centre isolation, revoked household member, volunteer exclusion, append-only audit).
+- **Sign-in verified for all three roles**: supervisor in the web console (centre, licence, CWELCC status, three rooms); educator in the mobile app's Room mode (Dara Ocampo · RECE, room roster); parent in Family mode (Alex Osei sees exactly the 3 Osei children out of 40 — RLS in the real UI). Also verified at the API level: supervisor/educator see 40 children, parent sees 3.
+- Two navigation bugs found and fixed during verification: sign-in raced the auth context (imperative `router.replace` before `SIGNED_IN` processed — now state-driven redirects), and home screens did not react to sign-out (now guarded).
+
+**Still deferred until accounts exist:** `eas init` (Expo account) and Sentry (DSN). Parent magic-link *completion* on a device (tucked:// deep link) is Phase 1 work; the password path exercised Family mode meanwhile.
 
 **Done when:** a fresh clone seeds the demo centre ("Maple Leaf Early Learning") and both apps sign in as supervisor, educator and parent.
 

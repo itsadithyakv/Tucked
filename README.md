@@ -18,4 +18,4 @@ Parents get one quiet daily story of their child's day plus loud alerts only for
 
 ## Status
 
-Phase 0 (foundation) is built — see [docs/plans/phase-0.md](docs/plans/phase-0.md) for what is verified and what awaits Docker/accounts. Monorepo: `pnpm install`, then `pnpm check` (lint + typecheck + tests). Local backend: install Docker Desktop, then `pnpm db:start && pnpm db:reset && pnpm db:test`. Demo logins (local stack only): `supervisor@` / `educator@` / `parent@mapleleaf.example`, password `tucked-demo`.
+**Phase 0 (foundation) is complete and verified** — see [docs/plans/phase-0.md](docs/plans/phase-0.md). Monorepo: `pnpm install`, then `pnpm check` (lint + typecheck + tests). Local backend (Docker Desktop required): `pnpm db:start`, then `pnpm db:test` for the pgTAP suite. Apps: `pnpm --filter @tucked/web dev` (console at :3000) and `pnpm --filter @tucked/mobile start`. Demo logins (local stack only): `supervisor@` / `educator@` / `parent@mapleleaf.example`, password `tucked-demo`. Next: Phase 1 — plan first in `docs/plans/phase-1.md`.
