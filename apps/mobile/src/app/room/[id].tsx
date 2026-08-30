@@ -93,7 +93,14 @@ function Board() {
   const [medSelected, setMedSelected] = useState<string | null>(null);
   const [doseGiven, setDoseGiven] = useState('');
   const [medOutcome, setMedOutcome] = useState('');
-  const [illSymptoms, setIllSymptoms] = useState('');
+  // s. 36: the symptom comes from the centre's illness policy, and where the
+  // child is separated to is part of the record
+  const [illPolicy, setIllPolicy] = useState<
+    { symptom: string; label: string; return_criteria: string }[]
+  >([]);
+  const [illSymptom, setIllSymptom] = useState<string | null>(null);
+  const [illDetail, setIllDetail] = useState('');
+  const [illPlace, setIllPlace] = useState('');
   const [meal, setMeal] = useState<(typeof MEALS)[number]['value'] | null>(null);
   const [eaten, setEaten] = useState<(typeof EATEN)[number]['value'] | null>(null);
   const [diaper, setDiaper] = useState<(typeof DIAPERS)[number]['value'] | null>(null);
@@ -135,6 +142,12 @@ function Board() {
 
   const refresh = useCallback(() => {
     loadRoomDay().then(setDay);
+    supabase
+      .from('illness_policy')
+      .select('symptom, label, return_criteria')
+      .eq('active', true)
+      .order('label')
+      .then(({ data }) => setIllPolicy((data as never) ?? []));
     supabase
       .from('outdoor_period')
       .select('id, started_at, ended_at')
@@ -332,7 +345,9 @@ function Board() {
     setMedSelected(null);
     setDoseGiven('');
     setMedOutcome('');
-    setIllSymptoms('');
+    setIllSymptom(null);
+    setIllDetail('');
+    setIllPlace('');
     setMoreFor({ childId, firstName });
     void supabase
       .from('medication_authorisation')
@@ -361,26 +376,37 @@ function Board() {
 
   // Illness (s. 32 / s. 36): record the observation and send the Now alert —
   // the loud channel exists exactly for this.
+  /** s. 36: separate the child, record where they are waiting, and let the
+   * exclusion — with the return criteria from the centre's own policy — fall
+   * out of it. The family alert goes with it, in one act. */
   async function sendHomeSick() {
     const target = moreFor;
-    if (!target || !illSymptoms.trim() || !day) return;
+    if (!target || !illSymptom || !day) return;
+    if (!illPlace.trim()) {
+      setNotice('Record where the child is waiting — s. 36 separates them from the others.');
+      return;
+    }
     setMoreFor(null);
-    const symptoms = illSymptoms.trim();
-    const obs = await careLog(target.childId, 'health_observation', {
-      observation: 'unwell — family contacted to arrange pickup',
-      symptoms: [symptoms],
-    });
-    if (obs?.ok) {
-      await act(target.childId, (recorder) =>
-        runCommand('create_now_alert', {
-          p_child: target.childId,
-          p_event_type: 'illness_sent_home',
-          p_title: `${target.firstName} is unwell`,
-          p_body: `${target.firstName} has ${symptoms}. Please call ${day.centre.name} to arrange pickup.`,
-          p_recorder: recorder.personId,
-          p_pin: recorder.pin,
-        }),
+    const result = await act(target.childId, (recorder) =>
+      runCommand('record_illness', {
+        p_centre: day.centre.id,
+        p_child: target.childId,
+        p_symptom: illSymptom,
+        p_detail: illDetail.trim() || null,
+        p_separation_place: illPlace.trim(),
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+    if (result?.ok) {
+      const criteria = illPolicy.find((p) => p.symptom === illSymptom)?.return_criteria;
+      setNotice(
+        `${target.firstName} is recorded as unwell and the family has been alerted.` +
+          (criteria ? ` Before coming back: ${criteria}` : ''),
       );
+      setIllSymptom(null);
+      setIllDetail('');
+      setIllPlace('');
     }
   }
 
@@ -745,13 +771,28 @@ function Board() {
         {moreView === 'illness' ? (
           <>
             <Body muted>
-              Records the observation and sends the family a Now alert to arrange pickup. The alert
-              stays until a parent acknowledges it.
+              The child is separated from the others, the family gets a Now alert, and the exclusion
+              carries the return criteria from the centre&apos;s illness policy.
             </Body>
+            <Choices
+              options={illPolicy.map((p) => ({ value: p.symptom, label: p.label }))}
+              value={illSymptom}
+              onChange={setIllSymptom}
+            />
+            {illSymptom ? (
+              <Caption>
+                {`Before coming back: ${illPolicy.find((p) => p.symptom === illSymptom)?.return_criteria ?? ''}`}
+              </Caption>
+            ) : null}
             <Field
-              placeholder="Symptoms — e.g. a fever of 38.9°C"
-              value={illSymptoms}
-              onChangeText={setIllSymptoms}
+              placeholder="Where the child is waiting — e.g. the quiet corner of the office"
+              value={illPlace}
+              onChangeText={setIllPlace}
+            />
+            <Field
+              placeholder="What you saw (optional) — e.g. twice after lunch, no fever"
+              value={illDetail}
+              onChangeText={setIllDetail}
             />
             <Button label="Record and alert the family" onPress={() => void sendHomeSick()} />
           </>

@@ -25,6 +25,14 @@ interface SubRow {
   reason: string;
 }
 
+interface ExclusionRow {
+  id: string;
+  exclusion_reason: string;
+  return_criteria: string;
+  may_return_at: string | null;
+  child: { full_name: string } | null;
+}
+
 interface WaitlistRow {
   entry_id: string;
   child_name: string;
@@ -58,6 +66,7 @@ export default function More() {
   const [todaySubs, setTodaySubs] = useState<SubRow[]>([]);
   const [handbook, setHandbook] = useState<{ version: number; read: boolean } | null>(null);
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
+  const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -82,6 +91,13 @@ export default function More() {
         .select('id, full_name')
         .order('full_name')
         .then(({ data }) => setChildren(data ?? []));
+      // s. 36: a child home unwell, and the plain answer to "when can she
+      // come back?" — the centre's own policy, not a guess at the door.
+      supabase
+        .from('health_exclusion')
+        .select('id, exclusion_reason, return_criteria, may_return_at, child:child_id(full_name)')
+        .is('returned_at', null)
+        .then(({ data }) => setExclusions((data as never) ?? []));
       // s. 75.1: your own place on the waiting list — the count is of the
       // whole list, but no other family's row ever comes back with it.
       supabase
@@ -160,6 +176,22 @@ export default function More() {
             })}
           </Card>
         ) : null}
+
+        {exclusions.map((e) => (
+          <Card key={e.id} wash="sand">
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm }}>
+              <Heading>{`${e.child?.full_name.split(' ')[0] ?? 'Your child'} is home unwell`}</Heading>
+              <Pill kind="due">Away</Pill>
+            </View>
+            <Body>{e.exclusion_reason}</Body>
+            <Body muted>{`Before coming back: ${e.return_criteria}`}</Body>
+            {e.may_return_at ? (
+              <Caption>
+                {`Earliest return: ${new Date(e.may_return_at).toLocaleString('en-CA', { weekday: 'long', hour: '2-digit', minute: '2-digit', hour12: false })}. If a doctor says sooner, tell the centre and bring the note.`}
+              </Caption>
+            ) : null}
+          </Card>
+        ))}
 
         {waitlist.map((w) => (
           <Card key={w.entry_id} wash={w.status === 'offered' ? 'sand' : 'mist'}>

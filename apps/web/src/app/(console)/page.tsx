@@ -55,6 +55,8 @@ export default function ExceptionsHome() {
   const [menuGap, setMenuGap] = useState<string | null>(null);
   const [staleOffers, setStaleOffers] = useState(0);
   const [outdoorShort, setOutdoorShort] = useState<string[]>([]);
+  const [unreached, setUnreached] = useState(0);
+  const [phDue, setPhDue] = useState(0);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
     missing: 0,
@@ -151,6 +153,23 @@ export default function ExceptionsHome() {
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
       });
     })();
+
+    // s. 36: a child sent home whose family we have not actually reached yet
+    sb.from('health_exclusion')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .is('returned_at', null)
+      .is('parent_reached_at', null)
+      .then(({ count }) => setUnreached(count ?? 0));
+
+    // s. 36: a public health order still owed to the program advisor
+    sb.from('public_health_notification')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .is('closed_at', null)
+      .is('advisor_forwarded_at', null)
+      .not('advisor_due_on', 'is', null)
+      .then(({ count }) => setPhDue(count ?? 0));
 
     // s. 47: a room short of its two hours with no reason recorded. Only worth
     // raising once the day is winding down — before that it is simply not done yet.
@@ -285,6 +304,20 @@ export default function ExceptionsHome() {
         {menuGap ? (
           <p>
             <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
+          </p>
+        ) : null}
+        {unreached > 0 ? (
+          <p>
+            <span className="pill now">Now</span> {unreached} child
+            {unreached === 1 ? '' : 'ren'} sent home unwell whose family has not been reached (s. 36) —{' '}
+            <Link href="/illness">keep trying, and record the attempts</Link>
+          </p>
+        ) : null}
+        {phDue > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {phDue} public health order
+            {phDue === 1 ? '' : 's'} still to reach the program advisor (s. 36) —{' '}
+            <Link href="/illness">illness &amp; exclusions</Link>
           </p>
         ) : null}
         {outdoorShort.length > 0 ? (

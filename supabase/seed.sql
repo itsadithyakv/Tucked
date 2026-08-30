@@ -568,6 +568,27 @@ select '00000000-0000-4000-8000-000000000002'::uuid, p.person_id, 'later'::publi
   (select a.acknowledged_at from public.handbook_acknowledgement a where a.handbook_version_id = 'bd000000-0000-4000-8000-000000000001' and a.person_id = p.person_id)
 from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '00000000-0000-4000-8000-000000000002' and hm.revoked_at is null and hm.can_consent) p;
 
+-- illness (s. 36): a child excluded, and a public health order on the clock
+insert into public.health_exclusion (id, centre_id, child_id, symptom, detail, onset_at, separated_at, separation_place, exclusion_reason, return_criteria, may_return_at, recorded_by)
+select 'be000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', 'vomiting', 'Twice after lunch; no fever, drank a little water.', now() - interval '2 hours', now() - interval '2 hours', 'The quiet corner of the office, in sight of the supervisor',
+  p.label || ' — ' || p.exclusion_note, p.return_criteria, now() - interval '2 hours' + make_interval(hours => p.min_exclusion_hours), '00000000-0000-4000-8000-000000000005'
+from public.illness_policy p where p.centre_id = '00000000-0000-4000-8000-000000000002' and p.symptom = 'vomiting';
+insert into public.health_exclusion_contact (exclusion_id, centre_id, attempted_at, method, person_id, outcome, note, recorded_by)
+values ('be000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', now() - interval '115 minutes', 'phone', '00000000-0000-4000-8000-000000000025', 'no_answer', 'Rang the mobile twice, no answer.', '00000000-0000-4000-8000-000000000005');
+insert into public.health_exclusion_contact (exclusion_id, centre_id, attempted_at, method, person_id, outcome, note, recorded_by)
+values ('be000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', now() - interval '100 minutes', 'phone', '00000000-0000-4000-8000-000000000025', 'reached', 'Reached at work; leaving now.', '00000000-0000-4000-8000-000000000005');
+update public.health_exclusion set parent_reached_at = now() - interval '100 minutes' where id = 'be000000-0000-4000-8000-000000000001';
+insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by, ref_id, created_at)
+select '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', '00000000-0000-4000-8000-000000000025', 'now', 'illness_sent_home', 'Ivan is unwell',
+  'Ivan has vomiting and is resting in the quiet corner of the office. Please call the centre to arrange pickup. Before coming back: ' || p.return_criteria,
+  true, '00000000-0000-4000-8000-000000000005', 'be000000-0000-4000-8000-000000000001', now() - interval '2 hours'
+from public.illness_policy p where p.centre_id = '00000000-0000-4000-8000-000000000002' and p.symptom = 'vomiting';
+insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by)
+select '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', ch.current_room_id, 'depart', now() - interval '80 minutes', current_date, '00000000-0000-4000-8000-000000000005'
+from public.child ch where ch.id = '00000000-0000-4000-8000-000000000182';
+insert into public.public_health_notification (centre_id, kind, disease, summary, unit_name, reference, order_received_at, order_summary, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'order_received', 'Gastroenteritis', 'Direction following three cases of vomiting in the Preschool room within 48 hours.', 'Toronto Public Health', 'TPH-2026-4417', now() - interval '1 day', 'Exclude symptomatic children for 48 hours after the last symptom; twice-daily disinfection of high-touch surfaces; daily case counts until cleared.', '00000000-0000-4000-8000-000000000003');
+
 -- outdoor play (s. 47): measured blocks, one short day with its reason
 insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)
 values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000070', now() - interval '2 hours 30 minutes', now() - interval '90 minutes', 'fine', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005');

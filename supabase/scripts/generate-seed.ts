@@ -429,6 +429,37 @@ lines.push(
   `from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent) p;`,
 );
 
+// ── illness and exclusion (s. 36): one child home unwell, one PHU order ─────
+// Ivan went home at lunchtime, so the family app has something real to show
+// and the console has an open exclusion with its return criteria.
+lines.push('', '-- illness (s. 36): a child excluded, and a public health order on the clock');
+const EXCLUSION_ID = 'be000000-0000-4000-8000-000000000001';
+lines.push(
+  `insert into public.health_exclusion (id, centre_id, child_id, symptom, detail, onset_at, separated_at, separation_place, exclusion_reason, return_criteria, may_return_at, recorded_by)`,
+  `select 'be000000-0000-4000-8000-000000000001', '${c.id}', '${ivan.id}', 'vomiting', 'Twice after lunch; no fever, drank a little water.', now() - interval '2 hours', now() - interval '2 hours', 'The quiet corner of the office, in sight of the supervisor',`,
+  `  p.label || ' — ' || p.exclusion_note, p.return_criteria, now() - interval '2 hours' + make_interval(hours => p.min_exclusion_hours), '${educator.id}'`,
+  `from public.illness_policy p where p.centre_id = '${c.id}' and p.symptom = 'vomiting';`,
+  // the attempts, not just the success
+  `insert into public.health_exclusion_contact (exclusion_id, centre_id, attempted_at, method, person_id, outcome, note, recorded_by)`,
+  `values ('${EXCLUSION_ID}', '${c.id}', now() - interval '115 minutes', 'phone', '${demoParent.id}', 'no_answer', 'Rang the mobile twice, no answer.', '${educator.id}');`,
+  `insert into public.health_exclusion_contact (exclusion_id, centre_id, attempted_at, method, person_id, outcome, note, recorded_by)`,
+  `values ('${EXCLUSION_ID}', '${c.id}', now() - interval '100 minutes', 'phone', '${demoParent.id}', 'reached', 'Reached at work; leaving now.', '${educator.id}');`,
+  `update public.health_exclusion set parent_reached_at = now() - interval '100 minutes' where id = '${EXCLUSION_ID}';`,
+  // the Now alert the family actually gets
+  `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by, ref_id, created_at)`,
+  `select '${c.id}', '${ivan.id}', '${demoParent.id}', 'now', 'illness_sent_home', 'Ivan is unwell',`,
+  `  'Ivan has vomiting and is resting in the quiet corner of the office. Please call the centre to arrange pickup. Before coming back: ' || p.return_criteria,`,
+  `  true, '${educator.id}', '${EXCLUSION_ID}', now() - interval '2 hours'`,
+  `from public.illness_policy p where p.centre_id = '${c.id}' and p.symptom = 'vomiting';`,
+  // and he went home
+  `insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by)`,
+  `select '${c.id}', '${ivan.id}', ch.current_room_id, 'depart', now() - interval '80 minutes', current_date, '${educator.id}'`,
+  `from public.child ch where ch.id = '${ivan.id}';`,
+  // an order from Toronto Public Health, still owed to the program advisor
+  `insert into public.public_health_notification (centre_id, kind, disease, summary, unit_name, reference, order_received_at, order_summary, recorded_by)`,
+  `values ('${c.id}', 'order_received', 'Gastroenteritis', 'Direction following three cases of vomiting in the Preschool room within 48 hours.', 'Toronto Public Health', 'TPH-2026-4417', now() - interval '1 day', 'Exclude symptomatic children for 48 hours after the last symptom; twice-daily disinfection of high-touch surfaces; daily case counts until cleared.', '${supervisor.id}');`,
+);
+
 // ── outdoor play (s. 47): measured blocks, one room still out ───────────────
 // Times are offsets from now so the demo is coherent whenever the DB is reset;
 // outdoor_date is whatever the trigger derives in the centre's timezone.
