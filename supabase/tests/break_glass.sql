@@ -38,9 +38,10 @@ insert into public.staff_pin (person_id, centre_id, pin_hash) values
   ('4d000000-0000-4000-8000-000000000002', '3d100000-0000-4000-8000-000000000001', extensions.crypt('4242', extensions.gen_salt('bf')));
 
 -- the supervisor-locked inspection surfaces a program advisor asks for
-insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by)
+insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, checked_on, police_service, recorded_by)
 values ('3d100000-0000-4000-8000-000000000001', '4d000000-0000-4000-8000-000000000001', 'vsc',
-        (current_date - interval '1 year')::date, (current_date + interval '4 years')::date,
+        (current_date - interval '1 year')::date, null,
+        (current_date - interval '13 months')::date, 'Toronto Police Service',
         '4d000000-0000-4000-8000-000000000001');
 
 insert into public.serious_occurrence (centre_id, category, occurred_at, aware_at, description, reported_by)

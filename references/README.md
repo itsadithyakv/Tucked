@@ -13,6 +13,7 @@ Everything a builder needs to know about Tucked before writing code, in one fold
 | [architecture.md](architecture.md) | System architecture in depth: tenancy, offline, notifications, where logic lives, environments, security invariants — with the low-cost reasoning marked **[cost]** throughout. | How it's put together |
 | [design-language.md](design-language.md) | Visual + verbal identity: logo usage, colour palette (sampled from the logo, contrast-checked), Baloo 2 + Nunito typography, claymorphic surfaces, motion, components, voice and tone. | How it looks and speaks |
 | [cost-model.md](cost-model.md) | The running-costs budget: $0 through development, ~$25–30/mo in pilot, ~$50/mo at 10 centres — with named upgrade triggers and the engineering rules that keep it flat. | Standing order: super low running costs |
+| [not-built.md](not-built.md) | The honest gap list: deliberate non-goals, what is genuinely missing, what is written but not wired, what is only partial, and the handful of seeded values a human must confirm against the regulation. | What we have **not** done |
 | [attendance-model.md](attendance-model.md) | The three-layer model: legal attendance (s. 72(3)) vs location vs supervision headcounts — why sessions never take attendance, and the evacuation runbook. | How counting children actually works |
 
 ## Brand assets
@@ -21,6 +22,10 @@ In [`../assets/`](../assets/):
 
 - `logoTuckedNoBG.png` — master mark (1169 × 1169, transparent). Usage rules in [design-language.md §2](design-language.md).
 - `fonts/` — **Baloo 2 + Nunito** variable-font sources (OFL): web serves them as variable woff2, mobile as fontTools-instantiated static ttfs. Loading rules in [design-language.md §4](design-language.md). The retired Gilroy files remain archived here; nothing loads them.
+
+## Before you build
+
+Read [not-built.md](not-built.md) first. It is faster to learn that push delivery is written-but-not-deployed than to discover it in a pilot, and the "needs a human" section names every seeded value that has not been checked against the regulation text.
 
 ## The two sentences
 

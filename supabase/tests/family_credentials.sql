@@ -124,10 +124,14 @@ select is(
 -- ── credentials + retention (as supervisor / owner) ─────────────────────────
 select set_config('request.jwt.claims', '{"sub":"16000000-0000-4000-8000-000000000001","role":"authenticated"}', true);
 
+-- s. 60: the expiry passed in here is deliberately wrong. The trigger derives
+-- the fifth anniversary from the date it was obtained, so what is stored is
+-- five years, not the ten years typed.
 select lives_ok(
-  $$insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by)
+  $$insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, checked_on, police_service, recorded_by)
     values ('30100000-0000-4000-8000-000000000001', '46000000-0000-4000-8000-000000000001', 'vsc',
-            (current_date - interval '4 years 11 months')::date, (current_date + 30)::date,
+            (current_date - interval '4 years 11 months')::date, (current_date + 3650)::date,
+            (current_date - interval '5 years')::date, 'Toronto Police Service',
             '46000000-0000-4000-8000-000000000001')$$,
   's60_supervisor_records_vsc'
 );

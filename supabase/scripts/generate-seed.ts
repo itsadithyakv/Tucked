@@ -330,13 +330,26 @@ lines.push(
   `values ('${c.id}', (select id from public.compliance_task where centre_id = '${c.id}' and slug = 'playground_daily'), 'Swing chain worn at the top link', 'Both swings taped off and out of use', '${educator.id}');`,
 );
 
-lines.push('', '-- staff credentials (one VSC expiring soon for the exceptions demo)');
+lines.push(
+  '',
+  '-- staff credentials (ss. 53-64). One first-aid certificate expires soon so',
+  '-- the exceptions home has something true to show; VSC expiry is derived by',
+  "-- the s. 60 trigger, so whatever is passed here is replaced with five years.",
+);
 careStaff.forEach((r, i) => {
   lines.push(
-    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('${c.id}', '${r.personId}', 'first_aid_cpr', (current_date - interval '1 year')::date, (current_date + interval '${i === 1 ? '25 days' : '2 years'}')::date, '${supervisor.id}');`,
-    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('${c.id}', '${r.personId}', 'vsc', (current_date - interval '2 years')::date, (current_date + interval '3 years')::date, '${supervisor.id}');`,
+    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, notes, recorded_by) values ('${c.id}', '${r.personId}', 'first_aid_cpr', (current_date - interval '1 year')::date, (current_date + interval '${i === 1 ? '25 days' : '2 years'}')::date, 'Standard first aid with infant and child CPR, Canadian Red Cross', '${supervisor.id}');`,
+    `insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, checked_on, police_service, recorded_by) values ('${c.id}', '${r.personId}', 'vsc', (current_date - interval '2 years')::date, null, (current_date - interval '2 years 2 months')::date, 'Toronto Police Service', '${supervisor.id}');`,
+    // s. 57: a health assessment on file for everyone
+    `insert into public.credential (centre_id, person_id, credential_type, issued_on, notes, recorded_by) values ('${c.id}', '${r.personId}', 'health_assessment', (current_date - interval '2 years')::date, 'Health assessment on file', '${supervisor.id}');`,
   );
 });
+// one document attached, so the staff file shows evidence as well as dates
+lines.push(
+  `insert into public.staff_document (centre_id, person_id, credential_id, kind, storage_path, file_name, content_type, size_bytes, note, uploaded_by)`,
+  `select '${c.id}', cr.person_id, cr.id, 'credential_evidence', '${c.id}/' || cr.person_id || '/vsc.pdf', 'vulnerable-sector-check.pdf', 'application/pdf', 214003, 'Scanned on receipt', '${supervisor.id}'`,
+  `from public.credential cr where cr.centre_id = '${c.id}' and cr.credential_type = 'vsc' and cr.person_id = '${educator.id}';`,
+);
 
 // Dual-role demo: the supervisor is also a parent in the last household —
 // exercises the room/family view switcher.
