@@ -429,6 +429,54 @@ lines.push(
   `from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent) p;`,
 );
 
+// ── waiting list (s. 75.1): free to join, and the order is the published one ─
+// Demo access codes are fixed so the public position page can be shown; real
+// codes come from app.new_waitlist_code().
+const WAITLIST: {
+  code: string;
+  child: string;
+  dob: string;
+  group: string;
+  startIn: string;
+  contact: string;
+  email: string | null;
+  phone: string | null;
+  priority: string;
+  reason: string | null;
+  joinedAgo: string;
+}[] = [
+  { code: 'A1B2C3D4', child: 'Noor Haddad', dob: '2025-02-11', group: 'infant', startIn: '2 months', contact: 'Rana Haddad', email: 'rana.haddad@example.com', phone: null, priority: 'general', reason: null, joinedAgo: '5 months' },
+  { code: 'E5F6A7B8', child: 'Theo Lambert', dob: '2024-11-30', group: 'infant', startIn: '3 months', contact: 'Marc Lambert', email: null, phone: '416-555-0148', priority: 'general', reason: null, joinedAgo: '4 months' },
+  { code: 'C9D0E1F2', child: 'Priya Raman', dob: '2025-01-08', group: 'infant', startIn: '2 months', contact: 'Anita Raman', email: 'anita.raman@example.com', phone: '647-555-0107', priority: 'subsidy_referral', reason: 'Referred by Toronto Children’s Services under the fee subsidy agreement', joinedAgo: '6 weeks' },
+  { code: 'A3B4C5D6', child: 'Jonah Osei', dob: '2024-09-19', group: 'toddler', startIn: '4 months', contact: 'Alex Osei', email: null, phone: null, priority: 'sibling', reason: 'Three older siblings enrolled here', joinedAgo: '3 months' },
+  { code: 'E7F8A9B0', child: 'Mila Novak', dob: '2024-06-22', group: 'toddler', startIn: '5 months', contact: 'Petra Novak', email: 'petra.novak@example.com', phone: null, priority: 'general', reason: null, joinedAgo: '7 months' },
+  { code: 'C1D2E3F4', child: 'Sam Oyelaran', dob: '2023-04-03', group: 'preschool', startIn: '2 months', contact: 'Tola Oyelaran', email: 'tola.oyelaran@example.com', phone: null, priority: 'general', reason: null, joinedAgo: '2 months' },
+];
+lines.push('', '-- waiting list (s. 75.1): no fee to join; position by the published order');
+for (const w of WAITLIST) {
+  const linked = w.contact === 'Alex Osei' ? `'${demoParent.id}'` : 'null';
+  const email = w.contact === 'Alex Osei' ? q(demoParent.email ?? null) : q(w.email);
+  const phone = w.contact === 'Alex Osei' ? q('416-555-0101') : q(w.phone);
+  lines.push(
+    `insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)`,
+    `values ('${c.id}', ${q(w.child)}, '${w.dob}', '${w.group}', (current_date + interval '${w.startIn}')::date, ${q(w.contact)}, ${email}, ${phone}, ${linked}, '${w.code}', '${w.priority}', ${q(w.reason)}, now() - interval '${w.joinedAgo}', '${supervisor.id}');`,
+    `insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)`,
+    `select id, '${c.id}', 'joined', 'Added to the ${w.group} list', '${supervisor.id}', joined_at from public.waitlist_entry where access_code = '${w.code}';`,
+  );
+}
+lines.push(
+  // the family at the top of the infant list is holding an offer
+  `update public.waitlist_entry set status = 'offered', offered_on = current_date - 2, respond_by = current_date + 5 where access_code = 'C9D0E1F2';`,
+  `insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by)`,
+  `select id, '${c.id}', 'offered', 'Place offered, to answer by ' || to_char(respond_by, 'DD Mon YYYY'), '${supervisor.id}' from public.waitlist_entry where access_code = 'C9D0E1F2';`,
+  // and one enquiry closed long enough ago that the nightly sweep will
+  // anonymise it — the demo of "we do not keep a stranger's phone number"
+  `insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, access_code, status, joined_at, closed_at, recorded_by)`,
+  `values ('${c.id}', 'Elin Bergstrom', '2023-08-15', 'preschool', (current_date + interval '1 month')::date, 'Karin Bergstrom', 'karin.bergstrom@example.com', null, 'B1C2D3E4', 'withdrawn', now() - interval '20 months', now() - interval '14 months', '${supervisor.id}');`,
+  `insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)`,
+  `select id, '${c.id}', 'withdrawn', 'Found a place closer to home', '${supervisor.id}', closed_at from public.waitlist_entry where access_code = 'B1C2D3E4';`,
+);
+
 lines.push(
   '',
   '-- an announcement (quiet, Later channel)',

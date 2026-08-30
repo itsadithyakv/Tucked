@@ -568,6 +568,39 @@ select '00000000-0000-4000-8000-000000000002'::uuid, p.person_id, 'later'::publi
   (select a.acknowledged_at from public.handbook_acknowledgement a where a.handbook_version_id = 'bd000000-0000-4000-8000-000000000001' and a.person_id = p.person_id)
 from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '00000000-0000-4000-8000-000000000002' and hm.revoked_at is null and hm.can_consent) p;
 
+-- waiting list (s. 75.1): no fee to join; position by the published order
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Noor Haddad', '2025-02-11', 'infant', (current_date + interval '2 months')::date, 'Rana Haddad', 'rana.haddad@example.com', null, null, 'A1B2C3D4', 'general', null, now() - interval '5 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the infant list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'A1B2C3D4';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Theo Lambert', '2024-11-30', 'infant', (current_date + interval '3 months')::date, 'Marc Lambert', null, '416-555-0148', null, 'E5F6A7B8', 'general', null, now() - interval '4 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the infant list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'E5F6A7B8';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Priya Raman', '2025-01-08', 'infant', (current_date + interval '2 months')::date, 'Anita Raman', 'anita.raman@example.com', '647-555-0107', null, 'C9D0E1F2', 'subsidy_referral', 'Referred by Toronto Children’s Services under the fee subsidy agreement', now() - interval '6 weeks', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the infant list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'C9D0E1F2';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Jonah Osei', '2024-09-19', 'toddler', (current_date + interval '4 months')::date, 'Alex Osei', 'parent@mapleleaf.example', '416-555-0101', '00000000-0000-4000-8000-000000000025', 'A3B4C5D6', 'sibling', 'Three older siblings enrolled here', now() - interval '3 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the toddler list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'A3B4C5D6';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Mila Novak', '2024-06-22', 'toddler', (current_date + interval '5 months')::date, 'Petra Novak', 'petra.novak@example.com', null, null, 'E7F8A9B0', 'general', null, now() - interval '7 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the toddler list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'E7F8A9B0';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Sam Oyelaran', '2023-04-03', 'preschool', (current_date + interval '2 months')::date, 'Tola Oyelaran', 'tola.oyelaran@example.com', null, null, 'C1D2E3F4', 'general', null, now() - interval '2 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'joined', 'Added to the preschool list', '00000000-0000-4000-8000-000000000003', joined_at from public.waitlist_entry where access_code = 'C1D2E3F4';
+update public.waitlist_entry set status = 'offered', offered_on = current_date - 2, respond_by = current_date + 5 where access_code = 'C9D0E1F2';
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by)
+select id, '00000000-0000-4000-8000-000000000002', 'offered', 'Place offered, to answer by ' || to_char(respond_by, 'DD Mon YYYY'), '00000000-0000-4000-8000-000000000003' from public.waitlist_entry where access_code = 'C9D0E1F2';
+insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, access_code, status, joined_at, closed_at, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'Elin Bergstrom', '2023-08-15', 'preschool', (current_date + interval '1 month')::date, 'Karin Bergstrom', 'karin.bergstrom@example.com', null, 'B1C2D3E4', 'withdrawn', now() - interval '20 months', now() - interval '14 months', '00000000-0000-4000-8000-000000000003');
+insert into public.waitlist_event (entry_id, centre_id, event_type, detail, recorded_by, created_at)
+select id, '00000000-0000-4000-8000-000000000002', 'withdrawn', 'Found a place closer to home', '00000000-0000-4000-8000-000000000003', closed_at from public.waitlist_entry where access_code = 'B1C2D3E4';
+
 -- an announcement (quiet, Later channel)
 insert into public.announcement (centre_id, title, body, created_by)
 values ('00000000-0000-4000-8000-000000000002', 'Pyjama day on Friday', 'Friday is pyjama day across all rooms — cosy clothes welcome. Outdoor play still happens, so please send weather-appropriate layers too.', '00000000-0000-4000-8000-000000000003');

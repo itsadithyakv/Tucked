@@ -53,6 +53,7 @@ export default function ExceptionsHome() {
   const [calOverdue, setCalOverdue] = useState(0);
   const [openHazards, setOpenHazards] = useState(0);
   const [menuGap, setMenuGap] = useState<string | null>(null);
+  const [staleOffers, setStaleOffers] = useState(0);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
     missing: 0,
@@ -149,6 +150,14 @@ export default function ExceptionsHome() {
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
       });
     })();
+
+    // s. 75.1: a place offered and never answered holds up the family behind
+    sb.from('waitlist_entry')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .eq('status', 'offered')
+      .lt('respond_by', today)
+      .then(({ count }) => setStaleOffers(count ?? 0));
 
     (async () => {
       const [{ count: issued }, { data: missingRows }, { count: outstanding }] = await Promise.all([
@@ -258,6 +267,13 @@ export default function ExceptionsHome() {
         {menuGap ? (
           <p>
             <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
+          </p>
+        ) : null}
+        {staleOffers > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {staleOffers} waiting-list{' '}
+            {staleOffers === 1 ? 'offer has' : 'offers have'} passed the date the family was asked to
+            answer by — the family behind them is waiting — <Link href="/waitlist">waiting list</Link>
           </p>
         ) : null}
         {!handbook.issued ? (

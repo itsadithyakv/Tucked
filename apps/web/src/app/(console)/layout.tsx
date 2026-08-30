@@ -25,6 +25,7 @@ import {
   Pill,
   Siren,
   Users,
+  UserPlus,
 } from 'lucide-react';
 import { enCA } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
@@ -46,6 +47,7 @@ const NAV = [
   { href: '/messages', label: 'Messages', Icon: MessageCircle },
   { href: '/staff', label: 'Staff files', Icon: BadgeCheck },
   { href: '/handbook', label: 'Parent handbook', Icon: BookMarked },
+  { href: '/waitlist', label: 'Waiting list', Icon: UserPlus },
   { href: '/compliance', label: 'Compliance calendar', Icon: CalendarCheck },
 ];
 

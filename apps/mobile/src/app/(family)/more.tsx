@@ -25,6 +25,17 @@ interface SubRow {
   reason: string;
 }
 
+interface WaitlistRow {
+  entry_id: string;
+  child_name: string;
+  age_group: string;
+  status: string;
+  list_position: number;
+  families_ahead: number;
+  list_length: number;
+  respond_by: string | null;
+}
+
 const MEAL_ORDER = ['breakfast', 'snack_am', 'lunch', 'snack_pm'];
 const MEAL_LABELS: Record<string, string> = {
   breakfast: 'Breakfast',
@@ -46,6 +57,7 @@ export default function More() {
   const [menu, setMenu] = useState<MenuRow[]>([]);
   const [todaySubs, setTodaySubs] = useState<SubRow[]>([]);
   const [handbook, setHandbook] = useState<{ version: number; read: boolean } | null>(null);
+  const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -70,6 +82,11 @@ export default function More() {
         .select('id, full_name')
         .order('full_name')
         .then(({ data }) => setChildren(data ?? []));
+      // s. 75.1: your own place on the waiting list — the count is of the
+      // whole list, but no other family's row ever comes back with it.
+      supabase
+        .rpc('my_waitlist_positions')
+        .then(({ data }) => setWaitlist((data as WaitlistRow[]) ?? []));
       // s. 45: the handbook the centre must give you, and whether you have
       // told them you have it.
       supabase
@@ -143,6 +160,28 @@ export default function More() {
             })}
           </Card>
         ) : null}
+
+        {waitlist.map((w) => (
+          <Card key={w.entry_id} wash={w.status === 'offered' ? 'sand' : 'mist'}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm }}>
+              <Heading>{`${w.child_name.split(' ')[0]} — waiting list`}</Heading>
+              <Pill kind={w.status === 'offered' ? 'now' : 'ok'}>
+                {w.status === 'offered' ? 'Place offered' : `Number ${w.list_position}`}
+              </Pill>
+            </View>
+            <Body>
+              {w.status === 'offered'
+                ? `A place is being held for ${w.child_name.split(' ')[0]}${w.respond_by ? ` — please let the centre know by ${new Date(`${w.respond_by}T12:00:00`).toLocaleDateString('en-CA', { day: 'numeric', month: 'long' })}` : ''}.`
+                : w.families_ahead === 0
+                  ? `Next in line for a ${w.age_group} place.`
+                  : `${w.families_ahead} ${w.families_ahead === 1 ? 'family is' : 'families are'} ahead, out of ${w.list_length} waiting for a ${w.age_group} place.`}
+            </Body>
+            <Caption>
+              Places are offered in the order set out in the handbook. There is never a fee to be on the
+              list.
+            </Caption>
+          </Card>
+        ))}
 
         {handbook ? (
           <Card wash={handbook.read ? undefined : 'sand'}>
