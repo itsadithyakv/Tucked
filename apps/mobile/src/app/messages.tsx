@@ -67,7 +67,11 @@ export default function Messages() {
         .insert({ centre_id: child.centre_id, thread_id: thread.id, sender_person_id: profile.personId, body: body.trim() });
       setBody('');
       refresh();
-      router.push({ pathname: '/messages/[id]', params: { id: thread.id } });
+      // let the sheet finish closing before the thread screen mounts,
+      // otherwise the modal lingers over the new route
+      setTimeout(() => {
+        router.push({ pathname: '/messages/[id]', params: { id: thread.id } });
+      }, 250);
     }
   }
 
