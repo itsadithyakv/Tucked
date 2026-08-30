@@ -4,15 +4,11 @@ import { router, useFocusEffect } from 'expo-router';
 import { enCA } from '@tucked/domain';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
+import { useFamily } from '@/lib/childTheme';
 import { supabase } from '@/lib/supabase';
 import { Avatar } from '@/ui/SwipeChildCard';
+import { ChildSwitcher } from '@/ui/ChildSwitcher';
 import { Body, Button, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
-
-interface ChildRow {
-  id: string;
-  full_name: string;
-  room: { name: string } | null;
-}
 
 interface NowAlert {
   id: string;
@@ -57,7 +53,7 @@ function fmt12(iso: string): string {
  * alerts only when they matter — and the centre's quiet announcements. */
 export default function FamilyHome() {
   const { profile } = useAuth();
-  const [children, setChildren] = useState<ChildRow[] | null>(null);
+  const { selected, ready } = useFamily();
   const [alerts, setAlerts] = useState<NowAlert[]>([]);
   const [stories, setStories] = useState<Map<string, StoryRow>>(new Map());
   const [status, setStatus] = useState<Map<string, string>>(new Map());
@@ -68,11 +64,6 @@ export default function FamilyHome() {
   const refresh = useCallback(() => {
     if (!profile) return;
     const today = new Date().toISOString().slice(0, 10);
-    supabase
-      .from('child')
-      .select('id, full_name, room:current_room_id(name)')
-      .order('full_name')
-      .then(({ data }) => setChildren((data as never as ChildRow[]) ?? []));
     supabase
       .from('notification')
       .select('id, title, body, event_type, ref_id, created_at')
@@ -140,7 +131,10 @@ export default function FamilyHome() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}>
-        <Title>{profile ? `Hi, ${profile.fullName.split(' ')[0]}` : 'Family'}</Title>
+        <View style={styles.headerRow}>
+          <Title>{profile ? `Hi, ${profile.fullName.split(' ')[0]}` : 'Family'}</Title>
+          <ChildSwitcher />
+        </View>
 
         {alerts.map((alert) => {
           const report = alert.ref_id ? reportDetails.get(alert.ref_id) : undefined;
@@ -171,40 +165,47 @@ export default function FamilyHome() {
           );
         })}
 
-        {children !== null && children.length === 0 ? (
+        {ready && !selected ? (
           <Card>
             <Body muted>{enCA.home.familyEmpty}</Body>
           </Card>
         ) : null}
 
-        {(children ?? []).map((child) => {
-          const story = stories.get(child.id);
-          const firstName = child.full_name.split(' ')[0]!;
-          const childStatus = status.get(child.id);
-          return (
-            <Card key={child.id}>
-              <View style={styles.childRow}>
-                <Avatar name={child.full_name} size={44} />
-                <View style={{ flex: 1 }}>
-                  <Heading>{firstName}</Heading>
-                  <Caption>
-                    {child.room ? `${child.room.name}${childStatus ? ` — ${childStatus}` : ''}` : (childStatus ?? '')}
-                  </Caption>
-                </View>
-              </View>
-              {story ? (
-                <View style={styles.story}>
-                  <Text style={styles.storyOverline}>TODAY&apos;S STORY</Text>
-                  {story.educator_note ? <Body>{story.educator_note}</Body> : null}
-                  <Body muted>{story.draft_text}</Body>
-                  <Caption>{`Published ${fmt12(story.published_at)}`}</Caption>
-                </View>
-              ) : (
-                <Caption>The day&apos;s story arrives at pick-up time.</Caption>
-              )}
-            </Card>
-          );
-        })}
+        {selected
+          ? (() => {
+              const story = stories.get(selected.id);
+              const childStatus = status.get(selected.id);
+              return (
+                <Card color={selected.theme.wash}>
+                  <View style={styles.childRow}>
+                    <Avatar name={selected.fullName} size={52} theme={selected.theme} />
+                    <View style={{ flex: 1 }}>
+                      <Heading>{selected.firstName}</Heading>
+                      <Text style={[styles.themedCaption, { color: selected.theme.deep }]}>
+                        {selected.roomName
+                          ? `${selected.roomName}${childStatus ? ` — ${childStatus}` : ''}`
+                          : (childStatus ?? '')}
+                      </Text>
+                    </View>
+                  </View>
+                  {story ? (
+                    <View style={styles.story}>
+                      <Text style={[styles.storyOverline, { color: selected.theme.deep }]}>
+                        TODAY&apos;S STORY
+                      </Text>
+                      {story.educator_note ? <Body>{story.educator_note}</Body> : null}
+                      <Body muted>{story.draft_text}</Body>
+                      <Caption>{`Published ${fmt12(story.published_at)}`}</Caption>
+                    </View>
+                  ) : (
+                    <View style={styles.story}>
+                      <Caption>The day&apos;s story arrives at pick-up time.</Caption>
+                    </View>
+                  )}
+                </Card>
+              );
+            })()
+          : null}
 
         {announcements.length > 0 ? (
           <>
@@ -249,9 +250,16 @@ const styles = StyleSheet.create({
     padding: space.base,
     gap: space.xs,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   childRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  themedCaption: { ...type.caption } as const,
   story: {
-    backgroundColor: colour.canvas,
+    backgroundColor: colour.surface,
     borderRadius: radius.lg,
     padding: space.base,
     gap: space.sm,

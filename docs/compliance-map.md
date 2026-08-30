@@ -8,6 +8,7 @@ Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it l
 |---|---|---|---|---|---|---|
 | Sched. 1 | Age-group presets: ratios, max group, qualified staff | `age_group`; `domain/ageGroups` | Room setup | `sched1_*` | 0 | ✅ |
 | ss. 8–11 | Live ratios; reduced-ratio windows & floors; never count volunteers/students/RCs; 6+ children ⇒ 2 staff | `staff_shift`, `attendance_event`; `domain/ratios` | Room home, supervisor home | `s8_*`, `s11_*` | 0 (engine) / 1 (live) | ✅ engine + live room board |
+| s. 11 (supervision) | Face-to-name headcounts at transitions, spot checks, drills, evacuations — never touching s. 72(3) attendance; drills auto-cross-ref into the DWR | `headcount_check`, `record_headcount`; `app.headcount_cross_reference` | Room board Headcount sheet, evacuation screen | `s11_*`, `part4_*`, `s37_drill_*` | 1 | ✅ PIN-signed counts with missing-child snapshots; model in [attendance-model.md](../references/attendance-model.md) |
 | s. 32 | Daily health observation on arrival, incl. parent-reported symptoms | `care_log(health_observation)` | Sign-in flow | `s32_*` | 1 | ✅ observed-on-arrival prompt inside the sign-in flow, parent-reported notes, DB-validated |
 | s. 33.1 | Back-to-sleep under 12 mo; direct visual sleep checks < 24 mo, per-child timestamped; rest ≤ 2 h | `care_log(sleep_check, nap_*)` | Room sleep board | `s33_1_*` | 1 | ✅ DB gating, room nap board with due prompts, console register |
 | s. 35 | Immunisation or official exemption forms | `immunisation_status`, `exemption_form` | Children's record | `s35_*` | 2 | ⬜ |
@@ -28,7 +29,7 @@ Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it l
 | s. 73 | Enrolment never blocked on an optional consent | `consent` model | Enrolment | `s73_*` | 1 | ✅ DB-enforced, pgTAP-proven |
 | s. 75.1 | Waitlist: no fees; self-serve position without exposing others | waitlist (bundle, off) | — | `s75_1_*` | 2 | ⬜ |
 | s. 82(2) | Electronic records: staff & Ministry can always get in; offline on premises | offline queue; break-glass access | Room mode | `s82_2_*` | 1 | 🔶 offline queue + zero-network evacuation cache ✅; break-glass access pending |
-| Parts 4, 10 | Fire drills, alarm tests, playground inspections, emergency policy — with written records | `compliance_task` | Compliance calendar | `part4_*`, `part10_*` | 2 | ⬜ |
+| Parts 4, 10 | Fire drills, alarm tests, playground inspections, emergency policy — with written records | `compliance_task` | Compliance calendar | `part4_*`, `part10_*` | 2 | 🔶 drill/evacuation headcounts recorded + DWR cross-ref ✅; calendar & inspections P2 |
 | CWELCC / municipal | $22/day cap display; 30-day disenrolment notices with delivery proof; Toronto reporting; CRA receipts | billing bundle | Console | `cwelcc_*` | 2 | ⬜ |
 | PIPEDA | Minimum collection; consent per purpose; access/deletion workflow, 30-day SLA; Canadian hosting | `consent`, RLS, `ca-central-1` | Console | `pipeda_*` | 0–1 | 🔶 RLS on every table + pgTAP isolation written (run in CI); consent model P1 |
 | §9.14 never-dos | No delete/hide of required records by toggle, lapse, or lost password; no ratio counting of volunteers; no "on my way" sign-out; nothing auto-filed | DB constraints + RLS | — | `never_*` | every phase | ⬜ |

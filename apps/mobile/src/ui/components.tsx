@@ -36,7 +36,16 @@ export function Screen({ children }: { children: ReactNode }) {
   );
 }
 
-export function Card({ children, wash }: { children: ReactNode; wash?: 'mist' | 'mint' | 'sand' }) {
+export function Card({
+  children,
+  wash,
+  color,
+}: {
+  children: ReactNode;
+  wash?: 'mist' | 'mint' | 'sand';
+  /** A custom wash (e.g. a child's identity colour) overrides presets. */
+  color?: string;
+}) {
   return (
     <View
       style={[
@@ -44,6 +53,7 @@ export function Card({ children, wash }: { children: ReactNode; wash?: 'mist' | 
         wash === 'mist' && styles.cardMist,
         wash === 'mint' && styles.cardMint,
         wash === 'sand' && styles.cardSand,
+        color ? { backgroundColor: color } : null,
       ]}
     >
       {children}

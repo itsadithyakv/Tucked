@@ -1,15 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
+import { useFamily } from '@/lib/childTheme';
 import { supabase } from '@/lib/supabase';
-import { Body, Caption, Card, Choices, Heading, Pill, Screen, Title } from '@/ui/components';
-
-interface ChildRow {
-  id: string;
-  full_name: string;
-}
+import { ChildSwitcher } from '@/ui/ChildSwitcher';
+import { Body, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
 
 interface LogRow {
   id: string;
@@ -43,24 +39,10 @@ function fmt12(iso: string): string {
 /** The day, moment by moment — everything the room recorded for this child,
  * plus the supplies nudge when the diaper count runs low. */
 export default function DayLog() {
-  const [children, setChildren] = useState<ChildRow[]>([]);
-  const [childId, setChildId] = useState<string | null>(null);
+  const { selected } = useFamily();
+  const childId = selected?.id ?? null;
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [diapersLeft, setDiapersLeft] = useState<number | null>(null);
-
-  useFocusEffect(
-    useCallback(() => {
-      supabase
-        .from('child')
-        .select('id, full_name')
-        .order('full_name')
-        .then(({ data }) => {
-          const rows = data ?? [];
-          setChildren(rows);
-          setChildId((cur) => cur ?? rows[0]?.id ?? null);
-        });
-    }, []),
-  );
 
   useEffect(() => {
     if (!childId) return;
@@ -88,14 +70,10 @@ export default function DayLog() {
 
   return (
     <Screen>
-      <Title>Day log</Title>
-      {children.length > 1 ? (
-        <Choices
-          options={children.map((c) => ({ value: c.id, label: c.full_name.split(' ')[0]! }))}
-          value={childId}
-          onChange={setChildId}
-        />
-      ) : null}
+      <View style={styles.headerRow}>
+        <Title>Day log</Title>
+        <ChildSwitcher />
+      </View>
 
       {diapersLeft !== null ? (
         <Card wash={diapersLeft <= 5 ? 'sand' : 'mint'}>
@@ -114,8 +92,8 @@ export default function DayLog() {
           const meta = LOG_META[item.log_type] ?? { icon: 'circle' as const, label: () => item.log_type };
           return (
             <View style={styles.row}>
-              <View style={styles.iconWrap}>
-                <Ionicons name={meta.icon} size={19} color={colour.blue700} />
+              <View style={[styles.iconWrap, selected ? { backgroundColor: selected.theme.wash } : null]}>
+                <Ionicons name={meta.icon} size={19} color={selected?.theme.deep ?? colour.blue700} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowText}>{meta.label(item.payload)}</Text>
@@ -135,6 +113,12 @@ export default function DayLog() {
 }
 
 const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: space.sm,
+  },
   inventoryRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

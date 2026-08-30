@@ -164,9 +164,12 @@ export interface EvacChild {
 }
 
 export interface EvacCache {
+  centreId: string;
   centreName: string;
   refreshedAt: string;
   children: EvacChild[];
+  /** Cached so the muster can be PIN-signed with zero network. */
+  staff: { personId: string; fullName: string; role: string }[];
 }
 
 export async function refreshEvacuationCache(day: RoomDay): Promise<EvacCache> {
@@ -204,8 +207,10 @@ export async function refreshEvacuationCache(day: RoomDay): Promise<EvacCache> {
   }
 
   const cache: EvacCache = {
+    centreId: day.centre.id,
     centreName: day.centre.name,
     refreshedAt: new Date().toISOString(),
+    staff: day.staff,
     children: day.children.map((ch) => {
       const health = (items.data ?? []).find(
         (i) => i.child_id === ch.id && i.item_type === 'health_immunisation',

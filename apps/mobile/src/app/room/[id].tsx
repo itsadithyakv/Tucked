@@ -107,6 +107,10 @@ function Board() {
   const [groupChildren, setGroupChildren] = useState<Set<string>>(new Set());
   const [groupText, setGroupText] = useState('');
   const [outdoorMinutes, setOutdoorMinutes] = useState('');
+  // face-to-name headcount at transitions (attendance-model.md §3)
+  const [headOpen, setHeadOpen] = useState(false);
+  const [headKind, setHeadKind] = useState<'transition_out' | 'transition_in' | 'spot' | null>(null);
+  const [headCounted, setHeadCounted] = useState<Set<string>>(new Set());
   // accident form
   const [accLocation, setAccLocation] = useState('');
   const [accWhat, setAccWhat] = useState('');
@@ -407,6 +411,28 @@ function Board() {
     }
   }
 
+  function saveHeadcount() {
+    if (!headKind) return;
+    const presentKids = roomChildren.filter((c) => present.has(c.id));
+    const missing = presentKids
+      .filter((c) => !headCounted.has(c.id))
+      .map((c) => ({ child_id: c.id, full_name: c.full_name }));
+    setHeadOpen(false);
+    void act(null, (recorder) =>
+      runCommand('record_headcount', {
+        p_centre: day!.centre.id,
+        p_room: roomId,
+        p_kind: headKind,
+        p_expected: presentKids.length,
+        p_counted: presentKids.length - missing.length,
+        p_missing: missing,
+        p_note: null,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
   function saveGroupLog() {
     const payload = groupPayload();
     if (!groupType || !payload || groupChildren.size === 0) {
@@ -457,7 +483,18 @@ function Board() {
       </Card>
       <View style={styles.rowBetween}>
         <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
-        <Button label="Group log" kind="quiet" onPress={openGroupLog} />
+        <View style={{ flexDirection: 'row', gap: space.sm }}>
+          <Button
+            label="Headcount"
+            kind="quiet"
+            onPress={() => {
+              setHeadKind(null);
+              setHeadCounted(new Set());
+              setHeadOpen(true);
+            }}
+          />
+          <Button label="Group log" kind="quiet" onPress={openGroupLog} />
+        </View>
       </View>
       {notice ? (
         <Card wash="mist">
@@ -779,6 +816,44 @@ function Board() {
         </View>
         <Button label={`Log for ${groupChildren.size}`} onPress={saveGroupLog} />
         <Button label="Cancel" kind="quiet" onPress={() => setBulkOpen(false)} />
+      </Sheet>
+
+      {/* transition headcount: face-to-name, never edits attendance */}
+      <Sheet visible={headOpen} onClose={() => setHeadOpen(false)} title="Headcount">
+        <Body muted>
+          Count faces against the list — this records the check, it never changes attendance.
+        </Body>
+        <Choices
+          options={[
+            { value: 'transition_out', label: 'Heading out' },
+            { value: 'transition_in', label: 'Back in' },
+            { value: 'spot', label: 'Spot check' },
+          ]}
+          value={headKind}
+          onChange={setHeadKind}
+        />
+        <Body muted>{`${headCounted.size} of ${roomChildren.filter((c) => present.has(c.id)).length} counted`}</Body>
+        <View style={styles.chipWrap}>
+          {roomChildren
+            .filter((c) => present.has(c.id))
+            .map((c) => (
+              <Button
+                key={c.id}
+                label={c.full_name.split(' ')[0]!}
+                kind={headCounted.has(c.id) ? 'primary' : 'quiet'}
+                onPress={() =>
+                  setHeadCounted((cur) => {
+                    const next = new Set(cur);
+                    if (next.has(c.id)) next.delete(c.id);
+                    else next.add(c.id);
+                    return next;
+                  })
+                }
+              />
+            ))}
+        </View>
+        <Button label="Record headcount" onPress={saveHeadcount} />
+        <Button label="Cancel" kind="quiet" onPress={() => setHeadOpen(false)} />
       </Sheet>
     </Screen>
   );

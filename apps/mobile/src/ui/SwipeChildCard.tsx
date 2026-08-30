@@ -40,7 +40,18 @@ function thud() {
 const AVATAR_WASHES = [colour.blue50, colour.okWash, colour.dueWash] as const;
 const AVATAR_INKS = [colour.blue700, colour.ok, colour.due] as const;
 
-export function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?: string | null; size?: number }) {
+export function Avatar({
+  name,
+  photoUrl,
+  size = 52,
+  theme,
+}: {
+  name: string;
+  photoUrl?: string | null;
+  size?: number;
+  /** A child's identity colours override the hash-picked wash. */
+  theme?: { wash: string; deep: string };
+}) {
   const initials = name
     .split(' ')
     .map((part) => part[0])
@@ -49,24 +60,23 @@ export function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?:
   let hash = 0;
   for (const ch of name) hash = (hash * 31 + ch.charCodeAt(0)) % 997;
   const idx = hash % 3;
+  const wash = theme?.wash ?? AVATAR_WASHES[idx]!;
+  const ink = theme?.deep ?? AVATAR_INKS[idx]!;
   if (photoUrl) {
     return (
       <Image
         source={{ uri: photoUrl }}
-        style={{ width: size, height: size, borderRadius: size / 2 }}
+        style={{ width: size, height: size, borderRadius: size / 2, borderWidth: theme ? 3 : 0, borderColor: ink }}
         accessibilityLabel={name}
       />
     );
   }
   return (
     <View
-      style={[
-        styles.avatar,
-        { width: size, height: size, borderRadius: size / 2, backgroundColor: AVATAR_WASHES[idx] },
-      ]}
+      style={[styles.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: wash }]}
       accessibilityLabel={name}
     >
-      <Text style={[styles.avatarText, { color: AVATAR_INKS[idx], fontSize: size * 0.36 }]}>{initials}</Text>
+      <Text style={[styles.avatarText, { color: ink, fontSize: size * 0.36 }]}>{initials}</Text>
     </View>
   );
 }

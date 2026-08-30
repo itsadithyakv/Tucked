@@ -3,6 +3,7 @@ import { Redirect, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colour, fontFamily } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
+import { FamilyProvider } from '@/lib/childTheme';
 
 function icon(active: keyof typeof Ionicons.glyphMap, inactive: keyof typeof Ionicons.glyphMap) {
   return function TabIcon({ color, focused }: { color: ColorValue; focused: boolean }) {
@@ -17,8 +18,9 @@ export default function FamilyTabs() {
   if (!loading && profile && profile.mode === 'room') return <Redirect href="/rooms" />;
 
   return (
-    <Tabs
-      screenOptions={{
+    <FamilyProvider>
+      <Tabs
+        screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colour.blue700,
         tabBarInactiveTintColor: colour.slateMuted,
@@ -47,6 +49,7 @@ export default function FamilyTabs() {
         name="more"
         options={{ title: 'More', tabBarIcon: icon('ellipsis-horizontal-circle', 'ellipsis-horizontal-circle-outline') }}
       />
-    </Tabs>
+      </Tabs>
+    </FamilyProvider>
   );
 }
