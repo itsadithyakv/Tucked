@@ -173,7 +173,7 @@ export interface EvacCache {
 }
 
 export async function refreshEvacuationCache(day: RoomDay): Promise<EvacCache> {
-  const [items, meds, members] = await Promise.all([
+  const [items, meds, members, allergyRows] = await Promise.all([
     supabase
       .from('child_record_item')
       .select('child_id, item_type, content')
@@ -189,6 +189,11 @@ export async function refreshEvacuationCache(day: RoomDay): Promise<EvacCache> {
       .select('household_id, relationship, person:person_id(full_name, phone)')
       .eq('centre_id', day.centre.id)
       .is('revoked_at', null),
+    // s. 43(3) live list: anaphylaxis-plan allergens + dietary restrictions
+    supabase
+      .from('allergy_list')
+      .select('child_id, kind, item')
+      .eq('centre_id', day.centre.id),
   ]);
   const { data: links } = await supabase
     .from('child_household')
@@ -215,7 +220,11 @@ export async function refreshEvacuationCache(day: RoomDay): Promise<EvacCache> {
       const health = (items.data ?? []).find(
         (i) => i.child_id === ch.id && i.item_type === 'health_immunisation',
       );
-      const allergies = ((health?.content as { allergies?: string[] } | null)?.allergies ?? []).filter(Boolean);
+      const recordAllergies = ((health?.content as { allergies?: string[] } | null)?.allergies ?? []).filter(Boolean);
+      const listedAllergies = ((allergyRows.data as { child_id: string; kind: string; item: string }[]) ?? [])
+        .filter((a) => a.child_id === ch.id)
+        .map((a) => (a.kind === 'anaphylaxis' ? `${a.item} (ANAPHYLAXIS)` : a.item));
+      const allergies = [...new Set([...listedAllergies, ...recordAllergies])];
       return {
         id: ch.id,
         fullName: ch.full_name,

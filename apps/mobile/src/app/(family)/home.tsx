@@ -45,6 +45,19 @@ interface ReportDetail {
   completed_by_person: { full_name: string } | null;
 }
 
+interface PlanDetail {
+  id: string;
+  plan_type: string;
+  condition: string;
+  allergens: string[];
+  signs: string | null;
+  emergency_procedure: string | null;
+  devices_instructions: string | null;
+  supports: string | null;
+  developed_with: string;
+  child: { full_name: string } | null;
+}
+
 function fmt12(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
@@ -59,6 +72,7 @@ export default function FamilyHome() {
   const [status, setStatus] = useState<Map<string, string>>(new Map());
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [reportDetails, setReportDetails] = useState<Map<string, ReportDetail>>(new Map());
+  const [planDetails, setPlanDetails] = useState<Map<string, PlanDetail>>(new Map());
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -85,6 +99,19 @@ export default function FamilyHome() {
             .in('id', reportIds)
             .then(({ data: reports }) =>
               setReportDetails(new Map(((reports as never as ReportDetail[]) ?? []).map((r) => [r.id, r]))),
+            );
+        }
+        // a plan asks for real agreement — show it in full before the button
+        const planIds = rows.filter((a) => a.event_type === 'plan_agreement' && a.ref_id).map((a) => a.ref_id!);
+        if (planIds.length > 0) {
+          void supabase
+            .from('individualised_plan')
+            .select(
+              'id, plan_type, condition, allergens, signs, emergency_procedure, devices_instructions, supports, developed_with, child:child_id(full_name)',
+            )
+            .in('id', planIds)
+            .then(({ data: plansRows }) =>
+              setPlanDetails(new Map(((plansRows as never as PlanDetail[]) ?? []).map((p) => [p.id, p]))),
             );
         }
       });
@@ -121,6 +148,9 @@ export default function FamilyHome() {
     setBusyAlert(alert.id);
     if (alert.event_type === 'accident_report' && alert.ref_id) {
       await supabase.rpc('acknowledge_accident_report', { p_report: alert.ref_id });
+    } else if (alert.event_type === 'plan_agreement' && alert.ref_id) {
+      // s. 52: this IS the parental agreement — named, timestamped, in writing
+      await supabase.rpc('agree_individualised_plan', { p_plan: alert.ref_id });
     } else {
       await supabase.rpc('acknowledge_notification', { p_notification: alert.id });
     }
@@ -138,6 +168,7 @@ export default function FamilyHome() {
 
         {alerts.map((alert) => {
           const report = alert.ref_id ? reportDetails.get(alert.ref_id) : undefined;
+          const plan = alert.event_type === 'plan_agreement' && alert.ref_id ? planDetails.get(alert.ref_id) : undefined;
           return (
             <View key={alert.id} style={styles.nowCard}>
               <Pill kind="now">Now</Pill>
@@ -152,12 +183,28 @@ export default function FamilyHome() {
                   ) : null}
                   <Caption>{`Completed by ${report.completed_by_person?.full_name ?? 'the room team'}`}</Caption>
                 </View>
+              ) : plan ? (
+                <View style={styles.reportBox}>
+                  <Body>{plan.condition}</Body>
+                  {plan.allergens.length > 0 ? <Body muted>{`Allergens: ${plan.allergens.join(', ')}.`}</Body> : null}
+                  {plan.signs ? <Body muted>{`Signs: ${plan.signs}.`}</Body> : null}
+                  {plan.emergency_procedure ? <Body muted>{`Emergency: ${plan.emergency_procedure}`}</Body> : null}
+                  {plan.devices_instructions ? <Body muted>{`Devices: ${plan.devices_instructions}`}</Body> : null}
+                  {plan.supports ? <Body muted>{`Supports: ${plan.supports}`}</Body> : null}
+                  <Caption>{`Developed with ${plan.developed_with}. Agreeing puts this plan into practice.`}</Caption>
+                </View>
               ) : (
                 <Body>{alert.body}</Body>
               )}
               <Caption>{`Sent ${fmt12(alert.created_at)}`}</Caption>
               <Button
-                label={alert.event_type === 'accident_report' ? 'I have read the report' : 'Acknowledge'}
+                label={
+                  alert.event_type === 'accident_report'
+                    ? 'I have read the report'
+                    : alert.event_type === 'plan_agreement'
+                      ? 'I agree to this plan'
+                      : 'Acknowledge'
+                }
                 busy={busyAlert === alert.id}
                 onPress={() => void acknowledge(alert)}
               />

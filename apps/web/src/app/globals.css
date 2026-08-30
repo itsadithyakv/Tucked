@@ -760,6 +760,12 @@ button.small {
   .cards-row > * {
     animation: none !important;
   }
+
+  /* the s. 43(3) posting prints alone: only the allergy list leaves the app */
+  main:has(#allergy-list-print) > :not(#allergy-list-print),
+  #allergy-list-print > :not(.print-area) {
+    display: none !important;
+  }
 }
 
 /* ── calm for everyone ─────────────────────────────────────────────────── */

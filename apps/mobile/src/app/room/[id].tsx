@@ -111,6 +111,11 @@ function Board() {
   const [headOpen, setHeadOpen] = useState(false);
   const [headKind, setHeadKind] = useState<'transition_out' | 'transition_in' | 'spot' | null>(null);
   const [headCounted, setHeadCounted] = useState<Set<string>>(new Set());
+  // the s. 43(3) allergy list, live for this room
+  const [allergyOpen, setAllergyOpen] = useState(false);
+  const [allergyRows, setAllergyRows] = useState<
+    { child_id: string; full_name: string; kind: string; item: string; emergency_procedure: string | null }[]
+  >([]);
   // accident form
   const [accLocation, setAccLocation] = useState('');
   const [accWhat, setAccWhat] = useState('');
@@ -483,7 +488,20 @@ function Board() {
       </Card>
       <View style={styles.rowBetween}>
         <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
-        <View style={{ flexDirection: 'row', gap: space.sm }}>
+        <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
+          <Button
+            label="Allergies"
+            kind="quiet"
+            onPress={() => {
+              void supabase
+                .from('allergy_list')
+                .select('child_id, full_name, kind, item, emergency_procedure')
+                .eq('current_room_id', roomId)
+                .order('full_name')
+                .then(({ data }) => setAllergyRows((data as never) ?? []));
+              setAllergyOpen(true);
+            }}
+          />
           <Button
             label="Headcount"
             kind="quiet"
@@ -819,6 +837,31 @@ function Board() {
       </Sheet>
 
       {/* transition headcount: face-to-name, never edits attendance */}
+      <Sheet visible={allergyOpen} onClose={() => setAllergyOpen(false)} title="Allergies & restrictions">
+        <Body muted>
+          The live s. 43(3) list for this room — anaphylaxis first, then allergies and food restrictions.
+          The printed copy in the room must match this.
+        </Body>
+        {allergyRows.length === 0 ? (
+          <Body muted>No allergies or restrictions in this room.</Body>
+        ) : (
+          [...allergyRows]
+            .sort((a, b) => (a.kind === 'anaphylaxis' ? -1 : 0) - (b.kind === 'anaphylaxis' ? -1 : 0))
+            .map((row, i) => (
+              <Card key={`${row.child_id}-${i}`} wash={row.kind === 'anaphylaxis' ? 'sand' : undefined}>
+                <View style={styles.rowBetween}>
+                  <Body>{`${row.full_name} — ${row.item}`}</Body>
+                  <Pill kind={row.kind === 'anaphylaxis' ? 'now' : 'due'}>
+                    {row.kind === 'anaphylaxis' ? 'Anaphylaxis' : row.kind.replace('_', ' ')}
+                  </Pill>
+                </View>
+                {row.emergency_procedure ? <Caption>{row.emergency_procedure}</Caption> : null}
+              </Card>
+            ))
+        )}
+        <Button label="Close" kind="quiet" onPress={() => setAllergyOpen(false)} />
+      </Sheet>
+
       <Sheet visible={headOpen} onClose={() => setHeadOpen(false)} title="Headcount">
         <Body muted>
           Count faces against the list — this records the check, it never changes attendance.

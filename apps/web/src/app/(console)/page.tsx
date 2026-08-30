@@ -33,6 +33,11 @@ export default function ExceptionsHome() {
   const [openOccurrences, setOpenOccurrences] = useState<
     { id: string; category: string; ccls_deadline_at: string; ccls_filed_at: string | null }[]
   >([]);
+  const [planFlags, setPlanFlags] = useState<{ drafts: number; reviewsOverdue: number; policyMissing: boolean }>({
+    drafts: 0,
+    reviewsOverdue: 0,
+    policyMissing: false,
+  });
 
   useEffect(() => {
     const sb = getSupabase();
@@ -59,6 +64,18 @@ export default function ExceptionsHome() {
       .neq('status', 'closed')
       .order('ccls_deadline_at')
       .then(({ data }) => setOpenOccurrences((data as never) ?? []));
+
+    (async () => {
+      const [{ data: livePlans }, { data: centreRow }] = await Promise.all([
+        sb.from('individualised_plan').select('status, review_due_on').eq('centre_id', centre.id).in('status', ['draft', 'active']),
+        sb.from('centre').select('anaphylaxis_policy').eq('id', centre.id).maybeSingle(),
+      ]);
+      setPlanFlags({
+        drafts: (livePlans ?? []).filter((p) => p.status === 'draft').length,
+        reviewsOverdue: (livePlans ?? []).filter((p) => p.status === 'active' && p.review_due_on && p.review_due_on < today).length,
+        policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
+      });
+    })();
 
     sb.from('centre_subscription')
       .select('status, pilot_ends_on, plan:plan_code(name, description)')
@@ -132,6 +149,24 @@ export default function ExceptionsHome() {
             </p>
           );
         })}
+        {planFlags.policyMissing ? (
+          <p>
+            <span className="pill now">Now</span> No anaphylaxis policy on file (s. 39 requires one even with no
+            allergic children) — <Link href="/plans">write it</Link>
+          </p>
+        ) : null}
+        {planFlags.drafts > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {planFlags.drafts} individualised plan{planFlags.drafts === 1 ? '' : 's'} awaiting
+            parent agreement — <Link href="/plans">plans</Link>
+          </p>
+        ) : null}
+        {planFlags.reviewsOverdue > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {planFlags.reviewsOverdue} plan review{planFlags.reviewsOverdue === 1 ? '' : 's'} overdue
+            (annual) — <Link href="/plans">plans</Link>
+          </p>
+        ) : null}
         {unclosed !== null && unclosed > 0 ? (
           <p>
             <span className="pill due">Due</span> {unclosed} daily written record{unclosed === 1 ? '' : 's'} not yet
