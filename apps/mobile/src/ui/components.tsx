@@ -5,6 +5,7 @@
  * (design-language.md §11).
  */
 
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import {
   ActivityIndicator,
@@ -17,7 +18,14 @@ import {
   View,
 } from 'react-native';
 import type { TextInputProps } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { a11y, colour, radius, shadow, space, type } from '@tucked/ui-tokens';
+import { SparkleBurst } from './sparkle';
 
 export function Screen({ children }: { children: ReactNode }) {
   return <View style={styles.screen}>{children}</View>;
@@ -62,6 +70,8 @@ export function Pill({ children, kind }: { children: ReactNode; kind: 'ok' | 'du
   );
 }
 
+/** Squishy clay button: the press lands instantly (a fast dip + squash), the
+ * release springs back with a soft overshoot. Primary presses sparkle. */
 export function Button({
   label,
   onPress,
@@ -73,25 +83,41 @@ export function Button({
   busy?: boolean;
   kind?: 'primary' | 'quiet';
 }) {
+  const squish = useSharedValue(0);
+  const [burstKey, setBurstKey] = useState(0);
+
+  const animated = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: squish.value * 3 },
+      { scaleX: 1 - squish.value * 0.04 },
+      { scaleY: 1 - squish.value * 0.09 },
+    ],
+  }));
+
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={onPress}
+      onPressIn={() => {
+        squish.value = withTiming(1, { duration: 70 });
+      }}
+      onPressOut={() => {
+        squish.value = withSpring(0, { damping: 9, stiffness: 340 });
+        if (kind === 'primary' && !busy) setBurstKey((k) => k + 1);
+      }}
       disabled={busy}
-      style={({ pressed }) => [
-        styles.button,
-        kind === 'quiet' && styles.buttonQuiet,
-        pressed && styles.buttonPressed,
-      ]}
     >
-      {busy ? (
-        <ActivityIndicator color={kind === 'primary' ? colour.surface : colour.blue600} />
-      ) : (
-        <Text style={[styles.buttonLabel, kind === 'quiet' && styles.buttonLabelQuiet]}>
-          {label}
-        </Text>
-      )}
+      <Animated.View style={[styles.button, kind === 'quiet' && styles.buttonQuiet, animated]}>
+        {busy ? (
+          <ActivityIndicator color={kind === 'primary' ? colour.surface : colour.blue600} />
+        ) : (
+          <Text style={[styles.buttonLabel, kind === 'quiet' && styles.buttonLabelQuiet]}>
+            {label}
+          </Text>
+        )}
+        {burstKey > 0 ? <SparkleBurst key={burstKey} /> : null}
+      </Animated.View>
     </Pressable>
   );
 }

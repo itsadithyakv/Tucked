@@ -61,17 +61,17 @@ Sampled from the logo: blanket body averages `#3E89E8` (peak `#4090F0`), facial 
 | `blue.600` **Deep** | `#2166C8` | features/shading | Pressed states, text links, icons on white that must meet 4.5:1. |
 | `blue.700` | `#1C5AB5` | deep shading | High-emphasis blue text, focus rings. |
 | `blue.100` **Heart** | `#A0C8F8` | the heart | Decorative only (illustrations, progress fills, selected-card washes). Never text. |
-| `blue.50` **Mist** | `#EAF2FD` | derived | Tinted surfaces: selected cards, info banners, avatar grounds. |
+| `blue.50` **Mist** | `#CFE2FA` | derived | Tinted surfaces: selected cards, info banners, avatar grounds, stat tiles. |
 | `ink` | `#17325C` | derived (navy of the blues) | Primary text. A warm navy, not black — softer, still 12.75:1 on white. |
 
 ### Neutrals
 
 | Token | Hex | Use |
 |---|---|---|
-| `canvas` | `#F7F9FC` | App background. Cool near-white, never pure grey. |
+| `canvas` | `#EFF4FB` | App background. A real blue-tinted ground — deep enough to have a personality, light enough to stay calm. |
 | `surface` | `#FFFFFF` | Cards, sheets, inputs. |
-| `line` | `#E3E9F2` | Hairline borders, dividers. |
-| `slate` | `#4B5C74` | Secondary text (6.81:1 on white). |
+| `line` | `#D9E2EF` | Hairline borders, dividers. |
+| `slate` | `#46587A` | Secondary text (7.4:1 on white). |
 | `slate.muted` | `#7C8AA0` | Placeholders, disabled text, timestamps. Large/secondary contexts only. |
 
 ### Semantic colours
@@ -80,12 +80,12 @@ Calm surfaces, one accent: **green = fine, red = act now** (build prompt §3.2).
 
 | Token | Hex | On white | Use |
 |---|---|---|---|
-| `ok` | `#1E7A46` | 5.35:1 | Ratio OK, record closed, synced, acknowledged. |
-| `ok.wash` | `#E7F4EC` | — | Backgrounds for fine-states. |
-| `now` | `#C2362B` | 5.45:1 | The **Now** channel, ratio breach, overdue serious-occurrence clock, hard blocks (restricted pickup). White text on `now` passes (5.45:1). |
-| `now.wash` | `#FBECEA` | — | Now-item backgrounds. |
-| `due` | `#B45309` | 5.02:1 | Expiring credentials, sleep check due, unclosed daily record. |
-| `due.wash` | `#FBF1E4` | — | Due-state backgrounds. |
+| `ok` | `#177243` | 5.96:1 | Ratio OK, record closed, synced, acknowledged. Passes 4.5:1 on its own wash. |
+| `ok.wash` | `#C9EAD7` | — | Backgrounds for fine-states; mint stat tiles. |
+| `now` | `#B02A20` | 6.57:1 | The **Now** channel, ratio breach, overdue serious-occurrence clock, hard blocks (restricted pickup). White text on `now` passes. Every semantic colour also passes 4.5:1 on its own wash — pills sit on washes and on white alike. |
+| `now.wash` | `#F9D9D3` | — | Now-item backgrounds. |
+| `due` | `#96470A` | 6.56:1 | Expiring credentials, sleep check due, unclosed daily record. |
+| `due.wash` | `#FAE3C2` | — | Due-state backgrounds; sand stat tiles. |
 
 ### Rules
 
@@ -153,6 +153,10 @@ Purposeful only; `prefers-reduced-motion` honoured on both platforms (build prom
 | `fast` | 120 ms, ease-out | Press feedback (buttons sink: 1 px down + scale 0.98–0.99), toggles, checkmarks. |
 | `base` | 200 ms, ease-in-out | Card hover lift, label fades, tab changes, sheet content. |
 | `gentle` | 300 ms, `cubic-bezier(.2,.8,.3,1)` (no overshoot > 4%) | Page enter (8 px rise + fade via route template), sidebar collapse/expand, sheets, the daily story opening. |
+
+**Press physics — squishy, never rigid.** Every interactive element presses in ~70 ms (a dip plus a slight squash, `scale(0.95, 0.9)` with the clay edge compressing) and releases through a spring with soft overshoot (`cubic-bezier(.3, 1.8, .45, 1)` on web; `withSpring` damping ≈ 9 on native). The press is instant, the release bounces — clay, not plastic.
+
+**Click feedback everywhere.** Every click blooms a soft heart-blue pulse ring at the pointer; interactive elements add gold sparkles — four small stars for everyday taps, the full eight-star burst for primary presses. Serious zones (anything containing a Now pill) and text fields stay quiet. All of it is inert under `prefers-reduced-motion`.
 
 Console chrome: below 1600 px (laptops) the sidebar is an automatic 76 px icon rail whose panel peeks open as an overlay on hover (`gentle`; labels fade at `base`; the page never reflows); on wide screens it rests expanded with a pin toggle (persisted per-browser); under 900 px it becomes an over-content drawer with an ink-tinted backdrop.
 

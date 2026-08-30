@@ -120,12 +120,13 @@ aside.sidebar {
   transition:
     background var(--motion-fast) ease-out,
     color var(--motion-fast) ease-out,
-    transform var(--motion-fast) ease-out;
+    transform 300ms cubic-bezier(0.3, 1.8, 0.45, 1);
 }
 
 .side-toggle:active,
 .side-signout:active {
-  transform: scale(0.97);
+  transform: scale(0.94, 0.9);
+  transition-duration: 70ms;
   box-shadow: none;
 }
 
@@ -162,7 +163,8 @@ aside.sidebar {
 }
 
 .sidebar nav a:active {
-  transform: scale(0.98);
+  transform: scale(0.94, 0.9);
+  transition-duration: 70ms;
 }
 
 .side-brand img {
@@ -306,13 +308,18 @@ h2 {
 
 .tile {
   transition:
-    transform var(--motion-base) cubic-bezier(0.26, 1.2, 0.48, 1),
+    transform 340ms cubic-bezier(0.3, 1.8, 0.45, 1),
     box-shadow var(--motion-base) ease-out;
 }
 
 .tile:hover {
   transform: translateY(-3px) scale(1.02) rotate(-0.4deg);
   box-shadow: var(--shadow-raised);
+}
+
+.tile:active {
+  transform: scale(0.97, 0.95);
+  transition-duration: 70ms;
 }
 
 .tile-mist {
@@ -356,18 +363,23 @@ button {
     0 4px 0 var(--blue-700),
     0 10px 18px -8px rgba(33, 102, 200, 0.45),
     inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  /* squishy: the press lands instantly, the release springs back with a
+     soft overshoot — clay, not plastic */
   transition:
-    transform var(--motion-fast) ease-out,
-    box-shadow var(--motion-fast) ease-out,
+    transform 340ms cubic-bezier(0.3, 1.8, 0.45, 1),
+    box-shadow 340ms cubic-bezier(0.3, 1.8, 0.45, 1),
     background var(--motion-fast) ease-out;
 }
 
 button:hover {
   background: var(--blue-600);
+  transform: scale(1.02);
 }
 
 button:active {
-  transform: translateY(3px);
+  transform: translateY(3px) scale(0.95, 0.9);
+  transition-duration: 70ms, 70ms, 70ms;
+  transition-timing-function: ease-out;
   box-shadow:
     0 1px 0 var(--blue-700),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -394,7 +406,9 @@ button.quiet:hover {
 }
 
 button.quiet:active {
-  transform: translateY(2px);
+  transform: translateY(2px) scale(0.95, 0.92);
+  transition-duration: 70ms, 70ms, 70ms;
+  transition-timing-function: ease-out;
   box-shadow: 0 1px 0 var(--blue-100);
 }
 
@@ -653,6 +667,27 @@ main.signin .mark {
   60% {
     opacity: 0.9;
     transform: scale(0.8) rotate(28deg);
+  }
+}
+
+/* a soft blue ring blooms from every click */
+.click-pulse {
+  position: fixed;
+  pointer-events: none;
+  z-index: 99;
+  border-radius: var(--radius-pill);
+  border: 3px solid var(--blue-100);
+  animation: pulse-out 480ms cubic-bezier(0.2, 0.8, 0.4, 1) forwards;
+}
+
+@keyframes pulse-out {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.3);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.15);
   }
 }
 

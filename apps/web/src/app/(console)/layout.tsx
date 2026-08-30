@@ -24,7 +24,7 @@ import {
 import { enCA } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { ConsoleProvider, useConsole } from '@/lib/console';
-import { Sparkles, sparkleBurst } from '@/ui/sparkles';
+import { Sparkles, clickPulse, sparkleBurst } from '@/ui/sparkles';
 
 /** One fixed icon per regulated concept (design-language §8). */
 const NAV = [
@@ -79,19 +79,6 @@ function Shell({ children }: { children: ReactNode }) {
 
   // the drawer closes itself after navigation on small screens
   useEffect(() => setDrawerOpen(false), [pathname]);
-
-  // Primary presses sparkle. Quiet/chrome buttons stay quiet, and the helper
-  // itself refuses to spawn under prefers-reduced-motion.
-  useEffect(() => {
-    function onClick(e: MouseEvent) {
-      const target = e.target instanceof Element ? e.target.closest('button') : null;
-      if (!target) return;
-      if (target.matches('.quiet, .side-toggle, .side-signout, .menu-button, .backdrop')) return;
-      sparkleBurst(e.clientX, e.clientY);
-    }
-    document.addEventListener('click', onClick);
-    return () => document.removeEventListener('click', onClick);
-  }, []);
 
   return (
     <div className={`console${collapsed ? ' collapsed' : ''}${drawerOpen ? ' drawer-open' : ''}`}>
@@ -166,6 +153,30 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
     });
     const { data: sub } = sb.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => sub.subscription.unsubscribe();
+  }, []);
+
+  // Every click blooms a soft pulse; interactive things add sparkles — small
+  // for everyday taps, a full burst for primary presses. Serious zones (Now
+  // content) and text fields stay quiet, and the helpers refuse to spawn
+  // under prefers-reduced-motion.
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      const el = e.target instanceof Element ? e.target : null;
+      if (!el) return;
+      if (el.closest('input, textarea, select, .backdrop')) return;
+      clickPulse(e.clientX, e.clientY);
+      const card = el.closest('.card, section');
+      const serious = card?.querySelector('.pill.now') != null;
+      if (serious) return;
+      const button = el.closest('button');
+      if (button && !button.matches('.quiet, .side-toggle, .side-signout, .menu-button')) {
+        sparkleBurst(e.clientX, e.clientY, 8);
+      } else if (el.closest('a, button, .tile, [role="button"]')) {
+        sparkleBurst(e.clientX, e.clientY, 4);
+      }
+    }
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
   }, []);
 
   async function signIn(e: React.FormEvent) {

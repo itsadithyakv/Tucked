@@ -11,23 +11,23 @@ export const colour = {
   blue600: '#2166C8', // Deep. Pressed states, text links (5.53:1).
   blue700: '#1C5AB5', // High-emphasis blue text, focus rings (6.61:1).
   blue100: '#A0C8F8', // Heart. DECORATIVE ONLY (1.73:1) — never text.
-  blue50: '#EAF2FD', // Mist. Tinted surfaces.
+  blue50: '#CFE2FA', // Mist. Tinted surfaces.
   ink: '#17325C', // Primary text (12.75:1).
 
   // Neutrals
-  canvas: '#F7F9FC',
+  canvas: '#EFF4FB',
   surface: '#FFFFFF',
-  line: '#E3E9F2',
-  slate: '#4B5C74', // Secondary text (6.81:1).
+  line: '#D9E2EF',
+  slate: '#46587A', // Secondary text (7.4:1).
   slateMuted: '#7C8AA0', // Placeholders, timestamps — large/secondary contexts only.
 
   // Semantic — green = fine, red = act now, amber = due soon (sparingly)
-  ok: '#1E7A46',
-  okWash: '#E7F4EC',
-  now: '#C2362B',
-  nowWash: '#FBECEA',
-  due: '#B45309',
-  dueWash: '#FBF1E4',
+  ok: '#177243',
+  okWash: '#C9EAD7',
+  now: '#B02A20',
+  nowWash: '#F9D9D3',
+  due: '#96470A',
+  dueWash: '#FAE3C2',
 } as const;
 
 /**

@@ -47,24 +47,44 @@ const BURST_DIRECTIONS = [
   [0, -46], [34, -30], [46, 4], [30, 36], [-2, 46], [-34, 32], [-46, -2], [-30, -34],
 ] as const;
 
-/** Spawn a gold star burst at viewport coordinates. Self-cleaning. */
-export function sparkleBurst(x: number, y: number) {
-  if (typeof document === 'undefined') return;
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+function reducedMotion(): boolean {
+  return typeof window === 'undefined' || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Spawn a gold star burst at viewport coordinates. Self-cleaning.
+ * count 8 = a primary celebration; count 4 = the small everyday twinkle. */
+export function sparkleBurst(x: number, y: number, count: 4 | 8 = 8) {
+  if (typeof document === 'undefined' || reducedMotion()) return;
   const host = document.createElement('div');
   host.className = 'sparkle-burst';
-  for (const [i, [dx, dy]] of BURST_DIRECTIONS.entries()) {
+  const directions = count === 8 ? BURST_DIRECTIONS : [BURST_DIRECTIONS[0], BURST_DIRECTIONS[2], BURST_DIRECTIONS[4], BURST_DIRECTIONS[6]];
+  const spread = count === 8 ? 1 : 0.6;
+  for (const [i, [dx, dy]] of directions.entries()) {
     const fly = document.createElement('span');
     fly.className = 'fly';
-    const size = i % 3 === 0 ? 13 : 9;
+    const size = count === 8 ? (i % 3 === 0 ? 13 : 9) : 8;
     fly.style.left = `${x - size / 2}px`;
     fly.style.top = `${y - size / 2}px`;
-    fly.style.setProperty('--dx', `${dx}px`);
-    fly.style.setProperty('--dy', `${dy}px`);
+    fly.style.setProperty('--dx', `${dx * spread}px`);
+    fly.style.setProperty('--dy', `${dy * spread}px`);
     fly.style.animationDelay = `${(i % 4) * 22}ms`;
     fly.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><path d="${STAR_PATH}"/></svg>`;
     host.appendChild(fly);
   }
   document.body.appendChild(host);
   setTimeout(() => host.remove(), 900);
+}
+
+/** A soft blue ring that blooms from every click — quiet tactile feedback. */
+export function clickPulse(x: number, y: number) {
+  if (typeof document === 'undefined' || reducedMotion()) return;
+  const ring = document.createElement('div');
+  ring.className = 'click-pulse';
+  const size = 40;
+  ring.style.left = `${x - size / 2}px`;
+  ring.style.top = `${y - size / 2}px`;
+  ring.style.width = `${size}px`;
+  ring.style.height = `${size}px`;
+  document.body.appendChild(ring);
+  setTimeout(() => ring.remove(), 600);
 }

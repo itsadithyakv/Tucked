@@ -7,14 +7,14 @@
   --blue-600: #2166c8; /* Deep — links, pressed */
   --blue-700: #1c5ab5; /* focus rings, high-emphasis blue text */
   --blue-100: #a0c8f8; /* Heart — DECORATIVE ONLY, never text */
-  --blue-50: #eaf2fd; /* Mist — tinted surfaces */
+  --blue-50: #cfe2fa; /* Mist — tinted surfaces */
   --ink: #17325c;
 
   /* Neutrals */
-  --canvas: #f7f9fc;
+  --canvas: #eff4fb;
   --surface: #ffffff;
-  --line: #e3e9f2;
-  --slate: #4b5c74;
+  --line: #d9e2ef;
+  --slate: #46587a;
   --slate-muted: #7c8aa0;
 
   /* Decorative only (like the heart blue): sparkle moments on happy states.
@@ -22,12 +22,12 @@
   --sparkle-gold: #ffc94d;
 
   /* Semantic: green = fine, red = act now, amber = due soon */
-  --ok: #1e7a46;
-  --ok-wash: #e7f4ec;
-  --now: #c2362b;
-  --now-wash: #fbecea;
-  --due: #b45309;
-  --due-wash: #fbf1e4;
+  --ok: #177243;
+  --ok-wash: #c9ead7;
+  --now: #b02a20;
+  --now-wash: #f9d9d3;
+  --due: #96470a;
+  --due-wash: #fae3c2;
 
   /* Space — 4pt grid */
   --space-xs: 4px;

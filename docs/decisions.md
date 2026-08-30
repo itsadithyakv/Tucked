@@ -2,6 +2,12 @@
 
 *Why, not what. Newest at the top. A decision recorded here is settled — reopen it only with new evidence, and record the reopening here too.*
 
+## 2026-08-30 — Deeper palette + squish physics (founder direction)
+
+- **Pastels deepened for personality**: canvas `#EFF4FB`, mist `#CFE2FA`, mint `#C9EAD7`, sand `#FAE3C2`, rose `#F9D9D3`; semantic inks deepened (`ok #177243`, `due #96470A`, `now #B02A20`) so every pill passes 4.5:1 on its own wash — verified by computation before committing.
+- **Squishy press physics**: 70 ms squash in, spring-overshoot release (web bezier `.3,1.8,.45,1`; native `withSpring` damping 9). Applies to buttons, tiles, nav, chips.
+- **Click feedback everywhere**: a heart-blue pulse ring on every click, small sparkles on interactive taps, the full burst on primary presses; quiet in Now zones and text fields; inert under reduced motion.
+
 ## 2026-08-29 — Identity: bubbly claymorphic (founder direction)
 
 - **Typeface swap: Gilroy → Baloo 2 + Nunito.** The founder wants a bubblier, more childlike voice. Baloo 2 (OFL) carries everything that speaks — display, titles, buttons, nav; Nunito (OFL) carries everything that must be read — body, records, tables. Playfulness lives in the chrome, never in the gravity of an accident report. Bonus: the Gilroy commercial licence line item is gone. Gilroy stays archived in `assets/fonts`; nothing loads it.

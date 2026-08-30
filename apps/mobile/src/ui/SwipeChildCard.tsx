@@ -8,7 +8,7 @@
  * on device; a little gold sparkle burst celebrates a completed swipe.
  */
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
@@ -19,13 +19,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
-import type { SharedValue } from 'react-native-reanimated';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
+import { SparkleBurst } from './sparkle';
 
 const THRESHOLD = 96;
-const SPARKLE_GOLD = '#FFC94D';
 
 function tick() {
   if (Platform.OS !== 'web') {
@@ -70,39 +68,6 @@ export function Avatar({ name, photoUrl, size = 52 }: { name: string; photoUrl?:
     >
       <Text style={[styles.avatarText, { color: AVATAR_INKS[idx], fontSize: size * 0.36 }]}>{initials}</Text>
     </View>
-  );
-}
-
-/** Six gold stars that fly out once and vanish. */
-function SparkleBurst() {
-  const progress = useSharedValue(0);
-  useEffect(() => {
-    progress.value = withTiming(1, { duration: 620 });
-  }, [progress]);
-  const dirs = [
-    [0, -40], [34, -22], [40, 14], [8, 42], [-30, 30], [-40, -12],
-  ] as const;
-  return (
-    <View pointerEvents="none" style={styles.burstHost}>
-      {dirs.map(([dx, dy], i) => (
-        <BurstStar key={i} dx={dx} dy={dy} progress={progress} big={i % 3 === 0} />
-      ))}
-    </View>
-  );
-}
-
-function BurstStar({ dx, dy, progress, big }: { dx: number; dy: number; progress: SharedValue<number>; big: boolean }) {
-  const style = useAnimatedStyle(() => ({
-    opacity: 1 - progress.value,
-    transform: [
-      { translateX: dx * progress.value },
-      { translateY: dy * progress.value },
-      { scale: 0.5 + progress.value * 0.8 },
-      { rotate: `${progress.value * 90}deg` },
-    ],
-  }));
-  return (
-    <Animated.Text style={[styles.burstStar, big && styles.burstStarBig, style]}>✦</Animated.Text>
   );
 }
 
@@ -243,17 +208,4 @@ const styles = StyleSheet.create({
   dot: { width: 14, height: 14, borderRadius: 7 },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   avatarText: { fontFamily: type.heading.fontFamily } as const,
-  burstHost: {
-    position: 'absolute',
-    right: 28,
-    top: 20,
-    width: 0,
-    height: 0,
-  },
-  burstStar: {
-    position: 'absolute',
-    color: SPARKLE_GOLD,
-    fontSize: 14,
-  } as const,
-  burstStarBig: { fontSize: 20 } as const,
 });
