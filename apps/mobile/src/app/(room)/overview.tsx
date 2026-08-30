@@ -23,8 +23,25 @@ interface Report {
   ack_person: { full_name: string } | null;
 }
 
+interface OpenOccurrence {
+  id: string;
+  category: string;
+  ccls_deadline_at: string;
+  ccls_filed_at: string | null;
+}
+
 function fmt12(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
+function cclsClock(o: OpenOccurrence): { text: string; late: boolean } {
+  if (o.ccls_filed_at) return { text: 'Filed in CCLS — posting or closure outstanding', late: false };
+  const ms = new Date(o.ccls_deadline_at).getTime() - Date.now();
+  const h = Math.floor(Math.abs(ms) / 3_600_000);
+  const m = Math.floor((Math.abs(ms) % 3_600_000) / 60_000);
+  return ms <= 0
+    ? { text: `CCLS filing OVERDUE by ${h}h ${m}m`, late: true }
+    : { text: `${h}h ${m}m left to file in CCLS`, late: ms <= 6 * 3_600_000 };
 }
 
 /** The supervisor's check on everything: who is in, what is due, what
@@ -34,6 +51,7 @@ export default function Overview() {
   const [reports, setReports] = useState<Report[]>([]);
   const [openRecord, setOpenRecord] = useState<number>(0);
   const [unacked, setUnacked] = useState<number>(0);
+  const [occurrences, setOccurrences] = useState<OpenOccurrence[]>([]);
 
   const refresh = useCallback(() => {
     loadRoomDay().then(setDay);
@@ -57,6 +75,13 @@ export default function Overview() {
       .eq('channel', 'now')
       .is('acknowledged_at', null)
       .then(({ count }) => setUnacked(count ?? 0));
+    // supervisor-only rows (RLS returns nothing for other roles)
+    supabase
+      .from('serious_occurrence')
+      .select('id, category, ccls_deadline_at, ccls_filed_at')
+      .neq('status', 'closed')
+      .order('ccls_deadline_at')
+      .then(({ data }) => setOccurrences((data as OpenOccurrence[]) ?? []));
   }, []);
   useFocusEffect(refresh);
 
@@ -94,6 +119,19 @@ export default function Overview() {
             </Card>
           </View>
         </View>
+
+        {occurrences.map((o) => {
+          const c = cclsClock(o);
+          return (
+            <Card key={o.id} wash={c.late ? undefined : 'sand'} color={c.late ? '#F9D9D3' : undefined}>
+              <View style={styles.rowBetween}>
+                <Body>{`Serious occurrence — ${o.category.replace(/_/g, ' ')}`}</Body>
+                <Pill kind={c.late ? 'now' : 'due'}>{o.ccls_filed_at ? 'Open' : c.late ? 'Now' : 'Due'}</Pill>
+              </View>
+              <Caption>{`${c.text}. Work it in the console — the app never files for you.`}</Caption>
+            </Card>
+          );
+        })}
 
         <Card wash={openRecord > 0 ? 'sand' : 'mint'}>
           <View style={styles.rowBetween}>

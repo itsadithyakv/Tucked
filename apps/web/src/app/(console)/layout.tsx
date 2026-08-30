@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pill,
+  Siren,
   Users,
 } from 'lucide-react';
 import { enCA } from '@tucked/domain';
@@ -32,6 +33,7 @@ const NAV = [
   { href: '/attendance', label: 'Attendance', Icon: DoorOpen },
   { href: '/daily-record', label: 'Daily written record', Icon: BookOpen },
   { href: '/accidents', label: 'Accident reports', Icon: Bandage },
+  { href: '/serious-occurrences', label: 'Serious occurrences', Icon: Siren },
   { href: '/medication', label: 'Medication', Icon: Pill },
   { href: '/sleep-checks', label: 'Sleep checks', Icon: Moon },
   { href: '/children', label: "Children's records", Icon: Users },

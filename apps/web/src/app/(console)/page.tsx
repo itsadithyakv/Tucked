@@ -30,6 +30,9 @@ export default function ExceptionsHome() {
   const [expiring, setExpiring] = useState<{ id: string; credential_type: string; expires_on: string; person: { full_name: string } | null }[]>([]);
   const [rooms, setRooms] = useState<RoomPresence[]>([]);
   const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
+  const [openOccurrences, setOpenOccurrences] = useState<
+    { id: string; category: string; ccls_deadline_at: string; ccls_filed_at: string | null }[]
+  >([]);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -49,6 +52,13 @@ export default function ExceptionsHome() {
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => setUnacked(data ?? []));
+
+    sb.from('serious_occurrence')
+      .select('id, category, ccls_deadline_at, ccls_filed_at')
+      .eq('centre_id', centre.id)
+      .neq('status', 'closed')
+      .order('ccls_deadline_at')
+      .then(({ data }) => setOpenOccurrences((data as never) ?? []));
 
     sb.from('centre_subscription')
       .select('status, pilot_ends_on, plan:plan_code(name, description)')
@@ -109,6 +119,19 @@ export default function ExceptionsHome() {
 
       <section className="card">
         <h2>Needs attention</h2>
+        {openOccurrences.map((o) => {
+          const overdue = !o.ccls_filed_at && new Date(o.ccls_deadline_at).getTime() < Date.now();
+          return (
+            <p key={o.id}>
+              <span className={`pill ${o.ccls_filed_at ? 'due' : 'now'}`}>{o.ccls_filed_at ? 'Open' : overdue ? 'OVERDUE' : 'Now'}</span>{' '}
+              Serious occurrence ({o.category.replace(/_/g, ' ')}) —{' '}
+              {o.ccls_filed_at
+                ? 'filed in CCLS, posting or closure outstanding'
+                : `CCLS deadline ${fmtTime(o.ccls_deadline_at, centre.timezone)}`}{' '}
+              — <Link href="/serious-occurrences">work it</Link>
+            </p>
+          );
+        })}
         {unclosed !== null && unclosed > 0 ? (
           <p>
             <span className="pill due">Due</span> {unclosed} daily written record{unclosed === 1 ? '' : 's'} not yet

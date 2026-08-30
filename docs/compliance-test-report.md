@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **127 pgTAP tests across 9 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **153 pgTAP tests across 10 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -21,7 +21,7 @@ pnpm exec supabase test db
 | s. 36 sick child | Separate, contact parent, record; exclusion and return | illness view on room device | — | 🔶 recording exists, exclusion workflow P2 |
 | s. 36(4) accident | Report with **evidence the parent received a copy** | `accident_report` + ack RPC; DB trigger creates the Now alert | `s36_4_accident_report_recorded`, `s36_4_head_injury_requires_concussion_note`, `s36_4_parent_acknowledges_copy`, `s36_4_acknowledgement_names_the_parent_with_timestamp`, `s36_4_stranger_cannot_acknowledge`, `s36_4_acknowledged_report_never_changes` | ✅ |
 | s. 37 DWR | Dated entry every operating day; incidents/drills/accidents cross-referenced; human close | `daily_written_record`, 06:00 pg_cron draft | `s37_draft_created_for_operating_day`, `s37_accident_cross_referenced_into_daily_record`, `s37_drill_cross_referenced_into_dwr`, `s37_human_close_with_entry`, `s37_close_names_the_human`, `s37_closed_record_never_changes`, `s37_empty_entry_rejected` | ✅ |
-| s. 38 serious occurrence | CCLS within 24 h; anonymised 10-business-day posting; human files | — | — | ⬜ P2 |
+| s. 38 serious occurrence | CCLS within 24 h; anonymised 10-business-day posting; updates; human files; CYFSA CAS duty | `serious_occurrence` (+ children/updates/postings), 24 h clock from `aware_at`, `statutory_holiday` + `app.add_business_days`, hourly reminder cron; console page + home/mobile warnings | `s38_ccls_clock_is_24_hours_from_awareness`, `s38_ccls_number_is_the_evidence_of_filing`, `s38_no_close_before_filing`, `s38_posting_rejected_when_it_names_a_child`, `s38_ten_business_days_skip_weekends_and_labour_day`, `cyfsa_allegations_never_posted`, `cyfsa_no_close_without_cas_report`, `s38_deadline_warning_sent_exactly_once`, `s38_overdue_notice_sent_exactly_once` + 17 more | ✅ recording/clock/posting; CCLS filing itself stays human by design |
 | ss. 39, 39.1, 52 plans | Anaphylaxis / medical / special-needs individualised plans; posted allergy list | — | — | ⬜ P1–2 |
 | s. 40 medication | Dose + schedule/symptoms required ("as needed" alone invalid); blanket items logged; revocation; expiry | `medication_authorisation`, `medication_administration` | `s40_as_needed_alone_is_insufficient`, `s40_dose_plus_schedule_authorised`, `s40_blanket_items_are_logged`, `s40_no_administration_after_revocation`, `s40_expired_medication_never_administered`, `s40_administrations_never_edited` + 5 more | ✅ |
 | ss. 42–44 nutrition | Menus posted and kept 30 days; infant feeding per written instructions | — | — | ⬜ P2 |
@@ -56,8 +56,9 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 ## Gaps that matter next (in order)
 
-1. **s. 38 serious occurrence** — highest-penalty unbuilt item ($2,000 late-filing).
-2. **s. 39/43(3) anaphylaxis plans + posted allergy list** — safety-critical, currently paper.
-3. **Retention scheduler** — clocks exist in domain; the anonymise-after job isn't scheduled yet.
-4. **s. 82(2) break-glass access** — Ministry access path when a supervisor is unavailable.
-5. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+1. **s. 39/43(3) anaphylaxis plans + posted allergy list** — safety-critical, currently paper.
+2. **Retention scheduler** — clocks exist in domain; the anonymise-after job isn't scheduled yet.
+3. **s. 82(2) break-glass access** — Ministry access path when a supervisor is unavailable.
+4. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+
+*(s. 38 serious occurrence — formerly #1 on this list — landed 2026-08-30 with 26 tests.)*
