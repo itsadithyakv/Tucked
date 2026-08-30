@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **193 pgTAP tests across 12 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **212 pgTAP tests across 13 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -34,7 +34,7 @@ pnpm exec supabase test db
 | s. 72(6) MOH export | Items 2, 3, 8, 9 exactly | child-record print view | manual print check | 🔶 |
 | s. 73 consent | Enrolment never blocked on an optional consent | `consent` model | `s73_enrolment_completes_with_every_optional_consent_declined`, `s73_care_consent_still_required`, `s73_consent_reversible_later`, `s73_superseded_consent_rows_are_kept` | ✅ |
 | s. 75.1 waitlist | No fees; position without exposing others | — | — | ⬜ P2 |
-| s. 82(2) electronic records | Staff and Ministry can always get in; offline on premises | offline queue; zero-network evacuation cache | field-verified on device; airplane-mode script pending | 🔶 |
+| s. 82(2) electronic records | Staff and Ministry can always get in; offline on premises; never "ask your admin to unlock" | offline queue + zero-network evacuation cache; `break_glass_access`: any care-staff member opens a PIN-signed, reason-required, READ-ONLY 24-hour unlock of the inspection registers (audit trail, serious occurrences, staff files, retention clocks) — loud to leadership, audited, self-expiring, closable; `admin_grant_supervisor` restores supervisor access when the supervisor is gone for good | `s82_2_staff_files_locked_before_break_glass`, `s82_2_care_staff_opens_break_glass`, `s82_2_break_glass_grants_no_writes`, `s82_2_supervisor_alerted_on_every_open`, `s82_2_access_expires_by_itself`, `s82_2_families_cannot_break_glass`, `s82_2_every_break_glass_on_permanent_record`, `s82_2_platform_admin_restores_continuity` + 11 more | ✅ (on-device airplane-mode script still pending) |
 | Part 4 drills | Fire drills with written records | drill headcounts auto-entered in DWR | `part4_drill_recorded_centre_wide`, `s37_drill_cross_referenced_into_dwr` | 🔶 record ✅, compliance calendar P2 |
 | PIPEDA | Minimum collection; access scoped to need; Canadian hosting | RLS everywhere; **platform admins see tenancy and money, never children** | `rls_enabled_on_every_public_table`, `pipeda_platform_admin_sees_no_children`, `pipeda_platform_admin_sees_no_attendance`, `pipeda_platform_admin_sees_no_households`, `s72_parent_sees_own_children_only`, `s53_volunteer_sees_no_children` | ✅ for what's built |
 
@@ -56,8 +56,8 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 ## Gaps that matter next (in order)
 
-1. **s. 82(2) break-glass access** — Ministry access path when a supervisor is unavailable.
-2. **s. 35 immunisation/exemption registry** — the record slot exists; the form registry is P2.
-3. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+1. **s. 35 immunisation/exemption registry** — the record slot exists; the form registry is P2.
+2. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+3. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
 
 *(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), and the s. 72(5) retention anonymiser (19 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*

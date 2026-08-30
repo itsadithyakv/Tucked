@@ -161,6 +161,20 @@ export default function PlatformHome() {
     refresh();
   }
 
+  async function grantSupervisor(centreId: string, name: string, email: string) {
+    const { error } = await getSupabase().rpc('admin_grant_supervisor', {
+      p_centre: centreId,
+      p_full_name: name,
+      p_email: email,
+    });
+    setNotice(
+      error
+        ? error.message
+        : `${name} now has supervisor access — they sign in with a magic link to ${email}. Access continuity is never lost (s. 82(2)).`,
+    );
+    refresh();
+  }
+
   async function recordPayment(centreId: string, amount: string, note: string) {
     const cents = Math.round(parseFloat(amount) * 100);
     if (!Number.isFinite(cents) || cents <= 0) {
@@ -215,6 +229,7 @@ export default function PlatformHome() {
                   plans={plans}
                   onSetPlan={(plan, status, ends, note) => void setPlan(c.id, plan, status, ends, note)}
                   onPayment={(amount, note) => void recordPayment(c.id, amount, note)}
+                  onGrantSupervisor={(name, email) => void grantSupervisor(c.id, name, email)}
                   events={events}
                 />
               ) : null}
@@ -321,12 +336,14 @@ function ManagePanel({
   plans,
   onSetPlan,
   onPayment,
+  onGrantSupervisor,
   events,
 }: {
   sub: SubRow | undefined;
   plans: PlanRow[];
   onSetPlan: (plan: string, status: string, pilotEnds: string, note: string) => void;
   onPayment: (amount: string, note: string) => void;
+  onGrantSupervisor: (name: string, email: string) => void;
   events: BillingRow[];
 }) {
   const [plan, setPlanCode] = useState(sub?.plan_code ?? 'pilot');
@@ -335,6 +352,8 @@ function ManagePanel({
   const [note, setNote] = useState('');
   const [amount, setAmount] = useState('');
   const [payNote, setPayNote] = useState('');
+  const [supName, setSupName] = useState('');
+  const [supEmail, setSupEmail] = useState('');
 
   return (
     <div style={{ background: 'var(--mist, #eef4fc)', borderRadius: 12, padding: 12, marginTop: 8, display: 'grid', gap: 10 }}>
@@ -371,6 +390,17 @@ function ManagePanel({
           <input value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="e-Transfer ref…" />
         </label>
         <button type="button" onClick={() => onPayment(amount, payNote)}>Record payment</button>
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'end' }}>
+        <label>
+          Add / replace supervisor
+          <input value={supName} onChange={(e) => setSupName(e.target.value)} placeholder="Full name" />
+        </label>
+        <label>
+          Email (they sign in by magic link)
+          <input type="email" value={supEmail} onChange={(e) => setSupEmail(e.target.value)} placeholder="name@centre.example" />
+        </label>
+        <button type="button" className="quiet" onClick={() => onGrantSupervisor(supName, supEmail)}>Grant supervisor access</button>
       </div>
       {events.length > 0 ? (
         <div>
