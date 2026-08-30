@@ -43,8 +43,10 @@
     },
     "extra": {
       "eas": {
-        "projectId": "c7f59bdf-7836-4d51-95a8-520ce39fb107"
-      }
-    }
+        "projectId": "be231eaa-6969-4d3f-968d-2114373c89c4"
+      },
+      "router": {}
+    },
+    "owner": "paperkitecs-team"
   }
 }
