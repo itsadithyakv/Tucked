@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Redirect, useFocusEffect } from 'expo-router';
+import { Redirect, router, useFocusEffect } from 'expo-router';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { enCA } from '@tucked/domain';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
@@ -44,6 +44,7 @@ export default function FamilyHome() {
   const [alerts, setAlerts] = useState<NowAlert[]>([]);
   const [stories, setStories] = useState<Map<string, StoryRow>>(new Map());
   const [status, setStatus] = useState<Map<string, string>>(new Map());
+  const [recordDone, setRecordDone] = useState<Map<string, number>>(new Map());
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -68,6 +69,16 @@ export default function FamilyHome() {
       .eq('story_date', today)
       .then(({ data }) => {
         setStories(new Map(((data as StoryRow[]) ?? []).map((s) => [s.child_id, s])));
+      });
+    supabase
+      .from('child_record_item')
+      .select('child_id, status')
+      .then(({ data }) => {
+        const map = new Map<string, number>();
+        for (const i of (data as { child_id: string; status: string }[]) ?? []) {
+          if (i.status !== 'missing') map.set(i.child_id, (map.get(i.child_id) ?? 0) + 1);
+        }
+        setRecordDone(map);
       });
     supabase
       .from('attendance_event')
@@ -104,7 +115,10 @@ export default function FamilyHome() {
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}>
-        <Title>{profile ? profile.fullName.split(' ')[0] : 'Family'}</Title>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Title>{profile ? profile.fullName.split(' ')[0] : 'Family'}</Title>
+          <Button label="Messages" kind="quiet" onPress={() => router.push('/messages')} />
+        </View>
 
         {alerts.map((alert) => (
           <View key={alert.id} style={styles.nowCard}>
@@ -155,6 +169,13 @@ export default function FamilyHome() {
                 ) : (
                   <Caption>The day&apos;s story arrives at pick-up time.</Caption>
                 )}
+                {(recordDone.get(child.id) ?? 0) < 11 ? (
+                  <Button
+                    label={`Complete ${firstName}'s enrolment record`}
+                    kind="quiet"
+                    onPress={() => router.push({ pathname: '/enrolment/[childId]', params: { childId: child.id } })}
+                  />
+                ) : null}
               </Card>
             </Animated.View>
           );

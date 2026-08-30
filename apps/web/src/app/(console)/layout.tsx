@@ -14,6 +14,7 @@ import {
   Home,
   LogOut,
   Menu,
+  MessageCircle,
   Moon,
   PanelLeftClose,
   PanelLeftOpen,
@@ -34,6 +35,7 @@ const NAV = [
   { href: '/medication', label: 'Medication', Icon: Pill },
   { href: '/sleep-checks', label: 'Sleep checks', Icon: Moon },
   { href: '/children', label: "Children's records", Icon: Users },
+  { href: '/messages', label: 'Messages', Icon: MessageCircle },
   { href: '/staff', label: 'Staff files', Icon: BadgeCheck },
 ];
 

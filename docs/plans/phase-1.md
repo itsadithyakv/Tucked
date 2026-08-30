@@ -1,6 +1,17 @@
 # Phase 1 — Record-keeping core + calm family app
 
-*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8 (target 6–8 weeks). Status: **plan awaiting go-ahead** — questions in §9.*
+*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8 (target 6–8 weeks). Status: **substantially built and verified locally** (see [compliance-map.md](../compliance-map.md) for per-section state, [demo-script.md](../demo-script.md) for the click-through, [release-notes-phase-1.md](../release-notes-phase-1.md) for the plain-English summary).*
+
+**Remaining before the phase closes:** real push on a device (needs the founder's `npx eas login`, then `eas init` + a dev build; the notify Edge Function and token registration are written), the airplane-mode quality-gate script run on that device, an accessibility sweep (screen-reader labels are in place; contrast is enforced by tokens), photo capture/story publishing from the room device, and the enrolment invite email path (invites exist; email sending joins the notify plumbing).
+
+## Uncertainties (build prompt §13.4 — best guesses, flagged in code as TODO(reg))
+
+1. **Reduced ratios for junior/family groups** — the engine allows reduction only where the Manual lists a floor (toddler/preschool/kindergarten/primary-junior); junior and family groups are conservatively never reduced. `packages/domain/src/ratios.ts`.
+2. **Family-group qualified proportion** — Schedule 1 lists none; the engine requires zero qualified staff for family groups pending Manual confirmation. `ageGroups.ts`.
+3. **Financial retention clock start** — 6 years from the record date (conservative) rather than fiscal-year end. `retention.ts` (O. Reg. 138/15 s. 27.1).
+4. **Daily written record after close** — late-arriving cross-references are written into the *next* operating day's record with a `late_for` marker; the Manual's expectation for post-close additions should be confirmed with a program advisor. Migration 0007.
+5. **PIN as signature** — a 4–6 digit PIN verified server-side is treated as the "who logged it" signature for regulated writes; confirm a program advisor accepts this as the electronic-records control (s. 82(2)).
+6. **s. 72(6) content boundary** — the medical-officer copy renders items 2, 3, 8, 9 as stored; whether the symptoms log must include full care-log history or recent entries only is interpreted as "the ongoing log" (all of it is available; the print shows the recent 30).
 
 **Done when** (verbatim from the spec): the demo supervisor can answer a program advisor's requests for **attendance, daily written record, accident reports, medication logs, sleep checks and staff credentials in under a minute each**, and a demo parent gets **exactly one push per day** plus a **Now alert** when the demo child is marked sick.
 

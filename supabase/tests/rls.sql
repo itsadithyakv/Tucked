@@ -6,7 +6,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 -- ── fixture: two centres, four identities ───────────────────────────────────
 -- auth users (local-only insert; GoTrue is not involved in SQL tests)
@@ -82,7 +82,10 @@ select set_config('request.jwt.claims', '{"sub":"10000000-0000-4000-8000-0000000
 
 select is((select count(*) from public.child), 1::bigint, 's72_parent_sees_own_children_only');
 select is((select full_name from public.child limit 1), 'Child One', 's72_parent_child_is_theirs');
-select is((select count(*) from public.person where full_name = 'Staff A'), 0::bigint, 's_rls_family_cannot_enumerate_staff');
+-- families see the workforce by name (they message educators)…
+select is((select count(*) from public.person where full_name = 'Staff A'), 1::bigint, 's_rls_family_sees_centre_workforce');
+-- …but never other families
+select is((select count(*) from public.person where full_name = 'Revoked A'), 0::bigint, 's_rls_family_cannot_see_other_families');
 select is((select count(*) from public.household), 1::bigint, 's_rls_family_sees_own_household_only');
 
 -- ── removed household member ────────────────────────────────────────────────
