@@ -49,6 +49,7 @@ export default function ExceptionsHome() {
   });
   const [breakGlass, setBreakGlass] = useState<BreakGlass[]>([]);
   const [bgTick, setBgTick] = useState(0);
+  const [immMissing, setImmMissing] = useState(0);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -82,6 +83,15 @@ export default function ExceptionsHome() {
       .is('closed_at', null)
       .gt('expires_at', new Date().toISOString())
       .then(({ data }) => setBreakGlass((data as never) ?? []));
+
+    (async () => {
+      const [{ data: activeKids }, { data: immRows }] = await Promise.all([
+        sb.from('child').select('id').eq('centre_id', centre.id).is('discharge_date', null),
+        sb.from('current_immunisation').select('child_id').eq('centre_id', centre.id),
+      ]);
+      const covered = new Set((immRows ?? []).map((r) => r.child_id));
+      setImmMissing((activeKids ?? []).filter((k) => !covered.has(k.id)).length);
+    })();
 
     (async () => {
       const [{ data: livePlans }, { data: centreRow }] = await Promise.all([
@@ -175,6 +185,12 @@ export default function ExceptionsHome() {
             </p>
           );
         })}
+        {immMissing > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {immMissing} child{immMissing === 1 ? '' : 'ren'} with no
+            immunisation record or exemption on file (s. 35) — <Link href="/children">children&apos;s records</Link>
+          </p>
+        ) : null}
         {planFlags.policyMissing ? (
           <p>
             <span className="pill now">Now</span> No anaphylaxis policy on file (s. 39 requires one even with no

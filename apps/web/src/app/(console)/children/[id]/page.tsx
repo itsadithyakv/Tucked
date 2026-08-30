@@ -69,6 +69,13 @@ export default function ChildRecordPage() {
   const [items, setItems] = useState<Item[]>([]);
   const [consents, setConsents] = useState<Consent[]>([]);
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
+  const [immunisation, setImmunisation] = useState<{
+    status: string;
+    detail: string | null;
+    practitioner: string | null;
+    notarised_on: string | null;
+    effective_on: string;
+  } | null>(null);
   const [mohMode, setMohMode] = useState(false);
 
   useEffect(() => {
@@ -95,6 +102,11 @@ export default function ChildRecordPage() {
       .order('logged_at', { ascending: false })
       .limit(30)
       .then(({ data }) => setSymptoms((data as never) ?? []));
+    sb.from('current_immunisation')
+      .select('status, detail, practitioner, notarised_on, effective_on')
+      .eq('child_id', params.id)
+      .maybeSingle()
+      .then(({ data }) => setImmunisation((data as never) ?? null));
   }, [params.id]);
 
   function printMoh() {
@@ -163,6 +175,23 @@ export default function ChildRecordPage() {
             ))}
           </tbody>
         </table>
+      </section>
+      <section className="card">
+        <h2>Immunisation (s. 35 — part of item 8)</h2>
+        {immunisation ? (
+          <p>
+            <span className="pill ok">{immunisation.status.replace(/_/g, ' ')}</span>{' '}
+            {immunisation.detail}
+            {immunisation.practitioner ? ` — signed by ${immunisation.practitioner}` : ''}
+            {immunisation.notarised_on ? ` — notarised ${fmtDate(immunisation.notarised_on)}` : ''}{' '}
+            <span className="caption">effective {fmtDate(immunisation.effective_on)}</span>
+          </p>
+        ) : (
+          <p>
+            <span className="pill due">Nothing on file</span>{' '}
+            <span className="muted">No immunisation record, exemption form, or school attendance noted yet.</span>
+          </p>
+        )}
       </section>
       {mohMode || (
         <section className="card">

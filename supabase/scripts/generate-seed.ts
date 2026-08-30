@@ -249,6 +249,29 @@ lines.push(
   `values ('${c.id}', '${porkChild.id}', 'food_restriction', 'No pork', 'Family request', '${supervisor.id}');`,
 );
 
+// ── immunisation registry (s. 35) ───────────────────────────────────────────
+// Demo children immunised; one medical exemption, one notarised conscience
+// exemption, the two school-age children marked "attends school"; the rest
+// deliberately blank so the console exception has something to say.
+const schoolAge = f.children.filter(
+  (ch) => new Date(ch.dateOfBirth) < new Date(Date.now() - 4.5 * 365.25 * 24 * 3600 * 1000),
+);
+lines.push('', '-- immunisation registry (s. 35)');
+for (const id of demoChildIds) {
+  lines.push(
+    `insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('${c.id}', '${id}', 'immunised', 'Record per Toronto Public Health schedule, current to the last scheduled visit', '${supervisor.id}');`,
+  );
+}
+lines.push(
+  `insert into public.immunisation_record (centre_id, child_id, status, detail, practitioner, recorded_by) values ('${c.id}', '${eggChild.id}', 'medical_exemption', 'Statement of Medical Exemption re varicella', 'Dr. S. Patel, MD', '${supervisor.id}');`,
+  `insert into public.immunisation_record (centre_id, child_id, status, detail, notarised_on, recorded_by) values ('${c.id}', '${porkChild.id}', 'conscience_exemption', 'Statement of Conscience or Religious Belief on file', (current_date - interval '6 months')::date, '${supervisor.id}');`,
+);
+for (const ch of schoolAge.slice(0, 2)) {
+  lines.push(
+    `insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('${c.id}', '${ch.id}', 'attends_school', 'Attends kindergarten — immunisation under the school system', '${supervisor.id}');`,
+  );
+}
+
 lines.push('', '-- staff credentials (one VSC expiring soon for the exceptions demo)');
 careStaff.forEach((r, i) => {
   lines.push(

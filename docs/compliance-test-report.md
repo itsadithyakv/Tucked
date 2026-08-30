@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **212 pgTAP tests across 13 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **226 pgTAP tests across 14 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -17,7 +17,7 @@ pnpm exec supabase test db
 | s. 11 supervision | Adult supervision; face-to-name headcounts at moments that matter | `headcount_check` + `record_headcount` | `s11_transition_headcount_records_with_valid_pin`, `s11_missing_snapshot_names_the_child`, `s11_volunteer_cannot_record_headcounts`, `s11_parents_never_see_headcounts` | ✅ |
 | s. 32 health obs | Observed on arrival before joining others; parent-reported symptoms recorded | sign-in flow prompt → `care_log(health_observation)` | `s32_health_observation_with_parent_report` | ✅ |
 | s. 33.1 sleep | Back-to-sleep; direct visual checks < 24 mo in infant/toddler/family rooms only; rest ≤ 2 h | DB-gated `care_log(sleep_check)`; nap board | `s33_1_sleep_check_under_24m_in_toddler_room_ok`, `s33_1_sleep_check_rejected_at_24_months_plus`, `s33_1_sleep_check_rejected_in_preschool_room` | ✅ |
-| s. 35 immunisation | Immunisation or official exemption forms | `child_record_item` holds the answer; dedicated exemption-form registry | s. 72(1) item tests cover the record slot | 🔶 registry P2 |
+| s. 35 immunisation | Immunisation per the local MOH, or a physician/NP-signed medical exemption, or a NOTARISED conscience/religious exemption, or attends school (school-age only) | `immunisation_record` append-only ledger, `current_immunisation` latest-wins view, `record_immunisation` RPC; register on the children page, status in the child detail and the s. 72(6) MOH copy, console home exception for children with nothing on file | `s35_medical_exemption_names_the_practitioner`, `s35_conscience_exemption_must_be_notarised`, `s35_attends_school_never_covers_an_infant`, `s35_current_status_is_the_latest_row`, `s35_history_is_a_ledger`, `never_immunisation_rows_edited` + 8 more | ✅ |
 | s. 36 sick child | Separate, contact parent, record; exclusion and return | illness view on room device | — | 🔶 recording exists, exclusion workflow P2 |
 | s. 36(4) accident | Report with **evidence the parent received a copy** | `accident_report` + ack RPC; DB trigger creates the Now alert | `s36_4_accident_report_recorded`, `s36_4_head_injury_requires_concussion_note`, `s36_4_parent_acknowledges_copy`, `s36_4_acknowledgement_names_the_parent_with_timestamp`, `s36_4_stranger_cannot_acknowledge`, `s36_4_acknowledged_report_never_changes` | ✅ |
 | s. 37 DWR | Dated entry every operating day; incidents/drills/accidents cross-referenced; human close | `daily_written_record`, 06:00 pg_cron draft | `s37_draft_created_for_operating_day`, `s37_accident_cross_referenced_into_daily_record`, `s37_drill_cross_referenced_into_dwr`, `s37_human_close_with_entry`, `s37_close_names_the_human`, `s37_closed_record_never_changes`, `s37_empty_entry_rejected` | ✅ |
@@ -56,8 +56,9 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 ## Gaps that matter next (in order)
 
-1. **s. 35 immunisation/exemption registry** — the record slot exists; the form registry is P2.
-2. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
-3. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
+1. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+2. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
+
+With s. 35 landed, every Phase 0/1 compliance item in the build plan is built and machine-proven; what remains is Phase 2 scope.
 
 *(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), and the s. 72(5) retention anonymiser (19 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*
