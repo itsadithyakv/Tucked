@@ -10,6 +10,7 @@ import {
   BadgeCheck,
   Bandage,
   BookOpen,
+  CalendarCheck,
   DoorOpen,
   HeartPulse,
   Home,
@@ -41,6 +42,7 @@ const NAV = [
   { href: '/children', label: "Children's records", Icon: Users },
   { href: '/messages', label: 'Messages', Icon: MessageCircle },
   { href: '/staff', label: 'Staff files', Icon: BadgeCheck },
+  { href: '/compliance', label: 'Compliance calendar', Icon: CalendarCheck },
 ];
 
 function readCollapsed(): boolean {

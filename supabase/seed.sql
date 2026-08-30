@@ -473,6 +473,12 @@ insert into public.immunisation_record (centre_id, child_id, status, detail, not
 insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000161', 'attends_school', 'Attends kindergarten — immunisation under the school system', '00000000-0000-4000-8000-000000000003');
 insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000183', 'attends_school', 'Attends kindergarten — immunisation under the school system', '00000000-0000-4000-8000-000000000003');
 
+-- compliance calendar: one overdue task, one done today, one open hazard
+select app.complete_task((select id from public.compliance_task where centre_id = '00000000-0000-4000-8000-000000000002' and slug = 'playground_daily'), 'Walked the playground before opening; surfaces clear, no loose hardware, gate latch working.', current_date, '00000000-0000-4000-8000-000000000005');
+update public.compliance_task set next_due_on = (current_date - 5) where centre_id = '00000000-0000-4000-8000-000000000002' and slug = 'fire_alarm_test';
+insert into public.compliance_issue (centre_id, task_id, description, restricted_area, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', (select id from public.compliance_task where centre_id = '00000000-0000-4000-8000-000000000002' and slug = 'playground_daily'), 'Swing chain worn at the top link', 'Both swings taped off and out of use', '00000000-0000-4000-8000-000000000005');
+
 -- staff credentials (one VSC expiring soon for the exceptions demo)
 insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003', 'first_aid_cpr', (current_date - interval '1 year')::date, (current_date + interval '2 years')::date, '00000000-0000-4000-8000-000000000003');
 insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000003', 'vsc', (current_date - interval '2 years')::date, (current_date + interval '3 years')::date, '00000000-0000-4000-8000-000000000003');

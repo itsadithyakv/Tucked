@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **226 pgTAP tests across 14 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **243 pgTAP tests across 15 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -35,7 +35,7 @@ pnpm exec supabase test db
 | s. 73 consent | Enrolment never blocked on an optional consent | `consent` model | `s73_enrolment_completes_with_every_optional_consent_declined`, `s73_care_consent_still_required`, `s73_consent_reversible_later`, `s73_superseded_consent_rows_are_kept` | ✅ |
 | s. 75.1 waitlist | No fees; position without exposing others | — | — | ⬜ P2 |
 | s. 82(2) electronic records | Staff and Ministry can always get in; offline on premises; never "ask your admin to unlock" | offline queue + zero-network evacuation cache; `break_glass_access`: any care-staff member opens a PIN-signed, reason-required, READ-ONLY 24-hour unlock of the inspection registers (audit trail, serious occurrences, staff files, retention clocks) — loud to leadership, audited, self-expiring, closable; `admin_grant_supervisor` restores supervisor access when the supervisor is gone for good | `s82_2_staff_files_locked_before_break_glass`, `s82_2_care_staff_opens_break_glass`, `s82_2_break_glass_grants_no_writes`, `s82_2_supervisor_alerted_on_every_open`, `s82_2_access_expires_by_itself`, `s82_2_families_cannot_break_glass`, `s82_2_every_break_glass_on_permanent_record`, `s82_2_platform_admin_restores_continuity` + 11 more | ✅ (on-device airplane-mode script still pending) |
-| Part 4 drills | Fire drills with written records | drill headcounts auto-entered in DWR | `part4_drill_recorded_centre_wide`, `s37_drill_cross_referenced_into_dwr` | 🔶 record ✅, compliance calendar P2 |
+| Parts 4 & 10 calendar | Fire drills (monthly), alarm/equipment tests, fire procedure posted, emergency policy review, playground inspections daily/monthly/annual (CSA Z614), first-aid kit, water temperature — with written records; repair log, hazards restricted until fixed | `compliance_task` auto-seeded on centre creation, `compliance_completion` append-only (note required — the completion IS the written record), `compliance_issue` with DWR cross-ref; drill headcounts complete the drill task automatically; console calendar + room-device checks card | `part4_10_every_centre_gets_the_standard_schedule`, `part10_completion_note_never_blank`, `part4_monthly_cadence_advances_one_month`, `part4_drill_headcount_completes_the_drill_task`, `part10_hazard_recorded_with_restriction`, `s37_hazard_cross_referenced_into_dwr`, `part4_10_only_leadership_changes_the_schedule`, `never_completion_records_deleted` + 9 more | ✅ |
 | PIPEDA | Minimum collection; access scoped to need; Canadian hosting | RLS everywhere; **platform admins see tenancy and money, never children** | `rls_enabled_on_every_public_table`, `pipeda_platform_admin_sees_no_children`, `pipeda_platform_admin_sees_no_attendance`, `pipeda_platform_admin_sees_no_households`, `s72_parent_sees_own_children_only`, `s53_volunteer_sees_no_children` | ✅ for what's built |
 
 ## The never-do list (§9.14), proven
@@ -56,9 +56,9 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 ## Gaps that matter next (in order)
 
-1. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+1. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1)** — the remaining Phase 2 modules.
 2. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
 
-With s. 35 landed, every Phase 0/1 compliance item in the build plan is built and machine-proven; what remains is Phase 2 scope.
+Every Phase 0/1 compliance item is built and machine-proven, and the Parts 4/10 compliance calendar has now landed from the Phase 2 list as well.
 
 *(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), and the s. 72(5) retention anonymiser (19 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*

@@ -272,6 +272,16 @@ for (const ch of schoolAge.slice(0, 2)) {
   );
 }
 
+// ── compliance calendar demo states (tasks auto-seed with the centre) ───────
+lines.push(
+  '',
+  '-- compliance calendar: one overdue task, one done today, one open hazard',
+  `select app.complete_task((select id from public.compliance_task where centre_id = '${c.id}' and slug = 'playground_daily'), 'Walked the playground before opening; surfaces clear, no loose hardware, gate latch working.', current_date, '${educator.id}');`,
+  `update public.compliance_task set next_due_on = (current_date - 5) where centre_id = '${c.id}' and slug = 'fire_alarm_test';`,
+  `insert into public.compliance_issue (centre_id, task_id, description, restricted_area, recorded_by)`,
+  `values ('${c.id}', (select id from public.compliance_task where centre_id = '${c.id}' and slug = 'playground_daily'), 'Swing chain worn at the top link', 'Both swings taped off and out of use', '${educator.id}');`,
+);
+
 lines.push('', '-- staff credentials (one VSC expiring soon for the exceptions demo)');
 careStaff.forEach((r, i) => {
   lines.push(

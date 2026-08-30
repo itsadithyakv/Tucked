@@ -50,6 +50,8 @@ export default function ExceptionsHome() {
   const [breakGlass, setBreakGlass] = useState<BreakGlass[]>([]);
   const [bgTick, setBgTick] = useState(0);
   const [immMissing, setImmMissing] = useState(0);
+  const [calOverdue, setCalOverdue] = useState(0);
+  const [openHazards, setOpenHazards] = useState(0);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -83,6 +85,18 @@ export default function ExceptionsHome() {
       .is('closed_at', null)
       .gt('expires_at', new Date().toISOString())
       .then(({ data }) => setBreakGlass((data as never) ?? []));
+
+    sb.from('compliance_task')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .eq('active', true)
+      .lt('next_due_on', today)
+      .then(({ count }) => setCalOverdue(count ?? 0));
+    sb.from('compliance_issue')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .is('resolved_at', null)
+      .then(({ count }) => setOpenHazards(count ?? 0));
 
     (async () => {
       const [{ data: activeKids }, { data: immRows }] = await Promise.all([
@@ -185,6 +199,18 @@ export default function ExceptionsHome() {
             </p>
           );
         })}
+        {openHazards > 0 ? (
+          <p>
+            <span className="pill now">Now</span> {openHazards} premises hazard{openHazards === 1 ? '' : 's'} on the
+            repair log — restricted until fixed — <Link href="/compliance">repair log</Link>
+          </p>
+        ) : null}
+        {calOverdue > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {calOverdue} compliance task{calOverdue === 1 ? '' : 's'} overdue
+            (drills, tests, inspections) — <Link href="/compliance">compliance calendar</Link>
+          </p>
+        ) : null}
         {immMissing > 0 ? (
           <p>
             <span className="pill due">Due</span> {immMissing} child{immMissing === 1 ? '' : 'ren'} with no
