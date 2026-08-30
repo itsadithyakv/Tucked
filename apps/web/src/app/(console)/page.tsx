@@ -54,6 +54,7 @@ export default function ExceptionsHome() {
   const [openHazards, setOpenHazards] = useState(0);
   const [menuGap, setMenuGap] = useState<string | null>(null);
   const [staleOffers, setStaleOffers] = useState(0);
+  const [outdoorShort, setOutdoorShort] = useState<string[]>([]);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
     missing: 0,
@@ -149,6 +150,23 @@ export default function ExceptionsHome() {
         reviewsOverdue: (livePlans ?? []).filter((p) => p.status === 'active' && p.review_due_on && p.review_due_on < today).length,
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
       });
+    })();
+
+    // s. 47: a room short of its two hours with no reason recorded. Only worth
+    // raising once the day is winding down — before that it is simply not done yet.
+    (async () => {
+      const [{ data: roomRows }, { data: dayRows }, { data: shortRows }] = await Promise.all([
+        sb.from('room').select('id, name').eq('centre_id', centre.id),
+        sb.from('outdoor_day').select('room_id, minutes').eq('centre_id', centre.id).eq('outdoor_date', today),
+        sb.from('outdoor_shortfall').select('room_id').eq('centre_id', centre.id).eq('outdoor_date', today),
+      ]);
+      const excused = new Set((shortRows ?? []).map((s) => s.room_id));
+      const minutes = new Map((dayRows ?? []).map((d) => [d.room_id, d.minutes as number]));
+      setOutdoorShort(
+        (roomRows ?? [])
+          .filter((r) => (minutes.get(r.id) ?? 0) < 120 && !excused.has(r.id))
+          .map((r) => r.name),
+      );
     })();
 
     // s. 75.1: a place offered and never answered holds up the family behind
@@ -267,6 +285,13 @@ export default function ExceptionsHome() {
         {menuGap ? (
           <p>
             <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
+          </p>
+        ) : null}
+        {outdoorShort.length > 0 ? (
+          <p>
+            <span className="pill due">Due</span> Outdoor play (s. 47) is under two hours today in{' '}
+            {outdoorShort.join(', ')} — record the time outside, or why the day was short —{' '}
+            <Link href="/outdoor">outdoor play</Link>
           </p>
         ) : null}
         {staleOffers > 0 ? (

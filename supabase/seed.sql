@@ -568,6 +568,21 @@ select '00000000-0000-4000-8000-000000000002'::uuid, p.person_id, 'later'::publi
   (select a.acknowledged_at from public.handbook_acknowledgement a where a.handbook_version_id = 'bd000000-0000-4000-8000-000000000001' and a.person_id = p.person_id)
 from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '00000000-0000-4000-8000-000000000002' and hm.revoked_at is null and hm.can_consent) p;
 
+-- outdoor play (s. 47): measured blocks, one short day with its reason
+insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000070', now() - interval '2 hours 30 minutes', now() - interval '90 minutes', 'fine', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005');
+insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000070', now() - interval '70 minutes', now() - interval '10 minutes', 'cloudy', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005');
+insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000139', now() - interval '2 hours 30 minutes', now() - interval '95 minutes', 'rain', '00000000-0000-4000-8000-000000000005', '00000000-0000-4000-8000-000000000005');
+insert into public.outdoor_shortfall (centre_id, room_id, outdoor_date, reason, recorded_by)
+select '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000139', op.outdoor_date, 'Heavy rain from mid-morning; the group came in at 10:55 and stayed in for the afternoon.', '00000000-0000-4000-8000-000000000003'
+from public.outdoor_period op where op.room_id = '00000000-0000-4000-8000-000000000139' limit 1;
+insert into public.outdoor_period (centre_id, room_id, started_at, weather, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000022', now() - interval '25 minutes', 'fine', '00000000-0000-4000-8000-000000000005');
+insert into public.outdoor_exemption (centre_id, child_id, source, practitioner, instruction, starts_on, ends_on, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000181', 'physician', 'Dr. S. Patel, MD', 'Indoors until the ear infection clears; may return outdoors from Monday.', (current_date - interval '2 days')::date, (current_date + interval '3 days')::date, '00000000-0000-4000-8000-000000000003');
+
 -- waiting list (s. 75.1): no fee to join; position by the published order
 insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
 values ('00000000-0000-4000-8000-000000000002', 'Noor Haddad', '2025-02-11', 'infant', (current_date + interval '2 months')::date, 'Rana Haddad', 'rana.haddad@example.com', null, null, 'A1B2C3D4', 'general', null, now() - interval '5 months', '00000000-0000-4000-8000-000000000003');

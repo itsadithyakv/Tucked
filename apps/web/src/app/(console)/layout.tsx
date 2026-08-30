@@ -24,6 +24,7 @@ import {
   PanelLeftOpen,
   Pill,
   Siren,
+  Sun,
   Users,
   UserPlus,
 } from 'lucide-react';
@@ -41,6 +42,7 @@ const NAV = [
   { href: '/serious-occurrences', label: 'Serious occurrences', Icon: Siren },
   { href: '/plans', label: 'Plans & allergies', Icon: HeartPulse },
   { href: '/menus', label: 'Menus', Icon: UtensilsCrossed },
+  { href: '/outdoor', label: 'Outdoor play', Icon: Sun },
   { href: '/medication', label: 'Medication', Icon: Pill },
   { href: '/sleep-checks', label: 'Sleep checks', Icon: Moon },
   { href: '/children', label: "Children's records", Icon: Users },

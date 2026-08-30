@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { activeWindow, sleepCheckRequired, staffRequiredEffective } from '@tucked/domain';
@@ -102,11 +102,15 @@ function Board() {
   // group log: one entry, many children
   const [bulkOpen, setBulkOpen] = useState(false);
   const [groupType, setGroupType] = useState<
-    'meal' | 'diaper' | 'outdoor' | 'activity' | 'note' | 'nap_start' | 'nap_end' | null
+    'meal' | 'diaper' | 'activity' | 'note' | 'nap_start' | 'nap_end' | null
   >(null);
   const [groupChildren, setGroupChildren] = useState<Set<string>>(new Set());
   const [groupText, setGroupText] = useState('');
-  const [outdoorMinutes, setOutdoorMinutes] = useState('');
+  // s. 47: outdoor time is MEASURED, not typed. The device records when the
+  // group went out and when it came in; the minutes are the difference.
+  const [periods, setPeriods] = useState<{ id: string; started_at: string; ended_at: string | null }[]>([]);
+  const [weatherOpen, setWeatherOpen] = useState(false);
+  const [tick, setTick] = useState(0);
   // face-to-name headcount at transitions (attendance-model.md §3)
   const [headOpen, setHeadOpen] = useState(false);
   const [headKind, setHeadKind] = useState<'transition_out' | 'transition_in' | 'spot' | null>(null);
@@ -131,8 +135,20 @@ function Board() {
 
   const refresh = useCallback(() => {
     loadRoomDay().then(setDay);
-  }, []);
+    supabase
+      .from('outdoor_period')
+      .select('id, started_at, ended_at')
+      .eq('room_id', roomId)
+      .eq('outdoor_date', new Date().toISOString().slice(0, 10))
+      .then(({ data }) => setPeriods((data as never) ?? []));
+  }, [roomId]);
   useFocusEffect(refresh);
+
+  // an open period counts up while the group is out
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
 
   const room = day?.rooms.find((r) => r.id === roomId) ?? null;
   const present = useMemo(
@@ -160,6 +176,17 @@ function Board() {
     });
     return { counted, required, reduced, ok: counted >= required };
   }, [day, room, roomId, present]);
+
+  const outdoor = useMemo(() => {
+    void tick; // recompute while a period is open
+    const minutes = periods.reduce(
+      (sum, p) =>
+        sum +
+        (new Date(p.ended_at ?? Date.now()).getTime() - new Date(p.started_at).getTime()) / 60_000,
+      0,
+    );
+    return { minutes: Math.floor(minutes), outsideNow: periods.some((p) => !p.ended_at) };
+  }, [periods, tick]);
 
   const sleep = useMemo(() => {
     if (!day) return new Map<string, { napStart: string; lastCheck: string | null }>();
@@ -392,7 +419,6 @@ function Board() {
     setEaten(null);
     setDiaper(null);
     setGroupText('');
-    setOutdoorMinutes('');
     // start with everyone present selected — the common case
     setGroupChildren(new Set(roomChildren.filter((c) => present.has(c.id)).map((c) => c.id)));
     setBulkOpen(true);
@@ -404,10 +430,6 @@ function Board() {
         return meal && eaten ? { meal, eaten } : null;
       case 'diaper':
         return diaper ? { kind: diaper } : null;
-      case 'outdoor': {
-        const minutes = parseInt(outdoorMinutes, 10);
-        return Number.isFinite(minutes) ? { minutes } : null;
-      }
       case 'activity':
         return groupText.trim() ? { description: groupText.trim() } : null;
       case 'note':
@@ -418,6 +440,29 @@ function Board() {
       default:
         return null;
     }
+  }
+
+  function goOutside(weather: string) {
+    setWeatherOpen(false);
+    void act(null, (recorder) =>
+      runCommand('start_outdoor_period', {
+        p_centre: day!.centre.id,
+        p_room: roomId,
+        p_weather: weather,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
+  function comeInside() {
+    void act(null, (recorder) =>
+      runCommand('end_outdoor_period', {
+        p_room: roomId,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
   }
 
   function saveHeadcount() {
@@ -489,6 +534,30 @@ function Board() {
         <Caption>
           {`Requires ${ratio?.required ?? '—'} in ratio${ratio?.reduced ? ' (reduced-ratio window)' : ''}`}
         </Caption>
+      </Card>
+      {/* s. 47: two hours outdoors, weather permitting — measured, not typed */}
+      <Card wash={outdoor.outsideNow ? 'mint' : outdoor.minutes >= 120 ? 'mint' : 'mist'}>
+        <View style={styles.rowBetween}>
+          <View>
+            <Heading>
+              {outdoor.minutes >= 60
+                ? `${Math.floor(outdoor.minutes / 60)} h ${outdoor.minutes % 60} min outside`
+                : `${outdoor.minutes} min outside`}
+            </Heading>
+            <Caption>
+              {outdoor.outsideNow
+                ? 'Outside now — the clock is running.'
+                : outdoor.minutes >= 120
+                  ? 'Two hours done for today.'
+                  : `${120 - outdoor.minutes} min still to go today.`}
+            </Caption>
+          </View>
+          {outdoor.outsideNow ? (
+            <Button label="Come in" onPress={comeInside} />
+          ) : (
+            <Button label="Going out" onPress={() => setWeatherOpen(true)} />
+          )}
+        </View>
       </Card>
       <View style={styles.rowBetween}>
         <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
@@ -778,7 +847,6 @@ function Board() {
           options={[
             { value: 'meal', label: 'Meal' },
             { value: 'diaper', label: 'Diaper' },
-            { value: 'outdoor', label: 'Outdoor' },
             { value: 'activity', label: 'Activity' },
             { value: 'note', label: 'Note' },
             { value: 'nap_start', label: 'Naps start' },
@@ -794,14 +862,6 @@ function Board() {
           </>
         ) : null}
         {groupType === 'diaper' ? <Choices options={[...DIAPERS]} value={diaper} onChange={setDiaper} /> : null}
-        {groupType === 'outdoor' ? (
-          <Field
-            placeholder="Minutes outside"
-            keyboardType="number-pad"
-            value={outdoorMinutes}
-            onChangeText={setOutdoorMinutes}
-          />
-        ) : null}
         {groupType === 'activity' || groupType === 'note' ? (
           <Field
             placeholder={groupType === 'activity' ? 'What the group did' : 'The note'}
@@ -883,6 +943,24 @@ function Board() {
           </>
         ) : null}
         <Button label="Close" kind="quiet" onPress={() => setAllergyOpen(false)} />
+      </Sheet>
+
+      <Sheet visible={weatherOpen} onClose={() => setWeatherOpen(false)} title="Going out — what is it like?">
+        <Body muted>
+          The weather is part of the record: it is what makes a short day defensible later.
+        </Body>
+        {[
+          { value: 'fine', label: 'Fine' },
+          { value: 'cloudy', label: 'Cloudy' },
+          { value: 'wind', label: 'Windy' },
+          { value: 'rain', label: 'Rain' },
+          { value: 'snow', label: 'Snow' },
+          { value: 'extreme_cold', label: 'Extreme cold' },
+          { value: 'extreme_heat', label: 'Extreme heat' },
+          { value: 'poor_air', label: 'Poor air quality' },
+        ].map((w) => (
+          <Button key={w.value} label={w.label} kind="quiet" onPress={() => goOutside(w.value)} />
+        ))}
       </Sheet>
 
       <Sheet visible={headOpen} onClose={() => setHeadOpen(false)} title="Headcount">

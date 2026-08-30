@@ -429,6 +429,33 @@ lines.push(
   `from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent) p;`,
 );
 
+// ── outdoor play (s. 47): measured blocks, one room still out ───────────────
+// Times are offsets from now so the demo is coherent whenever the DB is reset;
+// outdoor_date is whatever the trigger derives in the centre's timezone.
+lines.push('', '-- outdoor play (s. 47): measured blocks, one short day with its reason');
+const toddlerRoom = f.rooms.find((r) => r.name.toLowerCase().includes('toddler')) ?? f.rooms[1]!;
+const preschoolRoom = f.rooms.find((r) => r.name.toLowerCase().includes('preschool')) ?? f.rooms[2]!;
+const infantRoom = f.rooms.find((r) => r.name.toLowerCase().includes('infant')) ?? f.rooms[0]!;
+lines.push(
+  // the toddler room made its two hours across a morning and an afternoon block
+  `insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)`,
+  `values ('${c.id}', '${toddlerRoom.id}', now() - interval '2 hours 30 minutes', now() - interval '90 minutes', 'fine', '${educator.id}', '${educator.id}');`,
+  `insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)`,
+  `values ('${c.id}', '${toddlerRoom.id}', now() - interval '70 minutes', now() - interval '10 minutes', 'cloudy', '${educator.id}', '${educator.id}');`,
+  // the preschool room came in early when the rain started, and said why
+  `insert into public.outdoor_period (centre_id, room_id, started_at, ended_at, weather, recorded_by, ended_by)`,
+  `values ('${c.id}', '${preschoolRoom.id}', now() - interval '2 hours 30 minutes', now() - interval '95 minutes', 'rain', '${educator.id}', '${educator.id}');`,
+  `insert into public.outdoor_shortfall (centre_id, room_id, outdoor_date, reason, recorded_by)`,
+  `select '${c.id}', '${preschoolRoom.id}', op.outdoor_date, 'Heavy rain from mid-morning; the group came in at 10:55 and stayed in for the afternoon.', '${supervisor.id}'`,
+  `from public.outdoor_period op where op.room_id = '${preschoolRoom.id}' limit 1;`,
+  // and the infants are outside right now
+  `insert into public.outdoor_period (centre_id, room_id, started_at, weather, recorded_by)`,
+  `values ('${c.id}', '${infantRoom.id}', now() - interval '25 minutes', 'fine', '${educator.id}');`,
+  // one child kept in on a physician's written instruction
+  `insert into public.outdoor_exemption (centre_id, child_id, source, practitioner, instruction, starts_on, ends_on, recorded_by)`,
+  `values ('${c.id}', '${rosa.id}', 'physician', 'Dr. S. Patel, MD', 'Indoors until the ear infection clears; may return outdoors from Monday.', (current_date - interval '2 days')::date, (current_date + interval '3 days')::date, '${supervisor.id}');`,
+);
+
 // ── waiting list (s. 75.1): free to join, and the order is the published one ─
 // Demo access codes are fixed so the public position page can be shown; real
 // codes come from app.new_waitlist_code().
