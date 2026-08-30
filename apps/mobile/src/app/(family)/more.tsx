@@ -25,6 +25,21 @@ interface SubRow {
   reason: string;
 }
 
+interface FeesRow {
+  balance: number;
+  paid: number;
+}
+
+interface ReceiptRow {
+  id: string;
+  tax_year: number;
+  receipt_number: string;
+  total_amount: number;
+  provider_name: string;
+  provider_business_number: string | null;
+  payer_name: string;
+}
+
 interface ExclusionRow {
   id: string;
   exclusion_reason: string;
@@ -67,6 +82,8 @@ export default function More() {
   const [handbook, setHandbook] = useState<{ version: number; read: boolean } | null>(null);
   const [waitlist, setWaitlist] = useState<WaitlistRow[]>([]);
   const [exclusions, setExclusions] = useState<ExclusionRow[]>([]);
+  const [fees, setFees] = useState<FeesRow | null>(null);
+  const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
 
   useFocusEffect(
     useCallback(() => {
@@ -91,6 +108,19 @@ export default function More() {
         .select('id, full_name')
         .order('full_name')
         .then(({ data }) => setChildren(data ?? []));
+      // Fees: what is owed, and the CRA receipts. Nothing here ever gates the
+      // app — a balance changes what this card says and nothing else.
+      supabase
+        .from('household_balance')
+        .select('balance, paid')
+        .maybeSingle()
+        .then(({ data }) => setFees((data as FeesRow | null) ?? null));
+      supabase
+        .from('cra_receipt')
+        .select('id, tax_year, receipt_number, total_amount, provider_name, provider_business_number, payer_name')
+        .is('replaced_at', null)
+        .order('tax_year', { ascending: false })
+        .then(({ data }) => setReceipts((data as ReceiptRow[]) ?? []));
       // s. 36: a child home unwell, and the plain answer to "when can she
       // come back?" — the centre's own policy, not a guess at the door.
       supabase
@@ -174,6 +204,31 @@ export default function More() {
                 </View>
               );
             })}
+          </Card>
+        ) : null}
+
+        {fees && (Number(fees.balance) !== 0 || receipts.length > 0) ? (
+          <Card>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm }}>
+              <Heading>Fees</Heading>
+              {Number(fees.balance) > 0 ? (
+                <Pill kind="due">{`$${Number(fees.balance).toFixed(2)} owing`}</Pill>
+              ) : (
+                <Pill kind="ok">Up to date</Pill>
+              )}
+            </View>
+            {receipts.map((r) => (
+              <View key={r.id} style={{ gap: 2 }}>
+                <Body>{`${r.tax_year} tax receipt — $${Number(r.total_amount).toFixed(2)}`}</Body>
+                <Caption>
+                  {`Receipt ${r.receipt_number} · ${r.provider_name}${r.provider_business_number ? ` · BN ${r.provider_business_number}` : ''} · issued to ${r.payer_name}`}
+                </Caption>
+              </View>
+            ))}
+            <Caption>
+              Keep the receipt for your tax return. Your child&apos;s place, records and this app are
+              never affected by a balance.
+            </Caption>
           </Card>
         ) : null}
 

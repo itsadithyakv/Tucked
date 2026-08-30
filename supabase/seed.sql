@@ -568,6 +568,44 @@ select '00000000-0000-4000-8000-000000000002'::uuid, p.person_id, 'later'::publi
   (select a.acknowledged_at from public.handbook_acknowledgement a where a.handbook_version_id = 'bd000000-0000-4000-8000-000000000001' and a.person_id = p.person_id)
 from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '00000000-0000-4000-8000-000000000002' and hm.revoked_at is null and hm.can_consent) p;
 
+-- fees: capped base fees, payments, and last year's CRA receipt
+update public.licensee set business_number = '80012 3456 RP0001', receipt_name = 'Maple Leaf Early Learning Inc.' where id = '00000000-0000-4000-8000-000000000001';
+insert into public.fee_schedule (centre_id, age_group_preset, base_daily_fee, unfunded_daily_fee, effective_on, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'infant', 22.00, 92.00, '2025-01-01', '00000000-0000-4000-8000-000000000003');
+insert into public.fee_schedule (centre_id, age_group_preset, base_daily_fee, unfunded_daily_fee, effective_on, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'toddler', 22.00, 76.00, '2025-01-01', '00000000-0000-4000-8000-000000000003');
+insert into public.fee_schedule (centre_id, age_group_preset, base_daily_fee, unfunded_daily_fee, effective_on, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', 'preschool', 22.00, 58.00, '2025-01-01', '00000000-0000-4000-8000-000000000003');
+insert into public.fee_item (centre_id, code, label, kind, amount, description, optional, recorded_by) values
+  ('00000000-0000-4000-8000-000000000002', 'trip', 'Field trip', 'non_base', 12.00, 'Optional outings beyond the neighbourhood, at cost. Never a condition of attendance — a child who does not go stays with an educator.', true, '00000000-0000-4000-8000-000000000003'),
+  ('00000000-0000-4000-8000-000000000002', 'late_pickup', 'Late pickup', 'non_base', 1.00, 'One dollar a minute after 18:00, which supports the two staff who must stay. Waived for the first fifteen minutes once a month from 1 October.', true, '00000000-0000-4000-8000-000000000003');
+insert into public.fee_charge (centre_id, household_id, child_id, kind, description, period_start, period_end, days, unit_amount, amount, recorded_by)
+select '00000000-0000-4000-8000-000000000002', chh.household_id, ch.id, 'base', to_char(m, 'FMMonth YYYY') || ' base fees', m::date, (m + interval '1 month - 1 day')::date, 21, 22.00, 462.00, '00000000-0000-4000-8000-000000000003'
+from generate_series('2025-01-01'::date, '2025-12-01'::date, interval '1 month') m
+join public.child ch on ch.id = any(array['00000000-0000-4000-8000-000000000182','00000000-0000-4000-8000-000000000181']::uuid[])
+join public.child_household chh on chh.child_id = ch.id;
+insert into public.fee_charge (centre_id, household_id, child_id, kind, description, period_start, period_end, days, unit_amount, amount, recorded_by)
+select '00000000-0000-4000-8000-000000000002', chh.household_id, ch.id, 'base', to_char(m, 'FMMonth YYYY') || ' base fees', m::date, (m + interval '1 month - 1 day')::date, 21, 22.00, 462.00, '00000000-0000-4000-8000-000000000003'
+from generate_series(date_trunc('year', current_date), date_trunc('month', current_date), interval '1 month') m
+join public.child ch on ch.id = any(array['00000000-0000-4000-8000-000000000023','00000000-0000-4000-8000-000000000181','00000000-0000-4000-8000-000000000182']::uuid[]) and date_trunc('month', ch.admission_date) <= m
+join public.child_household chh on chh.child_id = ch.id;
+insert into public.fee_payment (centre_id, household_id, amount, method, received_on, reference, payer_person_id, recorded_by)
+select '00000000-0000-4000-8000-000000000002', chh.household_id, sum(fc.amount), 'pre_authorised_debit', fc.period_start, 'PAD ' || to_char(fc.period_start, 'YYYY-MM'), '00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000003'
+from public.fee_charge fc join public.child_household chh on chh.child_id = fc.child_id
+where fc.centre_id = '00000000-0000-4000-8000-000000000002' and fc.period_start < date_trunc('month', current_date)
+group by chh.household_id, fc.period_start;
+insert into public.cra_receipt (id, centre_id, household_id, tax_year, receipt_number, provider_name, provider_business_number, provider_address, payer_name, payer_person_id, total_amount, issued_at, issued_by)
+select 'bf000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', chh.household_id, 2025, '2025-0001', 'Maple Leaf Early Learning Inc.', '80012 3456 RP0001', '120 Carlton Street, Toronto, ON M5A 4K2', 'Alex Osei', '00000000-0000-4000-8000-000000000025',
+  coalesce(sum(fc.amount), 0), '2026-02-14T10:00:00Z', '00000000-0000-4000-8000-000000000003'
+from public.fee_charge fc join public.child_household chh on chh.child_id = fc.child_id
+where fc.centre_id = '00000000-0000-4000-8000-000000000002' and extract(year from fc.period_start) = 2025 group by chh.household_id;
+insert into public.cra_receipt_line (receipt_id, centre_id, child_id, child_name, child_date_of_birth, period_start, period_end, amount)
+select 'bf000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', ch.id, ch.full_name, ch.date_of_birth, min(fc.period_start), max(fc.period_end), sum(fc.amount)
+from public.fee_charge fc join public.child ch on ch.id = fc.child_id
+where fc.centre_id = '00000000-0000-4000-8000-000000000002' and extract(year from fc.period_start) = 2025 group by ch.id, ch.full_name, ch.date_of_birth;
+insert into public.retention_clock (centre_id, subject_table, subject_id, kind, starts_at, purge_after)
+values ('00000000-0000-4000-8000-000000000002', 'cra_receipt', 'bf000000-0000-4000-8000-000000000001', 'financial', '2025-12-31', '2031-12-31');
+
 -- illness (s. 36): a child excluded, and a public health order on the clock
 insert into public.health_exclusion (id, centre_id, child_id, symptom, detail, onset_at, separated_at, separation_place, exclusion_reason, return_criteria, may_return_at, recorded_by)
 select 'be000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', 'vomiting', 'Twice after lunch; no fever, drank a little water.', now() - interval '2 hours', now() - interval '2 hours', 'The quiet corner of the office, in sight of the supervisor',

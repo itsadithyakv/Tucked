@@ -429,6 +429,61 @@ lines.push(
   `from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent) p;`,
 );
 
+// ── fees, the CWELCC cap and a CRA receipt ──────────────────────────────────
+// Monthly base fees at the capped $22/day for each eligible child, paid by
+// pre-authorised debit, with the current month still outstanding.
+const demoKids = [...demoChildIds];
+lines.push('', '-- fees: capped base fees, payments, and last year\'s CRA receipt');
+lines.push(
+  `update public.licensee set business_number = '80012 3456 RP0001', receipt_name = 'Maple Leaf Early Learning Inc.' where id = '${f.licensee.id}';`,
+);
+for (const g of f.ageGroupConfigs) {
+  const unfunded = { infant: 92, toddler: 76, preschool: 58, kindergarten: 46, primary_junior: 34, junior: 34, family: 58 }[
+    g.ageGroupId as string
+  ] ?? 58;
+  lines.push(
+    `insert into public.fee_schedule (centre_id, age_group_preset, base_daily_fee, unfunded_daily_fee, effective_on, recorded_by)`,
+    `values ('${c.id}', '${g.ageGroupId}', 22.00, ${unfunded}.00, '2025-01-01', '${supervisor.id}');`,
+  );
+}
+lines.push(
+  `insert into public.fee_item (centre_id, code, label, kind, amount, description, optional, recorded_by) values`,
+  `  ('${c.id}', 'trip', 'Field trip', 'non_base', 12.00, 'Optional outings beyond the neighbourhood, at cost. Never a condition of attendance — a child who does not go stays with an educator.', true, '${supervisor.id}'),`,
+  `  ('${c.id}', 'late_pickup', 'Late pickup', 'non_base', 1.00, 'One dollar a minute after 18:00, which supports the two staff who must stay. Waived for the first fifteen minutes once a month from 1 October.', true, '${supervisor.id}');`,
+  // a full prior year for the two older children (the fixture's admission
+  // dates start this year, but a family with a five-year-old was plainly here
+  // last year — and a CRA receipt needs a completed tax year to be about)
+  `insert into public.fee_charge (centre_id, household_id, child_id, kind, description, period_start, period_end, days, unit_amount, amount, recorded_by)`,
+  `select '${c.id}', chh.household_id, ch.id, 'base', to_char(m, 'FMMonth YYYY') || ' base fees', m::date, (m + interval '1 month - 1 day')::date, 21, 22.00, 462.00, '${supervisor.id}'`,
+  `from generate_series('2025-01-01'::date, '2025-12-01'::date, interval '1 month') m`,
+  `join public.child ch on ch.id = any(array['${ivan.id}','${rosa.id}']::uuid[])`,
+  `join public.child_household chh on chh.child_id = ch.id;`,
+  // and this year, every demo child from the month they were admitted
+  `insert into public.fee_charge (centre_id, household_id, child_id, kind, description, period_start, period_end, days, unit_amount, amount, recorded_by)`,
+  `select '${c.id}', chh.household_id, ch.id, 'base', to_char(m, 'FMMonth YYYY') || ' base fees', m::date, (m + interval '1 month - 1 day')::date, 21, 22.00, 462.00, '${supervisor.id}'`,
+  `from generate_series(date_trunc('year', current_date), date_trunc('month', current_date), interval '1 month') m`,
+  `join public.child ch on ch.id = any(array[${demoKids.map((id) => `'${id}'`).join(',')}]::uuid[]) and date_trunc('month', ch.admission_date) <= m`,
+  `join public.child_household chh on chh.child_id = ch.id;`,
+  // paid every month except the one that has just been billed
+  `insert into public.fee_payment (centre_id, household_id, amount, method, received_on, reference, payer_person_id, recorded_by)`,
+  `select '${c.id}', chh.household_id, sum(fc.amount), 'pre_authorised_debit', fc.period_start, 'PAD ' || to_char(fc.period_start, 'YYYY-MM'), '${demoParent.id}', '${supervisor.id}'`,
+  `from public.fee_charge fc join public.child_household chh on chh.child_id = fc.child_id`,
+  `where fc.centre_id = '${c.id}' and fc.period_start < date_trunc('month', current_date)`,
+  `group by chh.household_id, fc.period_start;`,
+  // and the receipt the family claimed last year, snapshotted as issued
+  `insert into public.cra_receipt (id, centre_id, household_id, tax_year, receipt_number, provider_name, provider_business_number, provider_address, payer_name, payer_person_id, total_amount, issued_at, issued_by)`,
+  `select 'bf000000-0000-4000-8000-000000000001', '${c.id}', chh.household_id, 2025, '2025-0001', 'Maple Leaf Early Learning Inc.', '80012 3456 RP0001', ${q(c.address)}, ${q(demoParent.fullName)}, '${demoParent.id}',`,
+  `  coalesce(sum(fc.amount), 0), '2026-02-14T10:00:00Z', '${supervisor.id}'`,
+  `from public.fee_charge fc join public.child_household chh on chh.child_id = fc.child_id`,
+  `where fc.centre_id = '${c.id}' and extract(year from fc.period_start) = 2025 group by chh.household_id;`,
+  `insert into public.cra_receipt_line (receipt_id, centre_id, child_id, child_name, child_date_of_birth, period_start, period_end, amount)`,
+  `select 'bf000000-0000-4000-8000-000000000001', '${c.id}', ch.id, ch.full_name, ch.date_of_birth, min(fc.period_start), max(fc.period_end), sum(fc.amount)`,
+  `from public.fee_charge fc join public.child ch on ch.id = fc.child_id`,
+  `where fc.centre_id = '${c.id}' and extract(year from fc.period_start) = 2025 group by ch.id, ch.full_name, ch.date_of_birth;`,
+  `insert into public.retention_clock (centre_id, subject_table, subject_id, kind, starts_at, purge_after)`,
+  `values ('${c.id}', 'cra_receipt', 'bf000000-0000-4000-8000-000000000001', 'financial', '2025-12-31', '2031-12-31');`,
+);
+
 // ── illness and exclusion (s. 36): one child home unwell, one PHU order ─────
 // Ivan went home at lunchtime, so the family app has something real to show
 // and the console has an open exclusion with its return criteria.
