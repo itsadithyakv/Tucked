@@ -52,6 +52,7 @@ export default function ExceptionsHome() {
   const [immMissing, setImmMissing] = useState(0);
   const [calOverdue, setCalOverdue] = useState(0);
   const [openHazards, setOpenHazards] = useState(0);
+  const [menuGap, setMenuGap] = useState<string | null>(null);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -85,6 +86,31 @@ export default function ExceptionsHome() {
       .is('closed_at', null)
       .gt('expires_at', new Date().toISOString())
       .then(({ data }) => setBreakGlass((data as never) ?? []));
+
+    // s. 42: the menu must cover the current AND the following week
+    (async () => {
+      const monday = (weeksAhead: number) => {
+        const d = new Date();
+        const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        u.setUTCDate(u.getUTCDate() - ((u.getUTCDay() || 7) - 1) + weeksAhead * 7);
+        return u.toISOString().slice(0, 10);
+      };
+      const { data } = await sb
+        .from('menu_week')
+        .select('week_start, status')
+        .eq('centre_id', centre.id)
+        .eq('status', 'posted')
+        .in('week_start', [monday(0), monday(1)]);
+      const postedWeeks = new Set((data ?? []).map((w) => w.week_start));
+      const missing = [monday(0), monday(1)].filter((m) => !postedWeeks.has(m));
+      setMenuGap(
+        missing.length === 2
+          ? 'no menu is posted for this week or next'
+          : missing.length === 1
+            ? (missing[0] === monday(0) ? "this week's menu is not posted" : "next week's menu is not posted")
+            : null,
+      );
+    })();
 
     sb.from('compliance_task')
       .select('id', { count: 'exact', head: true })
@@ -209,6 +235,11 @@ export default function ExceptionsHome() {
           <p>
             <span className="pill due">Due</span> {calOverdue} compliance task{calOverdue === 1 ? '' : 's'} overdue
             (drills, tests, inspections) — <Link href="/compliance">compliance calendar</Link>
+          </p>
+        ) : null}
+        {menuGap ? (
+          <p>
+            <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
           </p>
         ) : null}
         {immMissing > 0 ? (

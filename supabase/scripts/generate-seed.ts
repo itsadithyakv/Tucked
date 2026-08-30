@@ -272,6 +272,54 @@ for (const ch of schoolAge.slice(0, 2)) {
   );
 }
 
+// ── menus (ss. 42–44): this week posted, next week drafted ──────────────────
+const MENU_DAYS = [
+  ['Oatmeal with berries', 'Apple slices', 'Chicken and rice with steamed carrots, milk', 'Cheese and crackers'],
+  ['Toast with cream cheese', 'Banana', 'Turkey chili with cornbread, milk', 'Yogurt and granola'],
+  ['Scrambled eggs', 'Orange wedges', 'Pasta with tomato sauce, green beans, milk', 'Hummus and pita'],
+  ['Cereal with milk', 'Pear slices', 'Baked fish, roast potatoes, peas, milk', 'Muffin and milk'],
+  ['Pancakes', 'Melon', "Vegetable shepherd's pie, salad, milk", 'Rice cakes and cheese'],
+];
+const NEXT_MENU_DAYS = [
+  ['Porridge with raisins', 'Grapes (halved)', 'Beef stew with barley, milk', 'Cheese cubes and crackers'],
+  ['English muffin with jam', 'Apple slices', 'Lentil soup with bread, milk', 'Yogurt and berries'],
+];
+const MEALS = ['breakfast', 'snack_am', 'lunch', 'snack_pm'];
+lines.push('', '-- menus (ss. 42-44): this week posted, next week in draft');
+// both weeks start as drafts — the posted week is frozen against item
+// inserts, so it is posted only after its items exist (the rule at work)
+lines.push(
+  `insert into public.menu_week (id, centre_id, week_start, status, created_by)`,
+  `values ('bb000000-0000-4000-8000-000000000001', '${c.id}', date_trunc('week', current_date)::date, 'draft', '${supervisor.id}');`,
+  `insert into public.menu_week (id, centre_id, week_start, status, created_by)`,
+  `values ('bb000000-0000-4000-8000-000000000002', '${c.id}', (date_trunc('week', current_date) + interval '1 week')::date, 'draft', '${supervisor.id}');`,
+);
+MENU_DAYS.forEach((day, dayIdx) => {
+  day.forEach((description, mealIdx) => {
+    lines.push(
+      `insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '${c.id}', ${dayIdx + 1}, '${MEALS[mealIdx]}', ${q(description)});`,
+    );
+  });
+});
+NEXT_MENU_DAYS.forEach((day, dayIdx) => {
+  day.forEach((description, mealIdx) => {
+    lines.push(
+      `insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '${c.id}', ${dayIdx + 1}, '${MEALS[mealIdx]}', ${q(description)});`,
+    );
+  });
+});
+lines.push(
+  `update public.menu_week set status = 'posted', posted_at = now() - interval '6 days', posted_by = '${supervisor.id}' where id = 'bb000000-0000-4000-8000-000000000001';`,
+  // the menu covers Mon–Fri, so pin the demo substitution to a weekday that
+  // has already happened this week (Wednesday, or today if earlier)
+  `insert into public.menu_substitution (centre_id, served_on, meal, planned, served, reason, recorded_by)`,
+  `select '${c.id}', least(current_date, (date_trunc('week', current_date) + interval '2 days')::date), 'lunch', mi.description, 'Vegetable soup with bread and milk', 'Chicken delivery did not arrive', '${educator.id}'`,
+  `from public.menu_item mi where mi.menu_week_id = 'bb000000-0000-4000-8000-000000000001' and mi.meal = 'lunch'`,
+  `  and mi.day_of_week = extract(isodow from least(current_date, (date_trunc('week', current_date) + interval '2 days')::date))::int;`,
+  `insert into public.feeding_instruction (centre_id, child_id, kind, instructions, provided_by, recorded_by)`,
+  `values ('${c.id}', '${mayaId}', 'infant_feeding', '150 ml expressed milk on waking and again at 14:00; iron-fortified cereal at 11:30; no cow''s milk before one year.', '${demoParent.id}', '${supervisor.id}');`,
+);
+
 // ── compliance calendar demo states (tasks auto-seed with the centre) ───────
 lines.push(
   '',

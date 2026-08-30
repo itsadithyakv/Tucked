@@ -144,7 +144,7 @@ export default function PlansPage() {
 
       <RestrictionForm centreId={centre.id} personId={personId} children={children} restrictions={restrictions} onDone={load} />
 
-      <section className="card" id="allergy-list-print">
+      <section className="card print-target" id="allergy-list-print">
         <h2>Allergy &amp; food-restriction list (s. 43(3))</h2>
         <p className="muted">
           Post a copy in every cooking or serving area and every play room. Print, date, and replace whenever it

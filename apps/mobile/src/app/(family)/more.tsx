@@ -13,15 +13,57 @@ interface ChildRow {
   full_name: string;
 }
 
+interface MenuRow {
+  day_of_week: number;
+  meal: string;
+  description: string;
+}
+
+interface SubRow {
+  meal: string;
+  served: string;
+  reason: string;
+}
+
+const MEAL_ORDER = ['breakfast', 'snack_am', 'lunch', 'snack_pm'];
+const MEAL_LABELS: Record<string, string> = {
+  breakfast: 'Breakfast',
+  snack_am: 'Morning snack',
+  lunch: 'Lunch',
+  snack_pm: 'Afternoon snack',
+};
+
+function isoDow(d: Date): number {
+  return d.getDay() === 0 ? 7 : d.getDay();
+}
+
 /** Everything that isn't the day itself: the enrolment records, account
  * details — and sign out, deliberately tucked away back here. */
 export default function More() {
   const { profile, setViewMode } = useAuth();
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [recordDone, setRecordDone] = useState<Map<string, number>>(new Map());
+  const [menu, setMenu] = useState<MenuRow[]>([]);
+  const [todaySubs, setTodaySubs] = useState<SubRow[]>([]);
 
   useFocusEffect(
     useCallback(() => {
+      // s. 42: the posted menu is posted where parents can see it — RLS shows
+      // families posted weeks only, so this is simply "today's meals".
+      const today = new Date();
+      const monday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+      monday.setUTCDate(monday.getUTCDate() - (isoDow(today) - 1));
+      supabase
+        .from('menu_item')
+        .select('day_of_week, meal, description, week:menu_week_id!inner(week_start)')
+        .eq('week.week_start', monday.toISOString().slice(0, 10))
+        .eq('day_of_week', isoDow(today))
+        .then(({ data }) => setMenu((data as never as MenuRow[]) ?? []));
+      supabase
+        .from('menu_substitution')
+        .select('meal, served, reason')
+        .eq('served_on', today.toISOString().slice(0, 10))
+        .then(({ data }) => setTodaySubs((data as SubRow[]) ?? []));
       supabase
         .from('child')
         .select('id, full_name')
@@ -53,6 +95,30 @@ export default function More() {
                 <Caption>Family account</Caption>
               </View>
             </View>
+          </Card>
+        ) : null}
+
+        {menu.length > 0 ? (
+          <Card wash="mint">
+            <Heading>Today&apos;s menu</Heading>
+            {MEAL_ORDER.map((meal) => {
+              const planned = menu.find((m) => m.meal === meal);
+              if (!planned) return null;
+              const sub = todaySubs.find((s) => s.meal === meal);
+              return (
+                <View key={meal} style={{ gap: 2 }}>
+                  <Caption>{MEAL_LABELS[meal]}</Caption>
+                  {sub ? (
+                    <>
+                      <Body>{sub.served}</Body>
+                      <Caption>{`Instead of ${planned.description} — ${sub.reason}`}</Caption>
+                    </>
+                  ) : (
+                    <Body>{planned.description}</Body>
+                  )}
+                </View>
+              );
+            })}
           </Card>
         ) : null}
 

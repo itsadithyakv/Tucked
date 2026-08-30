@@ -111,10 +111,14 @@ function Board() {
   const [headOpen, setHeadOpen] = useState(false);
   const [headKind, setHeadKind] = useState<'transition_out' | 'transition_in' | 'spot' | null>(null);
   const [headCounted, setHeadCounted] = useState<Set<string>>(new Set());
-  // the s. 43(3) allergy list, live for this room
+  // the s. 43(3) allergy list + s. 44 written feeding instructions, live for
+  // this room — everything that governs what a child here may eat
   const [allergyOpen, setAllergyOpen] = useState(false);
   const [allergyRows, setAllergyRows] = useState<
     { child_id: string; full_name: string; kind: string; item: string; emergency_procedure: string | null }[]
+  >([]);
+  const [feedingRows, setFeedingRows] = useState<
+    { id: string; kind: string; instructions: string; child: { full_name: string } | null }[]
   >([]);
   // accident form
   const [accLocation, setAccLocation] = useState('');
@@ -490,7 +494,7 @@ function Board() {
         <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
         <View style={{ flexDirection: 'row', gap: space.sm, flexWrap: 'wrap' }}>
           <Button
-            label="Allergies"
+            label="Food & allergies"
             kind="quiet"
             onPress={() => {
               void supabase
@@ -499,6 +503,12 @@ function Board() {
                 .eq('current_room_id', roomId)
                 .order('full_name')
                 .then(({ data }) => setAllergyRows((data as never) ?? []));
+              void supabase
+                .from('feeding_instruction')
+                .select('id, kind, instructions, child:child_id!inner(full_name, current_room_id)')
+                .eq('child.current_room_id', roomId)
+                .is('ended_at', null)
+                .then(({ data }) => setFeedingRows((data as never) ?? []));
               setAllergyOpen(true);
             }}
           />
@@ -837,7 +847,7 @@ function Board() {
       </Sheet>
 
       {/* transition headcount: face-to-name, never edits attendance */}
-      <Sheet visible={allergyOpen} onClose={() => setAllergyOpen(false)} title="Allergies & restrictions">
+      <Sheet visible={allergyOpen} onClose={() => setAllergyOpen(false)} title="Food, allergies & feeding">
         <Body muted>
           The live s. 43(3) list for this room — anaphylaxis first, then allergies and food restrictions.
           The printed copy in the room must match this.
@@ -859,6 +869,19 @@ function Board() {
               </Card>
             ))
         )}
+        {feedingRows.length > 0 ? (
+          <>
+            <Body muted>
+              Written instructions from the parent (s. 44) — infants are fed exactly this way.
+            </Body>
+            {feedingRows.map((row) => (
+              <Card key={row.id} wash="mist">
+                <Body>{`${row.child?.full_name ?? ''} — ${row.kind === 'infant_feeding' ? 'infant feeding' : 'special diet'}`}</Body>
+                <Caption>{row.instructions}</Caption>
+              </Card>
+            ))}
+          </>
+        ) : null}
         <Button label="Close" kind="quiet" onPress={() => setAllergyOpen(false)} />
       </Sheet>
 

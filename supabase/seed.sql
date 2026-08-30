@@ -473,6 +473,47 @@ insert into public.immunisation_record (centre_id, child_id, status, detail, not
 insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000161', 'attends_school', 'Attends kindergarten — immunisation under the school system', '00000000-0000-4000-8000-000000000003');
 insert into public.immunisation_record (centre_id, child_id, status, detail, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000183', 'attends_school', 'Attends kindergarten — immunisation under the school system', '00000000-0000-4000-8000-000000000003');
 
+-- menus (ss. 42-44): this week posted, next week in draft
+insert into public.menu_week (id, centre_id, week_start, status, created_by)
+values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', date_trunc('week', current_date)::date, 'draft', '00000000-0000-4000-8000-000000000003');
+insert into public.menu_week (id, centre_id, week_start, status, created_by)
+values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', (date_trunc('week', current_date) + interval '1 week')::date, 'draft', '00000000-0000-4000-8000-000000000003');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 1, 'breakfast', 'Oatmeal with berries');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 1, 'snack_am', 'Apple slices');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 1, 'lunch', 'Chicken and rice with steamed carrots, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 1, 'snack_pm', 'Cheese and crackers');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 2, 'breakfast', 'Toast with cream cheese');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 2, 'snack_am', 'Banana');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 2, 'lunch', 'Turkey chili with cornbread, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 2, 'snack_pm', 'Yogurt and granola');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 3, 'breakfast', 'Scrambled eggs');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 3, 'snack_am', 'Orange wedges');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 3, 'lunch', 'Pasta with tomato sauce, green beans, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 3, 'snack_pm', 'Hummus and pita');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 4, 'breakfast', 'Cereal with milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 4, 'snack_am', 'Pear slices');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 4, 'lunch', 'Baked fish, roast potatoes, peas, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 4, 'snack_pm', 'Muffin and milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 5, 'breakfast', 'Pancakes');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 5, 'snack_am', 'Melon');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 5, 'lunch', 'Vegetable shepherd''s pie, salad, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002', 5, 'snack_pm', 'Rice cakes and cheese');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 1, 'breakfast', 'Porridge with raisins');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 1, 'snack_am', 'Grapes (halved)');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 1, 'lunch', 'Beef stew with barley, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 1, 'snack_pm', 'Cheese cubes and crackers');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 2, 'breakfast', 'English muffin with jam');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 2, 'snack_am', 'Apple slices');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 2, 'lunch', 'Lentil soup with bread, milk');
+insert into public.menu_item (menu_week_id, centre_id, day_of_week, meal, description) values ('bb000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000002', 2, 'snack_pm', 'Yogurt and berries');
+update public.menu_week set status = 'posted', posted_at = now() - interval '6 days', posted_by = '00000000-0000-4000-8000-000000000003' where id = 'bb000000-0000-4000-8000-000000000001';
+insert into public.menu_substitution (centre_id, served_on, meal, planned, served, reason, recorded_by)
+select '00000000-0000-4000-8000-000000000002', least(current_date, (date_trunc('week', current_date) + interval '2 days')::date), 'lunch', mi.description, 'Vegetable soup with bread and milk', 'Chicken delivery did not arrive', '00000000-0000-4000-8000-000000000005'
+from public.menu_item mi where mi.menu_week_id = 'bb000000-0000-4000-8000-000000000001' and mi.meal = 'lunch'
+  and mi.day_of_week = extract(isodow from least(current_date, (date_trunc('week', current_date) + interval '2 days')::date))::int;
+insert into public.feeding_instruction (centre_id, child_id, kind, instructions, provided_by, recorded_by)
+values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000023', 'infant_feeding', '150 ml expressed milk on waking and again at 14:00; iron-fortified cereal at 11:30; no cow''s milk before one year.', '00000000-0000-4000-8000-000000000025', '00000000-0000-4000-8000-000000000003');
+
 -- compliance calendar: one overdue task, one done today, one open hazard
 select app.complete_task((select id from public.compliance_task where centre_id = '00000000-0000-4000-8000-000000000002' and slug = 'playground_daily'), 'Walked the playground before opening; surfaces clear, no loose hardware, gate latch working.', current_date, '00000000-0000-4000-8000-000000000005');
 update public.compliance_task set next_due_on = (current_date - 5) where centre_id = '00000000-0000-4000-8000-000000000002' and slug = 'fire_alarm_test';
