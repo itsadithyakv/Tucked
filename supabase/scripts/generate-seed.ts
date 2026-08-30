@@ -622,6 +622,15 @@ for (const id of demoChildIds) {
 }
 // (The accident's Now alerts are created by the 0015 database trigger.)
 
+// Last: recompose today's daily written record now that the day exists, so the
+// demo opens on a full draft rather than the 06:00 skeleton.
+lines.push(
+  '',
+  '-- s. 37: redraft the day now that everything above has happened',
+  `update public.daily_written_record set draft_text = app.dwr_compose('${c.id}', record_date)`,
+  `where centre_id = '${c.id}' and closed_at is null;`,
+);
+
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'seed.sql');
 writeFileSync(out, lines.join('\n') + '\n', 'utf8');
 console.log(

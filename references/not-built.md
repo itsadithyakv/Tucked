@@ -81,7 +81,7 @@ These exist in the tree and do nothing today. Each is a small piece of work, and
 
 | Area | What works | What does not |
 |---|---|---|
-| **Daily written record (s. 37)** | Cron drafts at 06:00, automatic cross-references from accidents, drills, serious occurrences, hazards, illness exclusions and outdoor shortfalls, and a human close that names the human. | The richer prose draft assembled from the day's care logs is a stub: `app.dwr_skeleton` writes a one-line summary. Marked 🔶 in the compliance map. |
+| ~~**Daily written record (s. 37)**~~ | **Complete.** `app.dwr_compose` drafts the day from its own rows and quotes every cross-reference verbatim; the console previews and redrafts; a closed day refuses both. The second drafter that lived in `packages/domain` and nothing called has been removed — one implementation, not two. | — |
 | **Children's records (s. 72(1))** | All 11 items typed, parent completion, supervisor verification, and "missing" is never blank. | No document attachments against a record item — the same gap the staff file just closed, on the child side. |
 | **Offline (s. 82(2))** | AsyncStorage command queue, zero-network evacuation cache, field-tested by hand. | **The scripted airplane-mode quality pass on a real device has never been run.** Owed since the offline work landed. |
 | **Exports** | Attendance CSV, medication registers, printable allergy list, printable menu, printable handbook, printable staff file, printable CRA receipt, s. 72(6) medical-officer subset. | No single "give the advisor everything" bundle, and no PDF generation — printing is the browser's. |

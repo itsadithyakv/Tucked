@@ -7,6 +7,5 @@ export * from './schemas';
 export * from './i18n';
 export * from './fixtures/mapleLeaf';
 export * from './careLogSchemas';
-export * from './dailyRecord';
 export * from './story';
 export * from './safeArrival';

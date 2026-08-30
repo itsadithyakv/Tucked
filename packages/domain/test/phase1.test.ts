@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { validateCareLogPayload } from '../src/careLogSchemas';
-import { draftDailyRecord } from '../src/dailyRecord';
 import { buildStory, twelveHour } from '../src/story';
 import {
   nextSleepCheckDue,
@@ -39,43 +38,6 @@ describe('care log payload schemas (mirror of app.validate_care_log_payload)', (
       }).success,
     ).toBe(true);
     expect(validateCareLogPayload('health_observation', { observation: '' }).success).toBe(false);
-  });
-});
-
-describe('s. 37 — daily record drafter', () => {
-  const base = {
-    attendanceCount: 38,
-    staffCount: 7,
-    accidents: 0,
-    fireDrills: 0,
-    seriousOccurrences: 0,
-    selfAdministeredMedications: 0,
-    incidents: [],
-    outdoorMinutes: 130,
-    outdoorSkippedReason: null,
-  };
-
-  it('s37_uneventful_day_is_a_valid_entry', () => {
-    const text = draftDailyRecord(base);
-    expect(text).toContain('38 children present');
-    expect(text).toContain('uneventful');
-  });
-
-  it('s37_accidents_reference_the_childs_file', () => {
-    const text = draftDailyRecord({ ...base, accidents: 1 });
-    expect(text).toContain("Accident recorded — see child's file.");
-    expect(text).not.toContain('uneventful');
-  });
-
-  it('s37_fire_drills_and_self_administered_medication_summarised', () => {
-    const text = draftDailyRecord({ ...base, fireDrills: 1, selfAdministeredMedications: 2 });
-    expect(text).toContain('Fire drill held');
-    expect(text).toContain('Self-administered medication: 2 doses');
-  });
-
-  it('s37_skipped_outdoor_time_carries_the_reason', () => {
-    const text = draftDailyRecord({ ...base, outdoorMinutes: null, outdoorSkippedReason: 'extreme cold warning' });
-    expect(text).toContain('Outdoor play not held: extreme cold warning.');
   });
 });
 

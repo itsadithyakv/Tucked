@@ -704,3 +704,7 @@ insert into public.story (centre_id, child_id, story_date, draft_text, educator_
 values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', current_date, 'We spent time outside today — the leaf pile was a hit. Ivan ate most of lunch and settled well for rest.', 'Lovely day. Ask about the leaf fort.', now(), '00000000-0000-4000-8000-000000000005');
 insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, created_by)
 values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000182', '00000000-0000-4000-8000-000000000025', 'later', 'story', 'Today''s story', 'The day''s story is ready.', '00000000-0000-4000-8000-000000000005');
+
+-- s. 37: redraft the day now that everything above has happened
+update public.daily_written_record set draft_text = app.dwr_compose('00000000-0000-4000-8000-000000000002', record_date)
+where centre_id = '00000000-0000-4000-8000-000000000002' and closed_at is null;
