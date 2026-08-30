@@ -453,6 +453,10 @@ insert into public.credential (centre_id, person_id, credential_type, issued_on,
 insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000015', 'first_aid_cpr', (current_date - interval '1 year')::date, (current_date + interval '2 years')::date, '00000000-0000-4000-8000-000000000003');
 insert into public.credential (centre_id, person_id, credential_type, issued_on, expires_on, recorded_by) values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000015', 'vsc', (current_date - interval '2 years')::date, (current_date + interval '3 years')::date, '00000000-0000-4000-8000-000000000003');
 
+-- dual role: the supervisor is also a family adult
+insert into public.person_role (person_id, centre_id, role, qualified, active) values ('00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000002', 'family_adult', false, true);
+insert into public.household_member (household_id, person_id, centre_id, relationship, can_view, can_message, can_pickup, can_consent, can_bill) values ('00000000-0000-4000-8000-000000000177', '00000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000002', 'parent', true, true, true, true, true);
+
 -- an announcement (quiet, Later channel)
 insert into public.announcement (centre_id, title, body, created_by)
 values ('00000000-0000-4000-8000-000000000002', 'Pyjama day on Friday', 'Friday is pyjama day across all rooms — cosy clothes welcome. Outdoor play still happens, so please send weather-appropriate layers too.', '00000000-0000-4000-8000-000000000003');

@@ -8,7 +8,7 @@ import { Avatar } from '@/ui/SwipeChildCard';
 import { Body, Button, Caption, Card, Heading, Screen, Title } from '@/ui/components';
 
 export default function More() {
-  const { profile } = useAuth();
+  const { profile, setViewMode } = useAuth();
   return (
     <Screen>
       <Title>More</Title>
@@ -30,6 +30,13 @@ export default function More() {
           console on the web.
         </Body>
       </Card>
+      {profile?.dualRole ? (
+        <Card wash="mist">
+          <Heading>Your family view</Heading>
+          <Body muted>You also have children enrolled here — see their day as a parent does.</Body>
+          <Button label="Switch to Family view" kind="quiet" onPress={() => setViewMode('family')} />
+        </Card>
+      ) : null}
       <Button label="Session details" kind="quiet" onPress={() => router.push('/debug')} />
       <View style={{ marginTop: 'auto' }}>
         <Button label={enCA.auth.signOut} kind="quiet" onPress={() => supabase.auth.signOut()} />

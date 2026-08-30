@@ -37,6 +37,18 @@ interface Announcement {
   published_at: string;
 }
 
+interface ReportDetail {
+  id: string;
+  location: string;
+  description: string;
+  injury: string;
+  severity: string;
+  first_aid: string;
+  head_injury: boolean;
+  concussion_watch_note: string | null;
+  completed_by_person: { full_name: string } | null;
+}
+
 function fmt12(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
@@ -50,6 +62,7 @@ export default function FamilyHome() {
   const [stories, setStories] = useState<Map<string, StoryRow>>(new Map());
   const [status, setStatus] = useState<Map<string, string>>(new Map());
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [reportDetails, setReportDetails] = useState<Map<string, ReportDetail>>(new Map());
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -67,7 +80,23 @@ export default function FamilyHome() {
       .eq('channel', 'now')
       .is('acknowledged_at', null)
       .order('created_at', { ascending: false })
-      .then(({ data }) => setAlerts((data as NowAlert[]) ?? []));
+      .then(({ data }) => {
+        const rows = (data as NowAlert[]) ?? [];
+        setAlerts(rows);
+        // read the report before acknowledging it: pull the full content
+        const reportIds = rows.filter((a) => a.event_type === 'accident_report' && a.ref_id).map((a) => a.ref_id!);
+        if (reportIds.length > 0) {
+          void supabase
+            .from('accident_report')
+            .select(
+              'id, location, description, injury, severity, first_aid, head_injury, concussion_watch_note, completed_by_person:completed_by(full_name)',
+            )
+            .in('id', reportIds)
+            .then(({ data: reports }) =>
+              setReportDetails(new Map(((reports as never as ReportDetail[]) ?? []).map((r) => [r.id, r]))),
+            );
+        }
+      });
     supabase
       .from('story')
       .select('child_id, draft_text, educator_note, published_at')
@@ -113,19 +142,34 @@ export default function FamilyHome() {
       <ScrollView contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}>
         <Title>{profile ? `Hi, ${profile.fullName.split(' ')[0]}` : 'Family'}</Title>
 
-        {alerts.map((alert) => (
-          <View key={alert.id} style={styles.nowCard}>
-            <Pill kind="now">Now</Pill>
-            <Heading>{alert.title}</Heading>
-            <Body>{alert.body}</Body>
-            <Caption>{`Sent ${fmt12(alert.created_at)}`}</Caption>
-            <Button
-              label={alert.event_type === 'accident_report' ? 'I have read the report' : 'Acknowledge'}
-              busy={busyAlert === alert.id}
-              onPress={() => void acknowledge(alert)}
-            />
-          </View>
-        ))}
+        {alerts.map((alert) => {
+          const report = alert.ref_id ? reportDetails.get(alert.ref_id) : undefined;
+          return (
+            <View key={alert.id} style={styles.nowCard}>
+              <Pill kind="now">Now</Pill>
+              <Heading>{alert.title}</Heading>
+              {report ? (
+                <View style={styles.reportBox}>
+                  <Body>{`${report.location} — ${report.description}`}</Body>
+                  <Body muted>{`Injury: ${report.injury} (${report.severity.replace('_', ' ')}).`}</Body>
+                  <Body muted>{`First aid: ${report.first_aid}.`}</Body>
+                  {report.concussion_watch_note ? (
+                    <Body muted>{`Watch for: ${report.concussion_watch_note}.`}</Body>
+                  ) : null}
+                  <Caption>{`Completed by ${report.completed_by_person?.full_name ?? 'the room team'}`}</Caption>
+                </View>
+              ) : (
+                <Body>{alert.body}</Body>
+              )}
+              <Caption>{`Sent ${fmt12(alert.created_at)}`}</Caption>
+              <Button
+                label={alert.event_type === 'accident_report' ? 'I have read the report' : 'Acknowledge'}
+                busy={busyAlert === alert.id}
+                onPress={() => void acknowledge(alert)}
+              />
+            </View>
+          );
+        })}
 
         {children !== null && children.length === 0 ? (
           <Card>
@@ -198,6 +242,12 @@ const styles = StyleSheet.create({
     shadowRadius: 14,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
+  },
+  reportBox: {
+    backgroundColor: colour.surface,
+    borderRadius: radius.lg,
+    padding: space.base,
+    gap: space.xs,
   },
   childRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   story: {

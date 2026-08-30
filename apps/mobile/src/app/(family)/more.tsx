@@ -16,7 +16,7 @@ interface ChildRow {
 /** Everything that isn't the day itself: the enrolment records, account
  * details — and sign out, deliberately tucked away back here. */
 export default function More() {
-  const { profile } = useAuth();
+  const { profile, setViewMode } = useAuth();
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [recordDone, setRecordDone] = useState<Map<string, number>>(new Map());
 
@@ -73,6 +73,20 @@ export default function More() {
             </Card>
           );
         })}
+
+        <Button
+          label="Accident reports"
+          kind="quiet"
+          onPress={() => router.push('/reports')}
+        />
+
+        {profile?.dualRole ? (
+          <Card wash="mist">
+            <Heading>You also work at the centre</Heading>
+            <Body muted>Switch to Room view to run the day; your family view stays right here.</Body>
+            <Button label="Switch to Room view" kind="quiet" onPress={() => setViewMode('room')} />
+          </Card>
+        ) : null}
 
         <Card>
           <Heading>About sign-in</Heading>

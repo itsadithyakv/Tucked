@@ -202,6 +202,16 @@ careStaff.forEach((r, i) => {
   );
 });
 
+// Dual-role demo: the supervisor is also a parent in the last household —
+// exercises the room/family view switcher.
+const lastHousehold = f.households[f.households.length - 2]!; // a regular household
+lines.push(
+  '',
+  '-- dual role: the supervisor is also a family adult',
+  `insert into public.person_role (person_id, centre_id, role, qualified, active) values ('${supervisor.id}', '${c.id}', 'family_adult', false, true);`,
+  `insert into public.household_member (household_id, person_id, centre_id, relationship, can_view, can_message, can_pickup, can_consent, can_bill) values ('${lastHousehold.id}', '${supervisor.id}', '${c.id}', 'parent', true, true, true, true, true);`,
+);
+
 lines.push(
   '',
   '-- an announcement (quiet, Later channel)',

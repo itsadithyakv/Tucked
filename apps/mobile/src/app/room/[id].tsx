@@ -99,7 +99,14 @@ function Board() {
   const [diaper, setDiaper] = useState<(typeof DIAPERS)[number]['value'] | null>(null);
   const [diaperSupplies, setDiaperSupplies] = useState('');
   const [noteText, setNoteText] = useState('');
+  // group log: one entry, many children
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [groupType, setGroupType] = useState<
+    'meal' | 'diaper' | 'outdoor' | 'activity' | 'note' | 'nap_start' | 'nap_end' | null
+  >(null);
+  const [groupChildren, setGroupChildren] = useState<Set<string>>(new Set());
+  const [groupText, setGroupText] = useState('');
+  const [outdoorMinutes, setOutdoorMinutes] = useState('');
   // accident form
   const [accLocation, setAccLocation] = useState('');
   const [accWhat, setAccWhat] = useState('');
@@ -366,18 +373,55 @@ function Board() {
     );
   }
 
-  function saveBulkMeal() {
-    if (!meal || !eaten) return;
+  function openGroupLog() {
+    setGroupType(null);
+    setMeal(null);
+    setEaten(null);
+    setDiaper(null);
+    setGroupText('');
+    setOutdoorMinutes('');
+    // start with everyone present selected — the common case
+    setGroupChildren(new Set(roomChildren.filter((c) => present.has(c.id)).map((c) => c.id)));
+    setBulkOpen(true);
+  }
+
+  function groupPayload(): Record<string, unknown> | null {
+    switch (groupType) {
+      case 'meal':
+        return meal && eaten ? { meal, eaten } : null;
+      case 'diaper':
+        return diaper ? { kind: diaper } : null;
+      case 'outdoor': {
+        const minutes = parseInt(outdoorMinutes, 10);
+        return Number.isFinite(minutes) ? { minutes } : null;
+      }
+      case 'activity':
+        return groupText.trim() ? { description: groupText.trim() } : null;
+      case 'note':
+        return groupText.trim() ? { text: groupText.trim() } : null;
+      case 'nap_start':
+      case 'nap_end':
+        return {};
+      default:
+        return null;
+    }
+  }
+
+  function saveGroupLog() {
+    const payload = groupPayload();
+    if (!groupType || !payload || groupChildren.size === 0) {
+      setNotice('Pick what happened, fill it in, and choose at least one child.');
+      return;
+    }
     setBulkOpen(false);
-    const ids = roomChildren.filter((c) => present.has(c.id)).map((c) => c.id);
     void act(null, (recorder) =>
       runCommand('record_care_log_bulk', {
         p_centre: day!.centre.id,
-        p_children: ids,
+        p_children: [...groupChildren],
         p_room: roomId,
-        p_type: 'meal',
+        p_type: groupType,
         p_logged_at: new Date().toISOString(),
-        p_payload: { meal, eaten },
+        p_payload: payload,
         p_recorder: recorder.personId,
         p_pin: recorder.pin,
       }),
@@ -413,7 +457,7 @@ function Board() {
       </Card>
       <View style={styles.rowBetween}>
         <Caption>Swipe right to sign in — left to sign out or mark absent.</Caption>
-        <Button label="Room meal" kind="quiet" onPress={() => { setMeal(null); setEaten(null); setBulkOpen(true); }} />
+        <Button label="Group log" kind="quiet" onPress={openGroupLog} />
       </View>
       {notice ? (
         <Card wash="mist">
@@ -661,12 +705,79 @@ function Board() {
         ) : null}
       </Sheet>
 
-      {/* one tap logs the meal for everyone present */}
-      <Sheet visible={bulkOpen} onClose={() => setBulkOpen(false)} title="Meal for the room">
-        <Body muted>{`Logs one meal entry for each of the ${present.size} children present.`}</Body>
-        <Choices options={[...MEALS]} value={meal} onChange={setMeal} />
-        <Choices options={[...EATEN]} value={eaten} onChange={setEaten} />
-        <Button label="Log for the room" onPress={saveBulkMeal} />
+      {/* group log: one entry for many children — the "log everything for
+          everyone" workhorse */}
+      <Sheet visible={bulkOpen} onClose={() => setBulkOpen(false)} title="Group log">
+        <Body muted>What happened?</Body>
+        <Choices
+          options={[
+            { value: 'meal', label: 'Meal' },
+            { value: 'diaper', label: 'Diaper' },
+            { value: 'outdoor', label: 'Outdoor' },
+            { value: 'activity', label: 'Activity' },
+            { value: 'note', label: 'Note' },
+            { value: 'nap_start', label: 'Naps start' },
+            { value: 'nap_end', label: 'Naps end' },
+          ]}
+          value={groupType}
+          onChange={setGroupType}
+        />
+        {groupType === 'meal' ? (
+          <>
+            <Choices options={[...MEALS]} value={meal} onChange={setMeal} />
+            <Choices options={[...EATEN]} value={eaten} onChange={setEaten} />
+          </>
+        ) : null}
+        {groupType === 'diaper' ? <Choices options={[...DIAPERS]} value={diaper} onChange={setDiaper} /> : null}
+        {groupType === 'outdoor' ? (
+          <Field
+            placeholder="Minutes outside"
+            keyboardType="number-pad"
+            value={outdoorMinutes}
+            onChangeText={setOutdoorMinutes}
+          />
+        ) : null}
+        {groupType === 'activity' || groupType === 'note' ? (
+          <Field
+            placeholder={groupType === 'activity' ? 'What the group did' : 'The note'}
+            value={groupText}
+            onChangeText={setGroupText}
+          />
+        ) : null}
+        <Body muted>{`Who? (${groupChildren.size} selected)`}</Body>
+        <View style={styles.chipWrap}>
+          <Button
+            label={groupChildren.size === roomChildren.filter((c) => present.has(c.id)).length ? 'Nobody' : 'Everyone present'}
+            kind="quiet"
+            onPress={() => {
+              const everyone = roomChildren.filter((c) => present.has(c.id)).map((c) => c.id);
+              setGroupChildren((cur) => (cur.size === everyone.length ? new Set() : new Set(everyone)));
+            }}
+          />
+        </View>
+        <View style={styles.chipWrap}>
+          {roomChildren
+            .filter((c) => present.has(c.id))
+            .map((c) => {
+              const selected = groupChildren.has(c.id);
+              return (
+                <Button
+                  key={c.id}
+                  label={c.full_name.split(' ')[0]!}
+                  kind={selected ? 'primary' : 'quiet'}
+                  onPress={() =>
+                    setGroupChildren((cur) => {
+                      const next = new Set(cur);
+                      if (next.has(c.id)) next.delete(c.id);
+                      else next.add(c.id);
+                      return next;
+                    })
+                  }
+                />
+              );
+            })}
+        </View>
+        <Button label={`Log for ${groupChildren.size}`} onPress={saveGroupLog} />
         <Button label="Cancel" kind="quiet" onPress={() => setBulkOpen(false)} />
       </Sheet>
     </Screen>
@@ -700,4 +811,5 @@ const styles = StyleSheet.create({
     gap: space.sm,
   },
   actions: { gap: space.sm },
+  chipWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
 });

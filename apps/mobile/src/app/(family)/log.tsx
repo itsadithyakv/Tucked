@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { supabase } from '@/lib/supabase';
 import { Body, Caption, Card, Choices, Heading, Pill, Screen, Title } from '@/ui/components';
@@ -18,21 +18,21 @@ interface LogRow {
   payload: Record<string, unknown>;
 }
 
-const LOG_META: Record<string, { icon: keyof typeof Feather.glyphMap; label: (p: Record<string, unknown>) => string }> = {
-  meal: { icon: 'coffee', label: (p) => `${String(p.meal ?? 'meal').replace('_', ' ')} — ate ${p.eaten}` },
-  bottle: { icon: 'droplet', label: (p) => `Bottle — ${p.amount_ml} ml ${String(p.kind ?? '').replace('_', ' ')}` },
+const LOG_META: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: (p: Record<string, unknown>) => string }> = {
+  meal: { icon: 'restaurant', label: (p) => `${String(p.meal ?? 'meal').replace('_', ' ')} — ate ${p.eaten}` },
+  bottle: { icon: 'water', label: (p) => `Bottle — ${p.amount_ml} ml ${String(p.kind ?? '').replace('_', ' ')}` },
   nap_start: { icon: 'moon', label: () => 'Settled for a rest' },
-  nap_end: { icon: 'sunrise', label: () => 'Woke up' },
+  nap_end: { icon: 'sunny', label: () => 'Woke up' },
   sleep_check: { icon: 'eye', label: (p) => `Sleep check — ${p.breathing_ok ? 'all well' : 'attended to'}` },
-  diaper: { icon: 'refresh-cw', label: (p) => `Diaper — ${p.kind}` },
-  toilet: { icon: 'check-circle', label: (p) => `Toileting — ${p.kind}` },
+  diaper: { icon: 'sync', label: (p) => `Diaper — ${p.kind}` },
+  toilet: { icon: 'checkmark-circle', label: (p) => `Toileting — ${p.kind}` },
   outdoor: {
-    icon: 'sun',
+    icon: 'partly-sunny',
     label: (p) => (p.skipped_reason ? `Stayed in — ${p.skipped_reason}` : `Outdoor play — ${p.minutes} minutes`),
   },
   health_observation: { icon: 'heart', label: (p) => `Health note — ${p.observation}` },
-  activity: { icon: 'star', label: (p) => String(p.description ?? 'Activity') },
-  note: { icon: 'edit-3', label: (p) => String(p.text ?? 'Note') },
+  activity: { icon: 'color-palette', label: (p) => String(p.description ?? 'Activity') },
+  note: { icon: 'create', label: (p) => String(p.text ?? 'Note') },
   photo: { icon: 'camera', label: () => 'New photo' },
 };
 
@@ -115,7 +115,7 @@ export default function DayLog() {
           return (
             <View style={styles.row}>
               <View style={styles.iconWrap}>
-                <Feather name={meta.icon} size={18} color={colour.blue700} />
+                <Ionicons name={meta.icon} size={19} color={colour.blue700} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowText}>{meta.label(item.payload)}</Text>
