@@ -24,11 +24,16 @@ import Animated, {
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { a11y, colour, radius, shadow, space, type } from '@tucked/ui-tokens';
 import { SparkleBurst } from './sparkle';
 
+/** Every screen respects the device's status bar / camera cutout. */
 export function Screen({ children }: { children: ReactNode }) {
-  return <View style={styles.screen}>{children}</View>;
+  const insets = useSafeAreaInsets();
+  return (
+    <View style={[styles.screen, { paddingTop: insets.top + space.sm }]}>{children}</View>
+  );
 }
 
 export function Card({ children, wash }: { children: ReactNode; wash?: 'mist' | 'mint' | 'sand' }) {

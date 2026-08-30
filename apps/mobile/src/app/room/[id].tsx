@@ -97,6 +97,7 @@ function Board() {
   const [meal, setMeal] = useState<(typeof MEALS)[number]['value'] | null>(null);
   const [eaten, setEaten] = useState<(typeof EATEN)[number]['value'] | null>(null);
   const [diaper, setDiaper] = useState<(typeof DIAPERS)[number]['value'] | null>(null);
+  const [diaperSupplies, setDiaperSupplies] = useState('');
   const [noteText, setNoteText] = useState('');
   const [bulkOpen, setBulkOpen] = useState(false);
   // accident form
@@ -271,6 +272,7 @@ function Board() {
     setMeal(null);
     setEaten(null);
     setDiaper(null);
+    setDiaperSupplies('');
     setNoteText('');
     setAccLocation('');
     setAccWhat('');
@@ -595,13 +597,23 @@ function Board() {
         {moreView === 'diaper' ? (
           <>
             <Choices options={[...DIAPERS]} value={diaper} onChange={setDiaper} />
+            <Field
+              placeholder="Diapers remaining at the centre (optional)"
+              keyboardType="number-pad"
+              value={diaperSupplies}
+              onChangeText={setDiaperSupplies}
+            />
             <Button
               label="Save diaper"
               onPress={() => {
                 if (moreFor && diaper) {
                   const id = moreFor.childId;
+                  const remaining = parseInt(diaperSupplies, 10);
                   setMoreFor(null);
-                  void careLog(id, 'diaper', { kind: diaper });
+                  void careLog(id, 'diaper', {
+                    kind: diaper,
+                    ...(Number.isFinite(remaining) ? { supplies_remaining: remaining } : {}),
+                  });
                 }
               }}
             />

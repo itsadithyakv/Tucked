@@ -41,6 +41,7 @@ export interface AttendanceRow {
 }
 
 export interface ShiftRow {
+  id: string;
   person_id: string;
   room_id: string | null;
   counted_in_ratio: boolean;
@@ -98,7 +99,7 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
       .order('actual_time'),
     supabase
       .from('staff_shift')
-      .select('person_id, room_id, counted_in_ratio, out_at, person:person_id(full_name)')
+      .select('id, person_id, room_id, counted_in_ratio, out_at, person:person_id(full_name)')
       .eq('centre_id', centre.id)
       .eq('shift_date', today),
     supabase

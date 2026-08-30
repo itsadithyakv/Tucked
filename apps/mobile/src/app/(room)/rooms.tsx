@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import { FlatList, View } from 'react-native';
-import { Link, Redirect, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { enCA, safeArrivalDue } from '@tucked/domain';
+import { FlatList, StyleSheet, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { safeArrivalDue, staffRequiredEffective, activeWindow } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/lib/supabase';
 import { runCommand } from '@/lib/queue';
 import { RecorderProvider, useRecorder } from '@/lib/recorder';
 import { loadRoomDay, presentByRoom, refreshEvacuationCache } from '@/lib/roomData';
@@ -36,8 +34,8 @@ function minutesOfDay(hhmmss: string): number {
   return Number(h) * 60 + Number(m);
 }
 
-function Hub() {
-  const { session, loading, profile } = useAuth();
+function Rooms() {
+  const { profile } = useAuth();
   const { getRecorder, invalidate } = useRecorder();
   const [day, setDay] = useState<RoomDay | null>(null);
   const [queue, setQueue] = useState(queueState());
@@ -52,7 +50,6 @@ function Hub() {
       if (d) void refreshEvacuationCache(d);
     });
   }, []);
-
   useFocusEffect(refresh);
 
   useEffect(() => {
@@ -65,11 +62,8 @@ function Hub() {
     };
   }, []);
 
-  if (!loading && !session) return <Redirect href="/sign-in" />;
-
   const present = day ? presentByRoom(day.attendance) : new Map<string, Set<string>>();
 
-  // s. 50 safe arrival: expected children unaccounted for after the cut-off.
   const chaseList = (() => {
     if (!day) return [];
     const local = new Date().toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
@@ -84,6 +78,24 @@ function Hub() {
     const names = new Map(day.children.map((c) => [c.id, c.full_name]));
     return due.map((id) => ({ childId: id, name: names.get(id) ?? '' }));
   })();
+
+  function roomRatio(roomId: string, preset: Parameters<typeof staffRequiredEffective>[0]) {
+    if (!day) return null;
+    const count = present.get(roomId)?.size ?? 0;
+    const counted = day.shifts.filter((s) => s.room_id === roomId && s.counted_in_ratio && !s.out_at).length;
+    const local = new Date().toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
+    const nowMin = minutesOfDay(local);
+    const openMin = minutesOfDay(day.centre.opens_at);
+    const closeMin = minutesOfDay(day.centre.closes_at);
+    const hours = (closeMin - openMin) / 60;
+    const window = activeWindow(nowMin - openMin, closeMin - nowMin, hours, false);
+    const { required } = staffRequiredEffective(preset, count, {
+      window,
+      programHoursPerDay: hours,
+      outdoors: false,
+    });
+    return { count, counted, required, ok: counted >= required };
+  }
 
   async function recordOutcome() {
     const target = chaseFor;
@@ -112,10 +124,8 @@ function Hub() {
 
   return (
     <Screen>
-      <Title>{day?.centre.name ?? enCA.terms.centre}</Title>
-      <Caption>
-        {profile ? `${profile.fullName} · ${profile.roles.map((r) => r.role).join(', ')}` : ''}
-      </Caption>
+      <Title>{day?.centre.name ?? 'Rooms'}</Title>
+      <Caption>{profile ? profile.fullName : ''}</Caption>
       {queue.pending > 0 ? (
         <Card wash="mist">
           <Body muted>{`Working offline — ${queue.pending} item${queue.pending === 1 ? '' : 's'} will sync when the connection returns.`}</Body>
@@ -132,7 +142,7 @@ function Hub() {
           <Body muted>{notice}</Body>
         </Card>
       ) : null}
-      {chaseList.length > 0 ? (
+      {chaseFor === null && chaseList.length > 0 ? (
         <Card wash="sand">
           <Heading>Safe arrival</Heading>
           <Body muted>Expected but not arrived — contact the family and record the outcome.</Body>
@@ -150,31 +160,34 @@ function Hub() {
           ))}
         </Card>
       ) : null}
+
       <FlatList
         data={day?.rooms ?? []}
         keyExtractor={(r) => r.id}
-        contentContainerStyle={{ gap: space.cardGap }}
+        contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}
         renderItem={({ item, index }) => {
-          const count = present.get(item.id)?.size ?? 0;
+          const ratio = roomRatio(item.id, item.preset);
           return (
-            <Animated.View entering={FadeInDown.delay(index * 70).springify().damping(15)}>
-              <Card wash={(['mist', 'mint', 'sand'] as const)[index % 3]}>
+            <Card wash={(['mist', 'mint', 'sand'] as const)[index % 3]}>
+              <View style={styles.rowBetween}>
                 <Heading>{item.name}</Heading>
-                <Body muted>{`${count} present now`}</Body>
-                <Link href={{ pathname: '/room/[id]', params: { id: item.id } }} asChild>
-                  <Button label={`Open ${item.name}`} kind="quiet" onPress={() => {}} />
-                </Link>
-              </Card>
-            </Animated.View>
+                {ratio ? (
+                  <Pill kind={ratio.ok ? 'ok' : 'now'}>
+                    {ratio.ok ? 'Ratio OK' : `Needs ${ratio.required}`}
+                  </Pill>
+                ) : null}
+              </View>
+              <Body muted>
+                {ratio ? `${ratio.count} present · ${ratio.counted} staff in ratio` : ''}
+              </Body>
+              <Button
+                label="Open room"
+                onPress={() => router.push({ pathname: '/room/[id]', params: { id: item.id } })}
+              />
+            </Card>
           );
         }}
       />
-      <View style={{ marginTop: 'auto', gap: space.sm }}>
-        <Link href="/evacuation" asChild>
-          <Button label="Evacuation screen" onPress={() => {}} />
-        </Link>
-        <Button label={enCA.auth.signOut} kind="quiet" onPress={() => supabase.auth.signOut()} />
-      </View>
 
       <Sheet
         visible={chaseFor !== null}
@@ -195,18 +208,25 @@ function Hub() {
   );
 }
 
-export default function RoomHub() {
+export default function RoomsTab() {
   const [staff, setStaff] = useState<{ personId: string; fullName: string; role: string }[]>([]);
-
   useFocusEffect(
     useCallback(() => {
       loadRoomDay().then((d) => setStaff(d?.staff ?? []));
     }, []),
   );
-
   return (
     <RecorderProvider staff={staff}>
-      <Hub />
+      <Rooms />
     </RecorderProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+});

@@ -1,13 +1,12 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Redirect, router, useFocusEffect } from 'expo-router';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import { router, useFocusEffect } from 'expo-router';
 import { enCA } from '@tucked/domain';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { Avatar } from '@/ui/SwipeChildCard';
-import { Body, Button, Caption, Card, Heading, Screen, Title } from '@/ui/components';
+import { Body, Button, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
 
 interface ChildRow {
   id: string;
@@ -31,20 +30,26 @@ interface StoryRow {
   published_at: string;
 }
 
+interface Announcement {
+  id: string;
+  title: string;
+  body: string;
+  published_at: string;
+}
+
 function fmt12(iso: string): string {
   return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
 
-/** The family home: the current decision first ("Maya is in the Infant room"),
- * one calm story per child, and loud alerts ONLY for things that matter now —
- * which stay until acknowledged, because the acknowledgement is the record. */
+/** The current decision first: each child's status, today's story, loud
+ * alerts only when they matter — and the centre's quiet announcements. */
 export default function FamilyHome() {
-  const { session, loading, profile } = useAuth();
+  const { profile } = useAuth();
   const [children, setChildren] = useState<ChildRow[] | null>(null);
   const [alerts, setAlerts] = useState<NowAlert[]>([]);
   const [stories, setStories] = useState<Map<string, StoryRow>>(new Map());
   const [status, setStatus] = useState<Map<string, string>>(new Map());
-  const [recordDone, setRecordDone] = useState<Map<string, number>>(new Map());
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
@@ -67,19 +72,13 @@ export default function FamilyHome() {
       .from('story')
       .select('child_id, draft_text, educator_note, published_at')
       .eq('story_date', today)
-      .then(({ data }) => {
-        setStories(new Map(((data as StoryRow[]) ?? []).map((s) => [s.child_id, s])));
-      });
+      .then(({ data }) => setStories(new Map(((data as StoryRow[]) ?? []).map((s) => [s.child_id, s]))));
     supabase
-      .from('child_record_item')
-      .select('child_id, status')
-      .then(({ data }) => {
-        const map = new Map<string, number>();
-        for (const i of (data as { child_id: string; status: string }[]) ?? []) {
-          if (i.status !== 'missing') map.set(i.child_id, (map.get(i.child_id) ?? 0) + 1);
-        }
-        setRecordDone(map);
-      });
+      .from('announcement')
+      .select('id, title, body, published_at')
+      .order('published_at', { ascending: false })
+      .limit(3)
+      .then(({ data }) => setAnnouncements((data as Announcement[]) ?? []));
     supabase
       .from('attendance_event')
       .select('child_id, event_type, actual_time')
@@ -101,7 +100,6 @@ export default function FamilyHome() {
   async function acknowledge(alert: NowAlert) {
     setBusyAlert(alert.id);
     if (alert.event_type === 'accident_report' && alert.ref_id) {
-      // one press acknowledges the report copy (s. 36(4)) and settles the alert
       await supabase.rpc('acknowledge_accident_report', { p_report: alert.ref_id });
     } else {
       await supabase.rpc('acknowledge_notification', { p_notification: alert.id });
@@ -110,19 +108,14 @@ export default function FamilyHome() {
     refresh();
   }
 
-  if (!loading && !session) return <Redirect href="/sign-in" />;
-
   return (
     <Screen>
       <ScrollView contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Title>{profile ? profile.fullName.split(' ')[0] : 'Family'}</Title>
-          <Button label="Messages" kind="quiet" onPress={() => router.push('/messages')} />
-        </View>
+        <Title>{profile ? `Hi, ${profile.fullName.split(' ')[0]}` : 'Family'}</Title>
 
         {alerts.map((alert) => (
           <View key={alert.id} style={styles.nowCard}>
-            <Text style={styles.nowOverline}>NOW</Text>
+            <Pill kind="now">Now</Pill>
             <Heading>{alert.title}</Heading>
             <Body>{alert.body}</Body>
             <Caption>{`Sent ${fmt12(alert.created_at)}`}</Caption>
@@ -140,67 +133,72 @@ export default function FamilyHome() {
           </Card>
         ) : null}
 
-        {(children ?? []).map((child, index) => {
+        {(children ?? []).map((child) => {
           const story = stories.get(child.id);
           const firstName = child.full_name.split(' ')[0]!;
           const childStatus = status.get(child.id);
           return (
-            <Animated.View
-              key={child.id}
-              entering={FadeInDown.delay(index * 80).springify().damping(15)}
-            >
-              <Card>
-                <View style={styles.childRow}>
-                  <Avatar name={child.full_name} size={44} />
-                  <View style={{ flex: 1 }}>
-                    <Heading>{firstName}</Heading>
-                    <Caption>
-                      {child.room ? `${child.room.name}${childStatus ? ` — ${childStatus}` : ''}` : (childStatus ?? '')}
-                    </Caption>
-                  </View>
+            <Card key={child.id}>
+              <View style={styles.childRow}>
+                <Avatar name={child.full_name} size={44} />
+                <View style={{ flex: 1 }}>
+                  <Heading>{firstName}</Heading>
+                  <Caption>
+                    {child.room ? `${child.room.name}${childStatus ? ` — ${childStatus}` : ''}` : (childStatus ?? '')}
+                  </Caption>
                 </View>
-                {story ? (
-                  <View style={styles.story}>
-                    <Text style={styles.storyOverline}>TODAY&apos;S STORY</Text>
-                    {story.educator_note ? <Body>{story.educator_note}</Body> : null}
-                    <Body muted>{story.draft_text}</Body>
-                    <Caption>{`Published ${fmt12(story.published_at)}`}</Caption>
-                  </View>
-                ) : (
-                  <Caption>The day&apos;s story arrives at pick-up time.</Caption>
-                )}
-                {(recordDone.get(child.id) ?? 0) < 11 ? (
-                  <Button
-                    label={`Complete ${firstName}'s enrolment record`}
-                    kind="quiet"
-                    onPress={() => router.push({ pathname: '/enrolment/[childId]', params: { childId: child.id } })}
-                  />
-                ) : null}
-              </Card>
-            </Animated.View>
+              </View>
+              {story ? (
+                <View style={styles.story}>
+                  <Text style={styles.storyOverline}>TODAY&apos;S STORY</Text>
+                  {story.educator_note ? <Body>{story.educator_note}</Body> : null}
+                  <Body muted>{story.draft_text}</Body>
+                  <Caption>{`Published ${fmt12(story.published_at)}`}</Caption>
+                </View>
+              ) : (
+                <Caption>The day&apos;s story arrives at pick-up time.</Caption>
+              )}
+            </Card>
           );
         })}
 
-        <Button label={enCA.auth.signOut} kind="quiet" onPress={() => supabase.auth.signOut()} />
+        {announcements.length > 0 ? (
+          <>
+            <Heading>From the centre</Heading>
+            {announcements.map((a) => (
+              <Card key={a.id} wash="mist">
+                <Heading>{a.title}</Heading>
+                <Body muted>{a.body}</Body>
+                <Caption>{fmt12(a.published_at)}</Caption>
+              </Card>
+            ))}
+          </>
+        ) : null}
+
+        <Button
+          label="See the full day log"
+          kind="quiet"
+          onPress={() => router.push('/log')}
+        />
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // the Now card is a clay surface on the rose wash — no rail, the pill and
+  // the colour carry the urgency
   nowCard: {
     backgroundColor: colour.nowWash,
-    borderRadius: radius.card,
-    borderLeftWidth: 4,
-    borderLeftColor: colour.now,
+    borderRadius: radius.xl,
     padding: space.lg,
     gap: space.sm,
+    shadowColor: colour.ink,
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
-  nowOverline: {
-    ...type.overline,
-    color: colour.now,
-    textTransform: 'uppercase',
-  } as const,
   childRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   story: {
     backgroundColor: colour.canvas,

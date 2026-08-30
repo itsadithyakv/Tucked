@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { readEvacuationCache } from '@/lib/roomData';
 import type { EvacCache, EvacChild } from '@/lib/roomData';
@@ -57,12 +57,7 @@ export default function Evacuation() {
 
   return (
     <Screen>
-      <View style={styles.header}>
-        <Title>Evacuation</Title>
-        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.back}>
-          <Text style={styles.backText}>Back</Text>
-        </Pressable>
-      </View>
+      <Title>Evacuation</Title>
       <Card wash={tally === present.length && present.length > 0 ? 'mint' : 'sand'}>
         <Heading>{`Headcount ${tally} of ${present.length}`}</Heading>
         <Caption>
@@ -117,20 +112,6 @@ export default function Evacuation() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: space.sm,
-  },
-  back: {
-    backgroundColor: colour.blue50,
-    borderRadius: radius.pill,
-    paddingHorizontal: space.base,
-    minHeight: 44,
-    justifyContent: 'center',
-  },
-  backText: { ...type.label, color: colour.blue700 } as const,
   row: {
     backgroundColor: colour.surface,
     borderRadius: radius.card,

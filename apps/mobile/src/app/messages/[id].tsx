@@ -3,8 +3,8 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
+import { AUDIENCE_LABEL } from '@/lib/messaging';
 import { supabase } from '@/lib/supabase';
-import { AUDIENCE_LABEL } from '../messages';
 import { Button, Caption, Field, Screen, Title } from '@/ui/components';
 
 interface Msg {

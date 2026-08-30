@@ -14,5 +14,5 @@ export default function Index() {
     );
   }
   if (!session) return <Redirect href="/sign-in" />;
-  return <Redirect href={profile?.mode === 'room' ? '/room' : '/family'} />;
+  return <Redirect href={profile?.mode === 'room' ? '/rooms' : '/home'} />;
 }

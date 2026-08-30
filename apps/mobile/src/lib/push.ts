@@ -15,10 +15,11 @@ export async function registerForPush(personId: string): Promise<void> {
     const Notifications = await import('expo-notifications');
 
     if (Platform.OS === 'android') {
+      // MAX importance plays the system default sound; naming a sound here
+      // means a bundled custom file, which we don't ship.
       await Notifications.setNotificationChannelAsync('now', {
         name: 'Now — urgent',
         importance: Notifications.AndroidImportance.MAX,
-        sound: 'default',
         bypassDnd: true,
       });
       await Notifications.setNotificationChannelAsync('later', {

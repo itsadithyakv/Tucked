@@ -202,6 +202,13 @@ careStaff.forEach((r, i) => {
   );
 });
 
+lines.push(
+  '',
+  '-- an announcement (quiet, Later channel)',
+  `insert into public.announcement (centre_id, title, body, created_by)`,
+  `values ('${c.id}', 'Pyjama day on Friday', 'Friday is pyjama day across all rooms — cosy clothes welcome. Outdoor play still happens, so please send weather-appropriate layers too.', '${supervisor.id}');`,
+);
+
 lines.push('', '-- stories for the demo family, and one unacknowledged Now alert');
 for (const id of demoChildIds) {
   const first = f.children.find((ch) => ch.id === id)!.fullName.split(' ')[0];

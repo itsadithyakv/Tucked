@@ -1,40 +1,28 @@
 import { useCallback, useState } from 'react';
 import { FlatList, View } from 'react-native';
-import { Link, Redirect, router, useFocusEffect } from 'expo-router';
+import { Link, router, useFocusEffect } from 'expo-router';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
+import { AUDIENCE_LABEL, AUDIENCE_OPTIONS } from '@/lib/messaging';
+import type { Audience } from '@/lib/messaging';
 import { supabase } from '@/lib/supabase';
 import { Body, Button, Caption, Card, Choices, Field, Heading, Screen, Sheet, Title } from '@/ui/components';
 
 interface Thread {
   id: string;
-  audience: 'teacher' | 'supervisor' | 'both';
+  audience: Audience;
   created_at: string;
   child: { full_name: string } | null;
   message: { body: string; sent_at: string }[];
 }
 
-/** The audience is the parent's explicit choice, and it is shown everywhere —
- * no silently-copied supervisor (the Lillio complaint). */
-export const AUDIENCE_LABEL: Record<Thread['audience'], string> = {
-  teacher: 'Seen by the room team',
-  supervisor: 'Seen by the supervisor only',
-  both: 'Seen by the room team and the supervisor',
-};
-
-const AUDIENCE_OPTIONS = [
-  { value: 'teacher', label: 'The room team' },
-  { value: 'supervisor', label: 'The supervisor' },
-  { value: 'both', label: 'Both' },
-] as const;
-
 export default function Messages() {
-  const { session, loading, profile } = useAuth();
+  const { profile } = useAuth();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [children, setChildren] = useState<{ id: string; full_name: string; centre_id: string }[]>([]);
   const [composerOpen, setComposerOpen] = useState(false);
   const [childId, setChildId] = useState<string | null>(null);
-  const [audience, setAudience] = useState<(typeof AUDIENCE_OPTIONS)[number]['value'] | null>(null);
+  const [audience, setAudience] = useState<Audience | null>(null);
   const [body, setBody] = useState('');
 
   const refresh = useCallback(() => {
@@ -67,22 +55,15 @@ export default function Messages() {
         .insert({ centre_id: child.centre_id, thread_id: thread.id, sender_person_id: profile.personId, body: body.trim() });
       setBody('');
       refresh();
-      // let the sheet finish closing before the thread screen mounts,
-      // otherwise the modal lingers over the new route
       setTimeout(() => {
         router.push({ pathname: '/messages/[id]', params: { id: thread.id } });
       }, 250);
     }
   }
 
-  if (!loading && !session) return <Redirect href="/sign-in" />;
-
   return (
     <Screen>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Title>Messages</Title>
-        <Button label="Back" kind="quiet" onPress={() => router.back()} />
-      </View>
+      <Title>Messages</Title>
       <Button
         label="New message"
         onPress={() => {
@@ -95,7 +76,7 @@ export default function Messages() {
       <FlatList
         data={threads}
         keyExtractor={(t) => t.id}
-        contentContainerStyle={{ gap: space.cardGap }}
+        contentContainerStyle={{ gap: space.cardGap, paddingBottom: space.x2l }}
         renderItem={({ item }) => {
           const last = [...item.message].sort((a, b) => a.sent_at.localeCompare(b.sent_at)).at(-1);
           return (

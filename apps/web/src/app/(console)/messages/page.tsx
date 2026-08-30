@@ -36,6 +36,25 @@ export default function MessagesPage() {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [replyFor, setReplyFor] = useState<string | null>(null);
   const [reply, setReply] = useState('');
+  const [annTitle, setAnnTitle] = useState('');
+  const [annBody, setAnnBody] = useState('');
+  const [annNotice, setAnnNotice] = useState<string | null>(null);
+
+  async function postAnnouncement() {
+    if (!annTitle.trim() || !annBody.trim()) return;
+    const { error } = await getSupabase().from('announcement').insert({
+      centre_id: centre.id,
+      title: annTitle.trim(),
+      body: annBody.trim(),
+      created_by: personId,
+    });
+    if (error) setAnnNotice(error.message);
+    else {
+      setAnnTitle('');
+      setAnnBody('');
+      setAnnNotice('Posted — families see it on their home screen (quiet, no push).');
+    }
+  }
 
   const load = useCallback(() => {
     getSupabase()
@@ -66,6 +85,28 @@ export default function MessagesPage() {
   return (
     <>
       <h1>Messages</h1>
+      <section className="card">
+        <h2>Post an announcement</h2>
+        <p className="muted">
+          Quiet by design: announcements appear on families&apos; home screens with no push.
+        </p>
+        <div className="toolbar">
+          <input
+            value={annTitle}
+            onChange={(e) => setAnnTitle(e.target.value)}
+            placeholder="Title — e.g. Pyjama day on Friday"
+            size={32}
+          />
+          <input
+            value={annBody}
+            onChange={(e) => setAnnBody(e.target.value)}
+            placeholder="The details"
+            size={48}
+          />
+          <button onClick={() => void postAnnouncement()}>Post</button>
+        </div>
+        {annNotice ? <p className="muted">{annNotice}</p> : null}
+      </section>
       {threads.length === 0 ? <p className="muted">No messages from families yet.</p> : null}
       {threads.map((t) => (
         <section className="card" key={t.id}>
