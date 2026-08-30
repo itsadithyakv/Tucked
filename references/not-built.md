@@ -1,6 +1,6 @@
 # What is NOT built
 
-*Last reviewed: 2026-08-30, against the tree at that date. This is the honest counterpart to [docs/compliance-test-report.md](../docs/compliance-test-report.md), which lists what IS built and proves it. An honest gap list is worth more than a decorative feature list: it is what stops a pilot centre discovering a hole at the wrong moment, and it is where the next work comes from.*
+*Last reviewed: 2026-08-30 (push delivery landed the same day; see the strikethrough in §4). This is the honest counterpart to [docs/compliance-test-report.md](../docs/compliance-test-report.md), which lists what IS built and proves it. An honest gap list is worth more than a decorative feature list: it is what stops a pilot centre discovering a hole at the wrong moment, and it is where the next work comes from.*
 
 Five kinds of "not built" appear below, and they are not the same thing:
 
@@ -70,7 +70,7 @@ These exist in the tree and do nothing today. Each is a small piece of work, and
 
 | Thing | State |
 |---|---|
-| **Push notification delivery** | [`supabase/functions/notify/index.ts`](../supabase/functions/notify/index.ts) is written and reads pending `notification` rows through Expo's push service — but it is **not deployed and nothing schedules it**. Device registration ([`apps/mobile/src/lib/push.ts`](../apps/mobile/src/app/../lib/push.ts)) is built and needs a dev build to work at all. Today every notification is created correctly in the database and delivered **in-app only**. A parent who does not open the app does not hear about a Now alert. This is the single largest gap between what the product promises and what it does. |
+| ~~**Push notification delivery**~~ | **Built** (migration 0033). The selection rule lives in `app.notifications_to_push` and is pgTAP-proven; pg_cron dispatches every two minutes through pg_net; failures are retried and never marked as sent; dead tokens are retired; unreachable and stuck alerts surface on the console home. **Two things remain per environment**: `supabase functions deploy notify` with a `PUSH_SHARED_SECRET`, and the two `app_setting` rows the migration's footer spells out. Until those exist the dispatcher returns `not configured` and nothing is silently dropped. Remote push still needs the EAS dev build to reach a real device. |
 | **The `photos` storage bucket** | Policies written in migration 0012, consent-gated, never used. |
 | **`staff_document.kind` values `policy_acknowledgement`, `contract`, `other`** | Accepted by the schema; no surface writes them. |
 | **`credential_type` value `training`** | In the enum, not in the requirement pack, no surface. |
@@ -113,6 +113,7 @@ Not gaps exactly — decisions with a consequence somebody should know about.
 - **Joining the waiting list is a staff act.** s. 75.1 requires self-serve *position*, which is built and works with no account. Self-serve *joining* would need a public write endpoint and rate limiting.
 - **The evacuation cache is per-device.** A device that has never been online has nothing cached.
 - **One centre per console session.** A supervisor of two centres signs out and back in.
+- **A push is "sent" when Expo accepts it, not when a phone shows it.** Expo returns a ticket on acceptance and a *receipt* later saying what actually happened; Tucked reads the ticket and not the receipt. So a Now alert can be recorded as sent and still never appear — for example if the device has been offline for a month. The console flags alerts with no device and alerts that failed five times; it cannot flag one Expo accepted and then quietly dropped. Fetching receipts is a second round trip and a worthwhile follow-up.
 
 ---
 

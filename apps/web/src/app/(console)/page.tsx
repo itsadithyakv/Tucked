@@ -56,6 +56,8 @@ export default function ExceptionsHome() {
   const [staleOffers, setStaleOffers] = useState(0);
   const [outdoorShort, setOutdoorShort] = useState<string[]>([]);
   const [unreached, setUnreached] = useState(0);
+  const [noDevice, setNoDevice] = useState<string[]>([]);
+  const [stuckPush, setStuckPush] = useState(0);
   const [phDue, setPhDue] = useState(0);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
@@ -153,6 +155,20 @@ export default function ExceptionsHome() {
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
       });
     })();
+
+    // A Now alert with no phone to land on, and one the transport could not
+    // get out after five tries. Neither is a compliance duty; both are the
+    // difference between an alert existing and an alert arriving.
+    sb.from('undeliverable_now_alerts')
+      .select('recipient_name')
+      .eq('centre_id', centre.id)
+      .then(({ data }) =>
+        setNoDevice([...new Set(((data as { recipient_name: string }[]) ?? []).map((r) => r.recipient_name))]),
+      );
+    sb.from('stuck_push_alerts')
+      .select('id', { count: 'exact', head: true })
+      .eq('centre_id', centre.id)
+      .then(({ count }) => setStuckPush(count ?? 0));
 
     // s. 36: a child sent home whose family we have not actually reached yet
     sb.from('health_exclusion')
@@ -304,6 +320,21 @@ export default function ExceptionsHome() {
         {menuGap ? (
           <p>
             <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
+          </p>
+        ) : null}
+        {noDevice.length > 0 ? (
+          <p>
+            <span className="pill due">Due</span> An urgent alert is waiting in the app for{' '}
+            {noDevice.slice(0, 3).join(', ')}
+            {noDevice.length > 3 ? ` and ${noDevice.length - 3} others` : ''}, who {noDevice.length === 1 ? 'has' : 'have'}{' '}
+            no phone signed in — so it will not ring. Call them.
+          </p>
+        ) : null}
+        {stuckPush > 0 ? (
+          <p>
+            <span className="pill now">Now</span> {stuckPush} alert{stuckPush === 1 ? '' : 's'} could not
+            be delivered to a phone after five tries. {stuckPush === 1 ? 'It is' : 'They are'} still in
+            the family&apos;s app — but do not assume anyone saw {stuckPush === 1 ? 'it' : 'them'}.
           </p>
         ) : null}
         {unreached > 0 ? (
