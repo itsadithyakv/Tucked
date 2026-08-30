@@ -1,18 +1,27 @@
 'use client';
 
 /** s. 72(1): the children's record checklist — every item's status per child,
- * never blank, with supervisor verification state. */
+ * never blank, with supervisor verification state. Discharged children stay
+ * listed with their s. 72(5) retention clock: kept 3 years, then anonymised
+ * automatically — never deleted. */
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabase } from '@/lib/supabase';
-import { useConsole } from '@/lib/console';
+import { fmtDate, useConsole } from '@/lib/console';
 
 interface Child {
   id: string;
   full_name: string;
   date_of_birth: string;
+  discharge_date: string | null;
   room: { name: string } | null;
+}
+
+interface Clock {
+  subject_id: string;
+  purge_after: string;
+  anonymised_at: string | null;
 }
 
 interface Item {
@@ -40,14 +49,20 @@ export default function ChildrenPage() {
   const { centre } = useConsole();
   const [children, setChildren] = useState<Child[]>([]);
   const [items, setItems] = useState<Map<string, Item[]>>(new Map());
+  const [clocks, setClocks] = useState<Map<string, Clock>>(new Map());
 
   useEffect(() => {
     const sb = getSupabase();
     sb.from('child')
-      .select('id, full_name, date_of_birth, room:current_room_id(name)')
+      .select('id, full_name, date_of_birth, discharge_date, room:current_room_id(name)')
       .eq('centre_id', centre.id)
       .order('full_name')
       .then(({ data }) => setChildren((data as never) ?? []));
+    sb.from('retention_clock')
+      .select('subject_id, purge_after, anonymised_at')
+      .eq('centre_id', centre.id)
+      .eq('kind', 'childrens_record')
+      .then(({ data }) => setClocks(new Map(((data as Clock[]) ?? []).map((r) => [r.subject_id, r]))));
     sb.from('child_record_item')
       .select('child_id, item_type, status, verified_at')
       .eq('centre_id', centre.id)
@@ -88,6 +103,7 @@ export default function ChildrenPage() {
             {children.map((c) => {
               const state = recordState(c.id);
               const list = items.get(c.id) ?? [];
+              const clock = c.discharge_date ? clocks.get(c.id) : undefined;
               return (
                 <tr key={c.id}>
                   <td>
@@ -96,7 +112,17 @@ export default function ChildrenPage() {
                   <td>{c.room?.name ?? '—'}</td>
                   <td>{c.date_of_birth}</td>
                   <td>
-                    <span className={`pill ${state.cls}`}>{state.label}</span>
+                    {clock ? (
+                      clock.anonymised_at ? (
+                        <span className="pill ok">Anonymised (s. 72(5))</span>
+                      ) : (
+                        <span className="pill ok">
+                          Discharged {fmtDate(c.discharge_date)} — retained until {fmtDate(clock.purge_after)}
+                        </span>
+                      )
+                    ) : (
+                      <span className={`pill ${state.cls}`}>{state.label}</span>
+                    )}
                   </td>
                   <td className="caption wrap">
                     {list

@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **174 pgTAP tests across 11 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **193 pgTAP tests across 12 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -30,7 +30,7 @@ pnpm exec supabase test db
 | ss. 53–64 staff files | RECE, first aid/CPR, VSC 5-year renewal, declarations; volunteers never alone / never in ratio | `credential` ledger; RLS denies volunteers standing access | `s60_supervisor_records_vsc`, `s60_vsc_five_year_renewal_flagged`, `s53_volunteer_sees_no_children` | 🔶 ledger ✅, evidence uploads P2 |
 | s. 72(1) children's record | All 11 items; missing = never blank | `child_record_item` typed items | `s72_1_enrolment_incomplete_until_items_answered`, `s72_1_never_blank`, `s72_1_no_item_left_blank`, `s72_1_supervisor_verifies_every_item` | ✅ |
 | s. 72(3) attendance | Actual times or "absent"; corrections carry who/when/why; continuous across rooms; offline | `attendance_event` append-only + corrections | `s72_arrive_records_with_valid_pin`, `s72_depart_requires_same_day_arrive`, `s72_actual_time_always_present`, `s72_no_updates_only_corrections`, `s72_correction_must_reference_same_child` | ✅ |
-| s. 72(5) retention | 3 y post-discharge; financial 6 y (O. Reg. 138/15 s. 27.1) | domain retention clocks; every regulated table append-only; `billing_event` append-only | `never_*_deleted` in every suite; `oreg138_billing_ledger_never_deleted`; 4 domain retention tests | 🔶 clocks ✅, scheduled anonymise-after fn pending |
+| s. 72(5) retention | 3 y post-discharge; financial 6 y (O. Reg. 138/15 s. 27.1); anonymise after — never before, never a delete | `retention_clock` (discharge trigger) + `app.anonymise_child` + nightly sweep; identity scrubbed (name, DOB day/month, photos, record-item content, free text in logs/reports/plans/stories/notifications, headcount name-snapshots) while every regulated row survives; immutability triggers admit only the anonymiser and close behind it; financial ledger append-only forever | `s72_5_sweep_anonymises_exactly_the_mature_clock`, `s72_5_acknowledged_accident_report_scrubbed_through_the_lock`, `never_attendance_rows_deleted_by_retention`, `never_early_anonymisation_even_called_directly`, `s72_5_escape_hatch_closes_behind_the_anonymiser` + 14 more; `never_*_deleted` in every suite; 4 domain retention tests | ✅ |
 | s. 72(6) MOH export | Items 2, 3, 8, 9 exactly | child-record print view | manual print check | 🔶 |
 | s. 73 consent | Enrolment never blocked on an optional consent | `consent` model | `s73_enrolment_completes_with_every_optional_consent_declined`, `s73_care_consent_still_required`, `s73_consent_reversible_later`, `s73_superseded_consent_rows_are_kept` | ✅ |
 | s. 75.1 waitlist | No fees; position without exposing others | — | — | ⬜ P2 |
@@ -56,9 +56,8 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 ## Gaps that matter next (in order)
 
-1. **Retention scheduler** — clocks exist in domain; the anonymise-after job isn't scheduled yet.
-2. **s. 82(2) break-glass access** — Ministry access path when a supervisor is unavailable.
-3. **s. 35 immunisation/exemption registry** — the record slot exists; the form registry is P2.
-4. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
+1. **s. 82(2) break-glass access** — Ministry access path when a supervisor is unavailable.
+2. **s. 35 immunisation/exemption registry** — the record slot exists; the form registry is P2.
+3. **Menus (ss. 42–44), handbook (s. 45), waitlist (s. 75.1), compliance calendar (Parts 4/10)** — Phase 2 per plan.
 
-*(s. 38 serious occurrences and the ss. 39/39.1/52 + s. 43(3) plans-and-allergy-list system — formerly #1 and #2 here — both landed 2026-08-30, with 26 and 20 tests respectively.)*
+*(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), and the s. 72(5) retention anonymiser (19 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*

@@ -158,6 +158,15 @@ const demoChildIds = new Set(
     .map((l) => l.childId),
 );
 
+// One discharged child: the s. 72(5) retention clock is visible in the
+// console (discharge + 3 years; the 0012 trigger creates the clock rows).
+const dischargedChild = f.children[f.children.length - 1]!;
+lines.push(
+  '',
+  '-- a discharged child: the retention clock demo (kept 3 years, then anonymised)',
+  `update public.child set discharge_date = (current_date - interval '2 months')::date where id = '${dischargedChild.id}';`,
+);
+
 lines.push('', '-- ── demo day ──────────────────────────────────────────────');
 
 for (const r of careStaff) {
@@ -166,21 +175,23 @@ for (const r of careStaff) {
   );
 }
 
-f.children.forEach((ch, i) => {
-  lines.push(
-    `insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by) values ('${c.id}', '${ch.id}', '${ch.currentRoomId}', 'arrive', now() - interval '${200 - i} minutes', '1970-01-01', '${educator.id}');`,
-  );
-});
+f.children
+  .filter((ch) => ch.id !== dischargedChild.id)
+  .forEach((ch, i) => {
+    lines.push(
+      `insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by) values ('${c.id}', '${ch.id}', '${ch.currentRoomId}', 'arrive', now() - interval '${200 - i} minutes', '1970-01-01', '${educator.id}');`,
+    );
+  });
 
 lines.push(
   `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
-  `select '${c.id}', ch.id, ch.current_room_id, 'health_observation', now() - interval '3 hours', '1970-01-01', '{"observation": "settled on arrival"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}' limit 5;`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'health_observation', now() - interval '3 hours', '1970-01-01', '{"observation": "settled on arrival"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}' and ch.discharge_date is null limit 5;`,
   `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
-  `select '${c.id}', ch.id, ch.current_room_id, 'meal', now() - interval '90 minutes', '1970-01-01', '{"meal": "lunch", "eaten": "most"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}';`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'meal', now() - interval '90 minutes', '1970-01-01', '{"meal": "lunch", "eaten": "most"}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}' and ch.discharge_date is null;`,
   `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by)`,
-  `select '${c.id}', ch.id, ch.current_room_id, 'outdoor', now() - interval '2 hours', '1970-01-01', '{"minutes": 90}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}';`,
+  `select '${c.id}', ch.id, ch.current_room_id, 'outdoor', now() - interval '2 hours', '1970-01-01', '{"minutes": 90}', '${educator.id}' from public.child ch where ch.centre_id = '${c.id}' and ch.discharge_date is null;`,
 );
-for (const inf of infants) {
+for (const inf of infants.filter((ch) => ch.id !== dischargedChild.id)) {
   lines.push(
     `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'nap_start', now() - interval '60 minutes', '1970-01-01', '{}', '${educator.id}');`,
     `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'sleep_check', now() - interval '45 minutes', '1970-01-01', '{"breathing_ok": true, "position": "back"}', '${educator.id}');`,
