@@ -9,6 +9,7 @@ import type { Session } from '@supabase/supabase-js';
 import {
   BadgeCheck,
   Bandage,
+  BookMarked,
   BookOpen,
   CalendarCheck,
   DoorOpen,
@@ -44,6 +45,7 @@ const NAV = [
   { href: '/children', label: "Children's records", Icon: Users },
   { href: '/messages', label: 'Messages', Icon: MessageCircle },
   { href: '/staff', label: 'Staff files', Icon: BadgeCheck },
+  { href: '/handbook', label: 'Parent handbook', Icon: BookMarked },
   { href: '/compliance', label: 'Compliance calendar', Icon: CalendarCheck },
 ];
 

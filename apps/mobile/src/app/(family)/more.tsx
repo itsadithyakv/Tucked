@@ -45,6 +45,7 @@ export default function More() {
   const [recordDone, setRecordDone] = useState<Map<string, number>>(new Map());
   const [menu, setMenu] = useState<MenuRow[]>([]);
   const [todaySubs, setTodaySubs] = useState<SubRow[]>([]);
+  const [handbook, setHandbook] = useState<{ version: number; read: boolean } | null>(null);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,6 +70,27 @@ export default function More() {
         .select('id, full_name')
         .order('full_name')
         .then(({ data }) => setChildren(data ?? []));
+      // s. 45: the handbook the centre must give you, and whether you have
+      // told them you have it.
+      supabase
+        .from('handbook_version')
+        .select('id, version')
+        .order('version', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(({ data }) => {
+          const v = data as { id: string; version: number } | null;
+          if (!v) {
+            setHandbook(null);
+            return;
+          }
+          supabase
+            .from('handbook_acknowledgement')
+            .select('acknowledged_at')
+            .eq('handbook_version_id', v.id)
+            .maybeSingle()
+            .then(({ data: ack }) => setHandbook({ version: v.version, read: ack !== null }));
+        });
       supabase
         .from('child_record_item')
         .select('child_id, status')
@@ -119,6 +141,21 @@ export default function More() {
                 </View>
               );
             })}
+          </Card>
+        ) : null}
+
+        {handbook ? (
+          <Card wash={handbook.read ? undefined : 'sand'}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: space.sm }}>
+              <Heading>Parent handbook</Heading>
+              <Pill kind={handbook.read ? 'ok' : 'due'}>{handbook.read ? 'Read' : 'Please read'}</Pill>
+            </View>
+            <Body muted>
+              {handbook.read
+                ? `Version ${handbook.version} — fees, hours, safe dismissal and everything else, in one place.`
+                : `Version ${handbook.version} is ready. Have a read and let the centre know you have it.`}
+            </Body>
+            <Button label="Open the handbook" kind="quiet" onPress={() => router.push('/handbook')} />
           </Card>
         ) : null}
 

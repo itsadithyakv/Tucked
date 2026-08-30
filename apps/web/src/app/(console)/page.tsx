@@ -53,6 +53,11 @@ export default function ExceptionsHome() {
   const [calOverdue, setCalOverdue] = useState(0);
   const [openHazards, setOpenHazards] = useState(0);
   const [menuGap, setMenuGap] = useState<string | null>(null);
+  const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
+    issued: true,
+    missing: 0,
+    outstanding: 0,
+  });
 
   useEffect(() => {
     const sb = getSupabase();
@@ -142,6 +147,19 @@ export default function ExceptionsHome() {
         drafts: (livePlans ?? []).filter((p) => p.status === 'draft').length,
         reviewsOverdue: (livePlans ?? []).filter((p) => p.status === 'active' && p.review_due_on && p.review_due_on < today).length,
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
+      });
+    })();
+
+    (async () => {
+      const [{ count: issued }, { data: missingRows }, { count: outstanding }] = await Promise.all([
+        sb.from('handbook_version').select('id', { count: 'exact', head: true }).eq('centre_id', centre.id),
+        sb.rpc('handbook_missing_sections', { p_centre: centre.id }),
+        sb.from('handbook_outstanding').select('person_id', { count: 'exact', head: true }).eq('centre_id', centre.id),
+      ]);
+      setHandbook({
+        issued: (issued ?? 0) > 0,
+        missing: ((missingRows as { key: string }[]) ?? []).length,
+        outstanding: outstanding ?? 0,
       });
     })();
 
@@ -240,6 +258,19 @@ export default function ExceptionsHome() {
         {menuGap ? (
           <p>
             <span className="pill due">Due</span> Menus (s. 42): {menuGap} — <Link href="/menus">plan and post</Link>
+          </p>
+        ) : null}
+        {!handbook.issued ? (
+          <p>
+            <span className="pill due">Due</span> No parent handbook has been issued (s. 45)
+            {handbook.missing > 0 ? ` — ${handbook.missing} section${handbook.missing === 1 ? '' : 's'} still to write` : ''} —{' '}
+            <Link href="/handbook">write and issue it</Link>
+          </p>
+        ) : handbook.outstanding > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {handbook.outstanding} parent
+            {handbook.outstanding === 1 ? ' has' : 's have'} not acknowledged the current handbook (s. 45) —{' '}
+            <Link href="/handbook">who has it</Link>
           </p>
         ) : null}
         {immMissing > 0 ? (

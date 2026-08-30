@@ -14,6 +14,9 @@ export interface Centre {
   timezone: string;
   cwelcc_enrolled: boolean;
   safe_arrival_cutoff: string;
+  // which regulator's rule pack this centre runs under (s. 45's section list,
+  // and everything else that varies by province, is keyed on this)
+  jurisdiction_code: string;
 }
 
 export interface ConsoleCtx {
@@ -55,7 +58,7 @@ export function ConsoleProvider({
         sb.from('person_role').select('role').eq('person_id', person.id).eq('active', true),
         sb
           .from('centre')
-          .select('id, name, licence_number, timezone, cwelcc_enrolled, safe_arrival_cutoff')
+          .select('id, name, licence_number, timezone, cwelcc_enrolled, safe_arrival_cutoff, jurisdiction_code')
           .limit(1)
           .maybeSingle(),
       ]);

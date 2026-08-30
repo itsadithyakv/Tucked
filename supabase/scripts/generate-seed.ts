@@ -348,6 +348,87 @@ lines.push(
   `insert into public.household_member (household_id, person_id, centre_id, relationship, can_view, can_message, can_pickup, can_consent, can_bill) values ('${lastHousehold.id}', '${supervisor.id}', '${c.id}', 'parent', true, true, true, true, true);`,
 );
 
+// ── parent handbook (s. 45): issued, one family still to acknowledge ────────
+// The anaphylaxis and CWELCC sections are deliberately absent here — publish
+// reads them from the live centre record, so the demo shows the sourcing.
+const HANDBOOK_SECTIONS: [string, string][] = [
+  [
+    'services_and_age_groups',
+    'Maple Leaf Early Learning offers full-day licensed care in four age groups: infant (0–18 months), toddler (18–30 months), preschool (30 months to 6 years) and a before- and after-school program. Children move rooms on their birthday window, and you will meet the new room team before the move.',
+  ],
+  [
+    'hours_and_holidays',
+    'We are open 07:30 to 18:00, Monday to Friday. We close on New Year’s Day, Family Day, Good Friday, Victoria Day, Canada Day, the August Civic Holiday, Labour Day, the National Day for Truth and Reconciliation, Thanksgiving, Christmas Day and Boxing Day, and for two professional development days announced each September.',
+  ],
+  [
+    'fees',
+    'Base fee: $22.00 per day for every child eligible under CWELCC, and $58.00 per day otherwise. Non-base fees: field trips at cost (optional, never a condition of attendance) and a late pickup fee of $1.00 per minute after 18:00, which supports the two staff who must remain.',
+  ],
+  [
+    'admission_and_discharge',
+    'Places are offered in waiting-list order (see the waiting list policy). Enrolment begins once the child’s record is complete. Either the family or the centre may end the arrangement with two weeks’ written notice. We would discharge a child only where we cannot safely meet their needs, and never before meeting with you to try everything else first.',
+  ],
+  [
+    'off_premises',
+    'Children walk in the neighbourhood most days, and the attendance list travels with the group. Trips beyond the neighbourhood are announced at least one week ahead and need your written consent. Ratios on a trip are the same as indoors, and the group carries emergency contacts, medication and the allergy list.',
+  ],
+  [
+    'volunteers_and_students',
+    'Volunteers and placement students are welcome and are always supervised by an employee. They are never left alone with a child, never count towards ratios, and never perform a duty that requires a qualified educator.',
+  ],
+  [
+    'payment',
+    'Fees are collected by pre-authorised debit on the first business day of each month, for that month. We will contact you before a payment is missed a second time and will agree a plan with you. A fee question never changes the care your child receives.',
+  ],
+  [
+    'refunds',
+    'Fees are refunded pro rata where the centre closes for more than two consecutive operating days for a reason within our control. Family absences, including illness and vacation, are not refunded, because the place is held for your child.',
+  ],
+  [
+    'safe_arrival_and_dismissal',
+    'Sign your child in and out with a staff member each day. Your child is released only to a person you have authorised, and to nobody else — we confirm identity with photo identification the first time and whenever we do not recognise the person. If your child is expected and has not arrived by 10:00, we will contact you and record what we did. If no authorised person has arrived by 18:00, two staff remain with your child and we work through your emergency contacts; a child is never left alone and never sent home with an unauthorised adult.',
+  ],
+  [
+    'waiting_list',
+    'There is no fee or deposit to join our waiting list. Places are offered in the order children were added, after siblings of currently enrolled children and children referred by Toronto Children’s Services under a subsidy agreement. Ask us at any time and we will tell you your position on the list — we will never tell you another family’s.',
+  ],
+  [
+    'issues_and_concerns',
+    'Speak first with your child’s room educator, who will respond the same day where possible. If the concern is unresolved, or if it concerns the educator, bring it to the supervisor, who will respond within two business days and confirm the outcome in writing. Concerns about a child’s safety are acted on immediately. You may contact the Ministry of Education licensing office at any point, and we will help you do so.',
+  ],
+  [
+    'program_statement',
+    'Our program is grounded in How Does Learning Happen? Ontario’s Pedagogy for the Early Years. We plan for belonging, well-being, engagement and expression: children lead the day’s inquiry, educators document what they notice, and families are partners in that record. Prohibited practices: corporal punishment; deliberate harsh or degrading measures that humiliate or undermine a child’s self-respect; depriving a child of basic needs including food, drink, shelter, sleep, toilet use, clothing or bedding; locking the exits for confinement; and using a locked or lockable room to confine a child. Any staff member who witnesses a prohibited practice reports it to the supervisor the same day.',
+  ],
+];
+const HANDBOOK_VERSION = 'bd000000-0000-4000-8000-000000000001';
+lines.push('', '-- parent handbook (s. 45): issued, one family still to acknowledge');
+for (const [key, body] of HANDBOOK_SECTIONS) {
+  lines.push(
+    `insert into public.handbook_content (centre_id, section_key, body, updated_by) values ('${c.id}', '${key}', ${q(body)}, '${supervisor.id}');`,
+  );
+}
+lines.push(
+  `insert into public.handbook_version (id, centre_id, version, summary, published_at, published_by)`,
+  `values ('${HANDBOOK_VERSION}', '${c.id}', 1, null, now() - interval '20 days', '${supervisor.id}');`,
+  // the sections are assembled the way publish_handbook assembles them, so the
+  // anaphylaxis policy and the CWELCC sentence come from the centre record
+  `insert into public.handbook_version_section (handbook_version_id, centre_id, section_key, ordinal, title, regulation, body)`,
+  `select '${HANDBOOK_VERSION}'::uuid, '${c.id}'::uuid, s.key, s.ordinal, s.title, s.regulation, app.handbook_section_body('${c.id}', s.key)`,
+  `from public.handbook_section_spec s join public.centre ct on ct.jurisdiction_code = s.jurisdiction_code where ct.id = '${c.id}';`,
+  // every consenting adult has acknowledged except the demo parent — one
+  // outstanding family is the exception the console is meant to surface
+  `insert into public.handbook_acknowledgement (handbook_version_id, centre_id, person_id, method, acknowledged_at, recorded_by)`,
+  `select distinct '${HANDBOOK_VERSION}'::uuid, '${c.id}'::uuid, hm.person_id, 'signed_paper', now() - interval '17 days', '${supervisor.id}'::uuid`,
+  `from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent and hm.person_id <> '${demoParent.id}';`,
+  `insert into public.notification (centre_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by, ref_id, created_at, acknowledged_at)`,
+  `select '${c.id}'::uuid, p.person_id, 'later'::public.notification_channel, 'handbook_issued', 'The parent handbook',`,
+  `  'Everything the centre asks you to know, in one place. Please read it and let us know you have.',`,
+  `  true, '${supervisor.id}'::uuid, '${HANDBOOK_VERSION}'::uuid, now() - interval '20 days',`,
+  `  (select a.acknowledged_at from public.handbook_acknowledgement a where a.handbook_version_id = '${HANDBOOK_VERSION}' and a.person_id = p.person_id)`,
+  `from (select distinct hm.person_id from public.household_member hm where hm.centre_id = '${c.id}' and hm.revoked_at is null and hm.can_consent) p;`,
+);
+
 lines.push(
   '',
   '-- an announcement (quiet, Later channel)',
