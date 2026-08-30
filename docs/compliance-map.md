@@ -3,6 +3,7 @@
 *Regulation section → where it lives in the product. Every row must eventually name its table(s), function(s), screen(s) and at least one test that fails if the rule is broken (tests are named for their section, e.g. `s72_attendance_requires_actual_times`). Sections are O. Reg. 137/15 unless noted. Source requirements: [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md); acceptance criteria: [build prompt §9](../references/tucked-build-prompt.md).*
 
 Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it lands per the build plan.
+Full audit with test evidence: [compliance-test-report.md](compliance-test-report.md) (127 pgTAP + 79 domain tests as of 2026-08-30).
 
 | Section | Requirement (short) | Tables / functions | Screens | Tests | Phase | Status |
 |---|---|---|---|---|---|---|
@@ -31,5 +32,7 @@ Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it l
 | s. 82(2) | Electronic records: staff & Ministry can always get in; offline on premises | offline queue; break-glass access | Room mode | `s82_2_*` | 1 | 🔶 offline queue + zero-network evacuation cache ✅; break-glass access pending |
 | Parts 4, 10 | Fire drills, alarm tests, playground inspections, emergency policy — with written records | `compliance_task` | Compliance calendar | `part4_*`, `part10_*` | 2 | 🔶 drill/evacuation headcounts recorded + DWR cross-ref ✅; calendar & inspections P2 |
 | CWELCC / municipal | $22/day cap display; 30-day disenrolment notices with delivery proof; Toronto reporting; CRA receipts | billing bundle | Console | `cwelcc_*` | 2 | ⬜ |
-| PIPEDA | Minimum collection; consent per purpose; access/deletion workflow, 30-day SLA; Canadian hosting | `consent`, RLS, `ca-central-1` | Console | `pipeda_*` | 0–1 | 🔶 RLS on every table + pgTAP isolation written (run in CI); consent model P1 |
+| PIPEDA | Minimum collection; consent per purpose; access/deletion workflow, 30-day SLA; Canadian hosting | `consent`, RLS, `ca-central-1`; platform admins see tenancy & billing, never children | Console, /admin | `pipeda_*` | 0–1 | 🔶 RLS on every table; platform-admin child-blindness pgTAP-proven; access/deletion workflow P2 |
+| O. Reg. 138/15 s. 27.1 | Financial records kept 6 years | `billing_event` append-only ledger; `centre_subscription` audited | /admin, console Plan & billing card | `oreg138_*` | 1 | ✅ ledger is insert-only, every event names who recorded it |
+| §9.14 + platform | Billing state never hides or locks a regulated record | no policy anywhere reads `centre_subscription` | — | `never_cancelled_billing_*` | 1 | ✅ proven: cancelled subscription, supervisor still reads and writes |
 | §9.14 never-dos | No delete/hide of required records by toggle, lapse, or lost password; no ratio counting of volunteers; no "on my way" sign-out; nothing auto-filed | DB constraints + RLS | — | `never_*` | every phase | ⬜ |

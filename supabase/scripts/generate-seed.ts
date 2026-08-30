@@ -50,6 +50,21 @@ for (const [personId, authId] of authIdFor) {
   );
 }
 
+// Platform admins (migration 0019 seeds their platform_admin rows by email);
+// local-only auth users so the founders can open the /admin console against
+// the local stack with the demo password. In production they use magic links.
+const PLATFORM_ADMIN_EMAILS = ['adithyakrishnan.vinod@gmail.com', 'simon.mathiasclg@gmail.com'];
+lines.push('', '-- platform admin auth users (local stack only)');
+PLATFORM_ADMIN_EMAILS.forEach((email, i) => {
+  const authId = `${AUTH_ID_PREFIX}${(90 + i).toString().padStart(12, '0')}`;
+  lines.push(
+    `insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)`,
+    `values ('00000000-0000-0000-0000-000000000000', '${authId}', 'authenticated', 'authenticated', ${q(email)}, extensions.crypt('tucked-demo', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '', '');`,
+    `insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)`,
+    `values (gen_random_uuid(), '${authId}', '${authId}', 'email', '{"sub":"${authId}","email":"${email}"}', now(), now(), now());`,
+  );
+});
+
 lines.push('', '-- tenancy');
 lines.push(
   `insert into public.licensee (id, legal_name) values ('${f.licensee.id}', ${q(f.licensee.legalName)});`,
@@ -58,6 +73,10 @@ const c = f.centre;
 lines.push(
   `insert into public.centre (id, licensee_id, name, licence_number, province, timezone, address, service_system_manager, cwelcc_enrolled, opens_at, closes_at)`,
   `values ('${c.id}', '${c.licenseeId}', ${q(c.name)}, ${q(c.licenceNumber)}, '${c.province}', ${q(c.timezone)}, ${q(c.address)}, ${q(c.serviceSystemManager)}, ${b(c.cwelccEnrolled)}, '${c.opensAt}', '${c.closesAt}');`,
+  // the demo centre runs as a pilot so the console's Plan & billing card and
+  // the /admin list both have something true to show
+  `insert into public.centre_subscription (centre_id, plan_code, status, pilot_ends_on) values ('${c.id}', 'pilot', 'pilot', (current_date + 90));`,
+  `insert into public.billing_event (centre_id, event_type, detail, recorded_by_email) values ('${c.id}', 'subscription_created', 'pilot · seeded demo', 'seed');`,
 );
 for (const g of f.ageGroupConfigs) {
   lines.push(

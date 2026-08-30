@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { getSupabase } from '@/lib/supabase';
-import { fmtTime, useConsole } from '@/lib/console';
+import { fmtDate, fmtTime, useConsole } from '@/lib/console';
 import { Sparkles } from '@/ui/sparkles';
 
 interface RoomPresence {
@@ -17,12 +17,19 @@ interface RoomPresence {
   staff: number;
 }
 
+interface PlanInfo {
+  status: string;
+  pilot_ends_on: string | null;
+  plan: { name: string; description: string | null } | null;
+}
+
 export default function ExceptionsHome() {
   const { centre } = useConsole();
   const [unclosed, setUnclosed] = useState<number | null>(null);
   const [unacked, setUnacked] = useState<{ id: string; title: string; created_at: string }[]>([]);
   const [expiring, setExpiring] = useState<{ id: string; credential_type: string; expires_on: string; person: { full_name: string } | null }[]>([]);
   const [rooms, setRooms] = useState<RoomPresence[]>([]);
+  const [planInfo, setPlanInfo] = useState<PlanInfo | null>(null);
 
   useEffect(() => {
     const sb = getSupabase();
@@ -42,6 +49,12 @@ export default function ExceptionsHome() {
       .order('created_at', { ascending: false })
       .limit(10)
       .then(({ data }) => setUnacked(data ?? []));
+
+    sb.from('centre_subscription')
+      .select('status, pilot_ends_on, plan:plan_code(name, description)')
+      .eq('centre_id', centre.id)
+      .maybeSingle()
+      .then(({ data }) => setPlanInfo((data as never as PlanInfo) ?? null));
 
     sb.from('credential_status')
       .select('id, credential_type, expires_on, person:person_id(full_name)')
@@ -139,6 +152,24 @@ export default function ExceptionsHome() {
           ))
         )}
       </section>
+
+      {planInfo ? (
+        <section className="card">
+          <h2>Plan &amp; billing</h2>
+          <p>
+            <span className={`pill ${planInfo.status === 'past_due' ? 'due' : planInfo.status === 'cancelled' ? 'now' : 'ok'}`}>
+              {planInfo.status.replace('_', ' ')}
+            </span>{' '}
+            {planInfo.plan?.name ?? 'Plan'}
+            {planInfo.pilot_ends_on ? ` — pilot until ${fmtDate(planInfo.pilot_ends_on)}` : ''}
+          </p>
+          {planInfo.plan?.description ? <p className="muted">{planInfo.plan.description}</p> : null}
+          <p className="caption">
+            Whatever happens with billing, your regulated records are never hidden or locked — that is enforced
+            in the database, not policy.
+          </p>
+        </section>
+      ) : null}
     </>
   );
 }

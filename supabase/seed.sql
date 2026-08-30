@@ -17,10 +17,22 @@ values ('00000000-0000-0000-0000-000000000000', '90000000-0000-4000-8000-0000000
 insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
 values (gen_random_uuid(), '90000000-0000-4000-8000-000000000003', '90000000-0000-4000-8000-000000000003', 'email', '{"sub":"90000000-0000-4000-8000-000000000003","email":"parent@mapleleaf.example"}', now(), now(), now());
 
+-- platform admin auth users (local stack only)
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+values ('00000000-0000-0000-0000-000000000000', '90000000-0000-4000-8000-000000000090', 'authenticated', 'authenticated', 'adithyakrishnan.vinod@gmail.com', extensions.crypt('tucked-demo', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '', '');
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+values (gen_random_uuid(), '90000000-0000-4000-8000-000000000090', '90000000-0000-4000-8000-000000000090', 'email', '{"sub":"90000000-0000-4000-8000-000000000090","email":"adithyakrishnan.vinod@gmail.com"}', now(), now(), now());
+insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, confirmation_token, recovery_token, email_change, email_change_token_new, email_change_token_current)
+values ('00000000-0000-0000-0000-000000000000', '90000000-0000-4000-8000-000000000091', 'authenticated', 'authenticated', 'simon.mathiasclg@gmail.com', extensions.crypt('tucked-demo', extensions.gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{}', now(), now(), '', '', '', '', '');
+insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+values (gen_random_uuid(), '90000000-0000-4000-8000-000000000091', '90000000-0000-4000-8000-000000000091', 'email', '{"sub":"90000000-0000-4000-8000-000000000091","email":"simon.mathiasclg@gmail.com"}', now(), now(), now());
+
 -- tenancy
 insert into public.licensee (id, legal_name) values ('00000000-0000-4000-8000-000000000001', 'Maple Leaf Early Learning Inc.');
 insert into public.centre (id, licensee_id, name, licence_number, province, timezone, address, service_system_manager, cwelcc_enrolled, opens_at, closes_at)
 values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', 'Maple Leaf Early Learning', 'DEMO-2026-0001', 'ON', 'America/Toronto', '120 Carlton Street, Toronto, ON M5A 4K2', 'Toronto Children’s Services', true, '07:30', '18:00');
+insert into public.centre_subscription (centre_id, plan_code, status, pilot_ends_on) values ('00000000-0000-4000-8000-000000000002', 'pilot', 'pilot', (current_date + 90));
+insert into public.billing_event (centre_id, event_type, detail, recorded_by_email) values ('00000000-0000-4000-8000-000000000002', 'subscription_created', 'pilot · seeded demo', 'seed');
 insert into public.age_group (id, centre_id, preset, licensed_capacity) values ('00000000-0000-4000-8000-000000000021', '00000000-0000-4000-8000-000000000002', 'infant', 10);
 insert into public.age_group (id, centre_id, preset, licensed_capacity) values ('00000000-0000-4000-8000-000000000069', '00000000-0000-4000-8000-000000000002', 'toddler', 15);
 insert into public.age_group (id, centre_id, preset, licensed_capacity) values ('00000000-0000-4000-8000-000000000138', '00000000-0000-4000-8000-000000000002', 'preschool', 15);
