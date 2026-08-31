@@ -61,6 +61,7 @@ export default function ExceptionsHome() {
   const [neverArrived, setNeverArrived] = useState<{ recipient_name: string; title: string; why: string | null }[]>([]);
   const [phDue, setPhDue] = useState(0);
   const [policyGaps, setPolicyGaps] = useState<{ people: number; unpublished: number }>({ people: 0, unpublished: 0 });
+  const [premisesGaps, setPremisesGaps] = useState<string[]>([]);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
     missing: 0,
@@ -185,6 +186,15 @@ export default function ExceptionsHome() {
       .is('returned_at', null)
       .is('parent_reached_at', null)
       .then(({ count }) => setUnreached(count ?? 0));
+
+    // The documents an advisor asks for at the door
+    sb.rpc('centre_document_gaps', { p_centre: centre.id }).then(({ data }) =>
+      setPremisesGaps(
+        ((data as { label: string; state: string }[]) ?? [])
+          .filter((d) => d.state !== 'current')
+          .map((d) => d.label),
+      ),
+    );
 
     // s. 46: who has not read the program statement and the prohibited
     // practices — the question a program advisor actually asks
@@ -371,6 +381,15 @@ export default function ExceptionsHome() {
             <span className="pill now">Now</span> {unreached} child
             {unreached === 1 ? '' : 'ren'} sent home unwell whose family has not been reached (s. 36) —{' '}
             <Link href="/illness">keep trying, and record the attempts</Link>
+          </p>
+        ) : null}
+        {premisesGaps.length > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {premisesGaps.length} of the documents that must be
+            on the premises {premisesGaps.length === 1 ? 'is' : 'are'} missing or out of date:{' '}
+            {premisesGaps.slice(0, 3).join(', ')}
+            {premisesGaps.length > 3 ? ` and ${premisesGaps.length - 3} more` : ''} —{' '}
+            <Link href="/compliance">on the premises</Link>
           </p>
         ) : null}
         {policyGaps.unpublished > 0 ? (

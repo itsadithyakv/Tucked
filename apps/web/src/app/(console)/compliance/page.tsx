@@ -5,7 +5,7 @@
  * and the repair log, where a hazard stays loud (and restricted) until
  * someone records what was fixed. */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -19,6 +19,27 @@ interface Task {
   next_due_on: string;
   active: boolean;
   notes: string | null;
+}
+
+interface DocGap {
+  kind: string;
+  label: string;
+  regulation: string;
+  note: string;
+  state: string;
+  issued_on: string | null;
+  expires_on: string | null;
+  title: string | null;
+}
+
+interface CentreDoc {
+  id: string;
+  kind: string;
+  title: string;
+  issued_on: string | null;
+  expires_on: string | null;
+  storage_path: string;
+  file_name: string;
 }
 
 interface Completion {
@@ -262,7 +283,239 @@ export default function CompliancePage() {
           </tbody>
         </table>
       </section>
+
+      <OnThePremises />
     </>
+  );
+}
+
+const DOC_STATE: Record<string, { label: string; cls: string }> = {
+  current: { label: 'On file', cls: 'ok' },
+  expiring_soon: { label: 'Expiring soon', cls: 'due' },
+  expired: { label: 'Expired', cls: 'now' },
+  out_of_date: { label: 'Out of date', cls: 'due' },
+  missing: { label: 'Missing', cls: 'now' },
+};
+
+/** The lever-arch file in the cupboard: the first thing a program advisor asks
+ * for and the last thing anyone can find. Same discipline as the staff file —
+ * the list is of what is MISSING, and a newer report supersedes the last
+ * without erasing it. */
+function OnThePremises() {
+  const { centre, personId } = useConsole();
+  const [gaps, setGaps] = useState<DocGap[]>([]);
+  const [docs, setDocs] = useState<CentreDoc[]>([]);
+  const [pin, setPin] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [meta, setMeta] = useState<Record<string, { issuedBy: string; issuedOn: string; expiresOn: string }>>({});
+
+  const load = useCallback(() => {
+    const sb = getSupabase();
+    sb.rpc('centre_document_gaps', { p_centre: centre.id }).then(({ data }) =>
+      setGaps((data as DocGap[]) ?? []),
+    );
+    sb.from('centre_document')
+      .select('id, kind, title, issued_on, expires_on, storage_path, file_name')
+      .eq('centre_id', centre.id)
+      .is('superseded_at', null)
+      .then(({ data }) => setDocs((data as CentreDoc[]) ?? []));
+  }, [centre.id]);
+
+  useEffect(load, [load]);
+
+  async function open(path: string) {
+    const { data, error } = await getSupabase().storage.from('evidence').createSignedUrl(path, 60);
+    if (error || !data) {
+      setNotice(error?.message ?? 'Could not open that file.');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  }
+
+  const outstanding = gaps.filter((g) => g.state !== 'current');
+
+  return (
+    <section className="card">
+      <h2>On the premises</h2>
+      <p className="muted">
+        The licence, the inspections and the insurance — the documents an advisor asks for at the
+        door. A newer report replaces the last without erasing it, so the one they saw at the last
+        visit is still exactly the one they saw.
+      </p>
+      {outstanding.length === 0 ? (
+        <p className="muted">Everything required is on file and current.</p>
+      ) : (
+        <p>
+          <span className="pill now">{outstanding.length}</span> of {gaps.length} required documents
+          missing or out of date.
+        </p>
+      )}
+      <label className="inline">
+        Staff PIN (to file a document)
+        <input
+          type="password"
+          inputMode="numeric"
+          value={pin}
+          onChange={(e) => setPin(e.target.value)}
+          maxLength={6}
+          autoComplete="off"
+        />
+      </label>
+      <div style={{ overflowX: 'auto' }}>
+        <table>
+          <thead>
+            <tr>
+              <th>Document</th>
+              <th>State</th>
+              <th>Issued</th>
+              <th>Expires</th>
+              <th>File</th>
+              <th>Regulation</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gaps.map((g) => {
+              const st = DOC_STATE[g.state] ?? { label: g.state, cls: 'due' };
+              const doc = docs.find((d) => d.kind === g.kind);
+              const m = meta[g.kind] ?? { issuedBy: '', issuedOn: '', expiresOn: '' };
+              return (
+                <tr key={g.kind}>
+                  <td className="wrap">
+                    {g.label}
+                    <div className="caption">{g.note}</div>
+                  </td>
+                  <td>
+                    <span className={`pill ${st.cls}`}>{st.label}</span>
+                  </td>
+                  <td className="caption">{g.issued_on ? fmtDate(g.issued_on) : '\u2014'}</td>
+                  <td className="caption">{g.expires_on ? fmtDate(g.expires_on) : '\u2014'}</td>
+                  <td className="wrap">
+                    {doc ? (
+                      <button className="quiet" onClick={() => void open(doc.storage_path)}>
+                        {doc.file_name}
+                      </button>
+                    ) : null}
+                    <FileDrop
+                      centreId={centre.id}
+                      kind={g.kind}
+                      label={g.label}
+                      meta={m}
+                      onMeta={(next) => setMeta((x) => ({ ...x, [g.kind]: next }))}
+                      personId={personId}
+                      pin={pin}
+                      busy={busy}
+                      setBusy={setBusy}
+                      onDone={(msg) => {
+                        setNotice(msg);
+                        setPin('');
+                        load();
+                      }}
+                    />
+                  </td>
+                  <td className="caption">{g.regulation}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      {notice ? <p className="muted">{notice}</p> : null}
+    </section>
+  );
+}
+
+function FileDrop({
+  centreId,
+  kind,
+  label,
+  meta,
+  onMeta,
+  personId,
+  pin,
+  busy,
+  setBusy,
+  onDone,
+}: {
+  centreId: string;
+  kind: string;
+  label: string;
+  meta: { issuedBy: string; issuedOn: string; expiresOn: string };
+  onMeta: (m: { issuedBy: string; issuedOn: string; expiresOn: string }) => void;
+  personId: string;
+  pin: string;
+  busy: boolean;
+  setBusy: (b: boolean) => void;
+  onDone: (msg: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  async function upload(file: File) {
+    if (file.size > 15 * 1024 * 1024) {
+      onDone('That file is over 15 MB — scan it smaller.');
+      return;
+    }
+    setBusy(true);
+    const sb = getSupabase();
+    const ext = file.name.includes('.') ? file.name.split('.').pop() : 'pdf';
+    const path = centreId + '/centre/' + kind + '-' + Date.now() + '.' + ext;
+    const { error: upErr } = await sb.storage
+      .from('evidence')
+      .upload(path, file, { upsert: false, contentType: file.type || 'application/pdf' });
+    if (upErr) {
+      setBusy(false);
+      onDone(upErr.message);
+      return;
+    }
+    const { error } = await sb.rpc('attach_centre_document', {
+      p_centre: centreId,
+      p_kind: kind,
+      p_title: label,
+      p_issued_by: meta.issuedBy || null,
+      p_issued_on: meta.issuedOn || null,
+      p_reference: null,
+      p_expires_on: meta.expiresOn || null,
+      p_storage_path: path,
+      p_file_name: file.name,
+      p_content_type: file.type || 'application/pdf',
+      p_size_bytes: file.size,
+      p_note: null,
+      p_recorder: personId,
+      p_pin: pin,
+    });
+    setBusy(false);
+    onDone(error ? error.message : label + ' filed.');
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'end', flexWrap: 'wrap', marginTop: 4 }}>
+      <label style={{ minWidth: 120 }}>
+        <span className="caption">Issued by</span>
+        <input value={meta.issuedBy} onChange={(e) => onMeta({ ...meta, issuedBy: e.target.value })} />
+      </label>
+      <label>
+        <span className="caption">On</span>
+        <input type="date" value={meta.issuedOn} onChange={(e) => onMeta({ ...meta, issuedOn: e.target.value })} />
+      </label>
+      <label>
+        <span className="caption">Expires</span>
+        <input type="date" value={meta.expiresOn} onChange={(e) => onMeta({ ...meta, expiresOn: e.target.value })} />
+      </label>
+      <input
+        ref={ref}
+        type="file"
+        accept="application/pdf,image/jpeg,image/png"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void upload(file);
+          e.target.value = '';
+        }}
+      />
+      <button className="quiet" disabled={busy} onClick={() => ref.current?.click()}>
+        {busy ? 'Filing\u2026' : 'File it'}
+      </button>
+    </div>
   );
 }
 
