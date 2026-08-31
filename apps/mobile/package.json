@@ -10,7 +10,8 @@
     "web": "expo start --web",
     "lint": "eslint src",
     "typecheck": "tsc --noEmit",
-    "prebuild:check": "expo prebuild --no-install --platform android"
+    "prebuild:check": "expo prebuild --no-install --platform android",
+    "test": "vitest run"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",
@@ -43,6 +44,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
-    "typescript": "~6.0.3"
+    "typescript": "~6.0.3",
+    "vitest": "^3.2.7"
   }
 }

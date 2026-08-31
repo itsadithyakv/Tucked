@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **542 pgTAP tests across 25 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **542 pgTAP tests across 25 suites** (`supabase/tests/`), 75 domain tests (`packages/domain/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -61,7 +61,7 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 ## Gaps that matter next (in order)
 
 1. **Service-system-manager reporting (Toronto Children's Services)** — the fee ledger holds the numbers, but the City's actual file formats have to come from discovery. Deliberately not invented.
-2. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
+2. **Running the airplane-mode runbook on a device** — the queue's logic now has 15 automated tests, and the device script is written ([airplane-mode-runbook.md](../references/airplane-mode-runbook.md)); it needs a dev build, which nobody has asked for.
 3. **A parent-facing web fallback** — families are mobile-only by design. Worth revisiting with a pilot centre that has a parent without a smartphone.
 
 **The full inventory of what is not built** — deliberate non-goals, genuine gaps, code that is written but not wired, partial areas, and every seeded value still needing a human to check it against the regulation — is [references/not-built.md](../references/not-built.md).

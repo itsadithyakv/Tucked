@@ -36,7 +36,11 @@ type Listener = () => void;
 let queue: QueuedCommand[] = [];
 let failed: FailedCommand[] = [];
 let loaded = false;
-let flushing = false;
+/** The flush in flight, if any. Callers JOIN it rather than being told "someone
+ * else is doing that" — `await flushQueue()` has to mean the queue was given a
+ * real chance to drain, or a caller cannot tell a finished flush from a
+ * skipped one. */
+let flushing: Promise<void> | null = null;
 const listeners = new Set<Listener>();
 
 function notify() {
@@ -109,10 +113,14 @@ export async function runCommand(rpc: string, args: Record<string, unknown>): Pr
 
 /** Flush in order; stop at the first network error; move logical rejections
  * to the visible failed list. */
-export async function flushQueue(): Promise<void> {
+export function flushQueue(): Promise<void> {
+  if (flushing) return flushing;
+  flushing = drain();
+  return flushing;
+}
+
+async function drain(): Promise<void> {
   await loadQueue();
-  if (flushing) return;
-  flushing = true;
   try {
     while (queue.length > 0) {
       const cmd = queue[0]!;
@@ -127,8 +135,15 @@ export async function flushQueue(): Promise<void> {
       if (errorMessage === null) {
         queue.shift();
       } else if (isNetworkError(errorMessage)) {
+        // Still offline: leave the command where it is and try again later,
+        // order preserved. Persist and notify BEFORE breaking — the loop's
+        // own persist/notify sit after this block, so breaking past them
+        // left the attempt count unsaved and, worse, left the screen showing
+        // a stale "syncing…" with nothing to say the flush had stalled.
         cmd.attempts += 1;
-        break; // still offline — try again later, order preserved
+        await persist();
+        notify();
+        break;
       } else {
         queue.shift();
         failed.push({ ...cmd, reason: errorMessage });
@@ -137,7 +152,7 @@ export async function flushQueue(): Promise<void> {
       notify();
     }
   } finally {
-    flushing = false;
+    flushing = null;
   }
 }
 
