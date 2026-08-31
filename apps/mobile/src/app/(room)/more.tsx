@@ -233,6 +233,74 @@ function ComplianceChecks() {
   );
 }
 
+/** s. 46: the policies this person has to have read, and the one tap that
+ * records that they have. Reading it is the point, so the words are here —
+ * not a link to a binder in the office. */
+function PoliciesToRead() {
+  const [rows, setRows] = useState<
+    { id: string; policy_key: string; version: number; body: string; summary: string | null; label: string }[]
+  >([]);
+  const [open, setOpen] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const refresh = useCallback(() => {
+    void (async () => {
+      const { data: profile } = await supabase.auth.getUser();
+      const email = profile.user?.email;
+      if (!email) return;
+      const [{ data: specs }, { data: versions }, { data: mine }] = await Promise.all([
+        supabase.from('policy_spec').select('key, label, applies_to, ordinal').order('ordinal'),
+        supabase.from('policy_version').select('id, policy_key, version, body, summary').is('superseded_at', null),
+        supabase.from('policy_attestation').select('policy_version_id'),
+      ]);
+      const read = new Set(((mine as { policy_version_id: string }[]) ?? []).map((a) => a.policy_version_id));
+      const labels = new Map(((specs as { key: string; label: string }[]) ?? []).map((x) => [x.key, x.label]));
+      setRows(
+        ((versions as never as { id: string; policy_key: string; version: number; body: string; summary: string | null }[]) ?? [])
+          .filter((v) => !read.has(v.id) && labels.has(v.policy_key))
+          .map((v) => ({ ...v, label: labels.get(v.policy_key)! })),
+      );
+    })();
+  }, []);
+  useFocusEffect(refresh);
+
+  async function confirm(id: string, label: string) {
+    setOpen(null);
+    const { error } = await supabase.rpc('attest_policy', { p_version: id });
+    setNotice(error ? error.message : `${label} — recorded as read.`);
+    refresh();
+  }
+
+  if (rows.length === 0) return null;
+
+  return (
+    <Card wash="sand">
+      <Heading>To read</Heading>
+      <Body muted>
+        The centre has to be able to show that you have read these, and when (s. 46).
+      </Body>
+      {rows.map((r) => (
+        <View key={r.id} style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
+          <View style={{ flex: 1 }}>
+            <Body>{r.label}</Body>
+            {r.summary ? <Caption>{r.summary}</Caption> : null}
+          </View>
+          <Button label="Read it" kind="quiet" onPress={() => setOpen(r.id)} />
+        </View>
+      ))}
+      {notice ? <Caption>{notice}</Caption> : null}
+
+      {rows.map((r) => (
+        <Sheet key={r.id} visible={open === r.id} onClose={() => setOpen(null)} title={r.label}>
+          <Body>{r.body}</Body>
+          <Button label="I have read this" onPress={() => void confirm(r.id, r.label)} />
+          <Button label="Not now" kind="quiet" onPress={() => setOpen(null)} />
+        </Sheet>
+      ))}
+    </Card>
+  );
+}
+
 function MoreInner() {
   const { profile, setViewMode } = useAuth();
   return (
@@ -249,6 +317,7 @@ function MoreInner() {
           </View>
         </Card>
       ) : null}
+      <PoliciesToRead />
       <TodaysMenu />
       <ComplianceChecks />
       <Card>

@@ -60,6 +60,7 @@ export default function ExceptionsHome() {
   const [stuckPush, setStuckPush] = useState(0);
   const [neverArrived, setNeverArrived] = useState<{ recipient_name: string; title: string; why: string | null }[]>([]);
   const [phDue, setPhDue] = useState(0);
+  const [policyGaps, setPolicyGaps] = useState<{ people: number; unpublished: number }>({ people: 0, unpublished: 0 });
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
     missing: 0,
@@ -184,6 +185,16 @@ export default function ExceptionsHome() {
       .is('returned_at', null)
       .is('parent_reached_at', null)
       .then(({ count }) => setUnreached(count ?? 0));
+
+    // s. 46: who has not read the program statement and the prohibited
+    // practices — the question a program advisor actually asks
+    sb.rpc('policy_attestation_gaps', { p_centre: centre.id }).then(({ data }) => {
+      const rows = (data as { person_id: string; state: string }[]) ?? [];
+      setPolicyGaps({
+        people: new Set(rows.filter((r) => r.state === 'never_read' || r.state === 'due_again').map((r) => r.person_id)).size,
+        unpublished: new Set(rows.filter((r) => r.state === 'not_published').map((r) => (r as unknown as { policy_key: string }).policy_key)).size,
+      });
+    });
 
     // s. 36: a public health order still owed to the program advisor
     sb.from('public_health_notification')
@@ -360,6 +371,20 @@ export default function ExceptionsHome() {
             <span className="pill now">Now</span> {unreached} child
             {unreached === 1 ? '' : 'ren'} sent home unwell whose family has not been reached (s. 36) —{' '}
             <Link href="/illness">keep trying, and record the attempts</Link>
+          </p>
+        ) : null}
+        {policyGaps.unpublished > 0 ? (
+          <p>
+            <span className="pill now">Now</span> {policyGaps.unpublished}{' '}
+            {policyGaps.unpublished === 1 ? 'policy the centre must hold has' : 'policies the centre must hold have'}{' '}
+            not been written — <Link href="/policies">policies</Link>
+          </p>
+        ) : null}
+        {policyGaps.people > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {policyGaps.people}{' '}
+            {policyGaps.people === 1 ? 'person has' : 'people have'} not read a policy that applies to
+            them (s. 46) — <Link href="/policies">who has not read what</Link>
           </p>
         ) : null}
         {phDue > 0 ? (

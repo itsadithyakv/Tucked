@@ -24,6 +24,7 @@ import {
   PanelLeftOpen,
   Pill,
   Receipt,
+  ScrollText,
   Siren,
   Stethoscope,
   Sun,
@@ -54,6 +55,7 @@ const NAV = [
   { href: '/fees', label: 'Fees & receipts', Icon: Receipt },
   { href: '/handbook', label: 'Parent handbook', Icon: BookMarked },
   { href: '/waitlist', label: 'Waiting list', Icon: UserPlus },
+  { href: '/policies', label: 'Policies', Icon: ScrollText },
   { href: '/compliance', label: 'Compliance calendar', Icon: CalendarCheck },
 ];
 

@@ -567,6 +567,41 @@ lines.push(
   `values ('${c.id}', '${rosa.id}', 'physician', 'Dr. S. Patel, MD', 'Indoors until the ear infection clears; may return outdoors from Monday.', (current_date - interval '2 days')::date, (current_date + interval '3 days')::date, '${supervisor.id}');`,
 );
 
+// ── policies staff must have read (s. 46) ───────────────────────────────────
+// Two published, most of the team has read them, one educator has not — the
+// exception the console is there to surface. The program statement publishes
+// itself when the handbook is issued, so it is not listed here.
+lines.push('', '-- policies (s. 46): published, and mostly read');
+const POLICIES: [string, string][] = [
+  [
+    'prohibited_practices',
+    'Corporal punishment. Deliberate harsh or degrading measures that humiliate a child or undermine their self-respect. Depriving a child of basic needs including food, drink, shelter, sleep, toilet use, clothing or bedding. Locking the exits of the centre for the purpose of confining a child. Using a locked or lockable room or structure to confine a child. Any staff member who witnesses a prohibited practice reports it to the supervisor the same day, and the supervisor treats it as a serious occurrence.',
+  ],
+  [
+    'volunteer_student_supervision',
+    'Volunteers and placement students are always supervised by an employee. They are never left alone with a child, never counted towards ratios, and never asked to perform a duty that requires a qualified educator. A student on placement records under the name of their supervising educator.',
+  ],
+  [
+    'emergency_management',
+    'On the fire alarm: the room team takes the attendance list and the go-bag, leaves by the nearest safe exit, and musters at the corner of Carlton and Sherbourne. A face-to-name headcount is taken at the muster point and recorded before anyone re-enters. For shelter in place, the group moves to the interior hallway away from windows. Families are told by Now alert as soon as every child is accounted for.',
+  ],
+];
+for (const [key, body] of POLICIES) {
+  lines.push(
+    `insert into public.policy_version (centre_id, policy_key, version, body, published_by)`,
+    `values ('${c.id}', '${key}', 1, ${q(body)}, '${supervisor.id}');`,
+  );
+}
+lines.push(
+  // everyone but one educator has read them
+  `insert into public.policy_attestation (policy_version_id, centre_id, person_id, method, attested_at)`,
+  `select v.id, '${c.id}', pr.person_id, 'in_app', now() - interval '3 weeks'`,
+  `from public.policy_version v`,
+  `join public.policy_spec s on s.key = v.policy_key and s.jurisdiction_code = '${c.jurisdiction_code ?? 'CA-ON'}'`,
+  `join public.person_role pr on pr.role = any (s.applies_to) and pr.centre_id = '${c.id}' and pr.active`,
+  `where v.centre_id = '${c.id}' and pr.person_id <> '${educator.id}';`,
+);
+
 // ── waiting list (s. 75.1): free to join, and the order is the published one ─
 // Demo access codes are fixed so the public position page can be shown; real
 // codes come from app.new_waitlist_code().

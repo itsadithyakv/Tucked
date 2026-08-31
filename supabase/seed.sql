@@ -664,6 +664,20 @@ values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-0000000
 insert into public.outdoor_exemption (centre_id, child_id, source, practitioner, instruction, starts_on, ends_on, recorded_by)
 values ('00000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000181', 'physician', 'Dr. S. Patel, MD', 'Indoors until the ear infection clears; may return outdoors from Monday.', (current_date - interval '2 days')::date, (current_date + interval '3 days')::date, '00000000-0000-4000-8000-000000000003');
 
+-- policies (s. 46): published, and mostly read
+insert into public.policy_version (centre_id, policy_key, version, body, published_by)
+values ('00000000-0000-4000-8000-000000000002', 'prohibited_practices', 1, 'Corporal punishment. Deliberate harsh or degrading measures that humiliate a child or undermine their self-respect. Depriving a child of basic needs including food, drink, shelter, sleep, toilet use, clothing or bedding. Locking the exits of the centre for the purpose of confining a child. Using a locked or lockable room or structure to confine a child. Any staff member who witnesses a prohibited practice reports it to the supervisor the same day, and the supervisor treats it as a serious occurrence.', '00000000-0000-4000-8000-000000000003');
+insert into public.policy_version (centre_id, policy_key, version, body, published_by)
+values ('00000000-0000-4000-8000-000000000002', 'volunteer_student_supervision', 1, 'Volunteers and placement students are always supervised by an employee. They are never left alone with a child, never counted towards ratios, and never asked to perform a duty that requires a qualified educator. A student on placement records under the name of their supervising educator.', '00000000-0000-4000-8000-000000000003');
+insert into public.policy_version (centre_id, policy_key, version, body, published_by)
+values ('00000000-0000-4000-8000-000000000002', 'emergency_management', 1, 'On the fire alarm: the room team takes the attendance list and the go-bag, leaves by the nearest safe exit, and musters at the corner of Carlton and Sherbourne. A face-to-name headcount is taken at the muster point and recorded before anyone re-enters. For shelter in place, the group moves to the interior hallway away from windows. Families are told by Now alert as soon as every child is accounted for.', '00000000-0000-4000-8000-000000000003');
+insert into public.policy_attestation (policy_version_id, centre_id, person_id, method, attested_at)
+select v.id, '00000000-0000-4000-8000-000000000002', pr.person_id, 'in_app', now() - interval '3 weeks'
+from public.policy_version v
+join public.policy_spec s on s.key = v.policy_key and s.jurisdiction_code = 'CA-ON'
+join public.person_role pr on pr.role = any (s.applies_to) and pr.centre_id = '00000000-0000-4000-8000-000000000002' and pr.active
+where v.centre_id = '00000000-0000-4000-8000-000000000002' and pr.person_id <> '00000000-0000-4000-8000-000000000005';
+
 -- waiting list (s. 75.1): no fee to join; position by the published order
 insert into public.waitlist_entry (centre_id, child_name, child_date_of_birth, age_group_preset, desired_start_on, contact_name, contact_email, contact_phone, contact_person_id, access_code, priority, priority_reason, joined_at, recorded_by)
 values ('00000000-0000-4000-8000-000000000002', 'Noor Haddad', '2025-02-11', 'infant', (current_date + interval '2 months')::date, 'Rana Haddad', 'rana.haddad@example.com', null, null, 'A1B2C3D4', 'general', null, now() - interval '5 months', '00000000-0000-4000-8000-000000000003');
