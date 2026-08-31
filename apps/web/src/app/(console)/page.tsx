@@ -58,6 +58,7 @@ export default function ExceptionsHome() {
   const [unreached, setUnreached] = useState(0);
   const [noDevice, setNoDevice] = useState<string[]>([]);
   const [stuckPush, setStuckPush] = useState(0);
+  const [neverArrived, setNeverArrived] = useState<{ recipient_name: string; title: string; why: string | null }[]>([]);
   const [phDue, setPhDue] = useState(0);
   const [handbook, setHandbook] = useState<{ issued: boolean; missing: number; outstanding: number }>({
     issued: true,
@@ -169,6 +170,12 @@ export default function ExceptionsHome() {
       .select('id', { count: 'exact', head: true })
       .eq('centre_id', centre.id)
       .then(({ count }) => setStuckPush(count ?? 0));
+    // Expo accepted it and then told us it never landed
+    sb.from('push_never_arrived')
+      .select('recipient_name, title, why')
+      .eq('centre_id', centre.id)
+      .limit(5)
+      .then(({ data }) => setNeverArrived((data as never) ?? []));
 
     // s. 36: a child sent home whose family we have not actually reached yet
     sb.from('health_exclusion')
@@ -328,6 +335,17 @@ export default function ExceptionsHome() {
             {noDevice.slice(0, 3).join(', ')}
             {noDevice.length > 3 ? ` and ${noDevice.length - 3} others` : ''}, who {noDevice.length === 1 ? 'has' : 'have'}{' '}
             no phone signed in — so it will not ring. Call them.
+          </p>
+        ) : null}
+        {neverArrived.length > 0 ? (
+          <p>
+            <span className="pill now">Now</span>{' '}
+            {neverArrived.length === 1
+              ? `"${neverArrived[0]!.title}" was sent to ${neverArrived[0]!.recipient_name}'s phone and never arrived`
+              : `${neverArrived.length} alerts were sent and never arrived`}
+            {neverArrived[0]?.why ? ` (${neverArrived[0].why})` : ''}.{' '}
+            {neverArrived.length === 1 ? 'It is' : 'They are'} still in the app — but nobody has been
+            alerted. Call them.
           </p>
         ) : null}
         {stuckPush > 0 ? (

@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **522 pgTAP tests across 24 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **542 pgTAP tests across 25 suites** (`supabase/tests/`), 79 domain tests (`packages/domain/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -62,7 +62,7 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 1. **Service-system-manager reporting (Toronto Children's Services)** — the fee ledger holds the numbers, but the City's actual file formats have to come from discovery. Deliberately not invented.
 2. **On-device airplane-mode verification script** — the offline queue and evacuation cache are built and field-tested; the scripted quality pass on a real device is still owed.
-3. **Expo delivery receipts** — a push is recorded as sent when Expo *accepts* it. Expo's receipt, fetched a few minutes later, says what actually happened to it. Reading receipts would close the last gap between "sent" and "arrived".
+3. **A parent-facing web fallback** — families are mobile-only by design. Worth revisiting with a pilot centre that has a parent without a smartphone.
 
 **The full inventory of what is not built** — deliberate non-goals, genuine gaps, code that is written but not wired, partial areas, and every seeded value still needing a human to check it against the regulation — is [references/not-built.md](../references/not-built.md).
 
@@ -70,4 +70,4 @@ The `jurisdiction` table (0019) declares which regulator's rule pack a centre ru
 
 Every Phase 0/1 compliance item is built and machine-proven; from the Phase 2 list, the Parts 4/10 compliance calendar, the ss. 42–44 menus module, the s. 45 parent handbook, the s. 75.1 waiting list and the s. 47 outdoor play log have now landed too.
 
-*(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), the s. 72(5) retention anonymiser (19 tests), the s. 45 parent handbook (29 tests), the s. 75.1 waiting list (38 tests), the s. 47 outdoor play log (32 tests), and the s. 36 illness, exclusion and public-health module (38 tests), the CWELCC fee and CRA receipt module (43 tests), the ss. 53–64 staff files with document uploads (34 tests), push delivery (22 tests), and the s. 37 daily-record composer (21 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*
+*(Landed 2026-08-30, in order: s. 38 serious occurrences (26 tests), ss. 39/39.1/52 + s. 43(3) plans and allergy list (20 tests), the s. 72(5) retention anonymiser (19 tests), the s. 45 parent handbook (29 tests), the s. 75.1 waiting list (38 tests), the s. 47 outdoor play log (32 tests), and the s. 36 illness, exclusion and public-health module (38 tests), the CWELCC fee and CRA receipt module (43 tests), the ss. 53–64 staff files with document uploads (34 tests), push delivery (22 tests), the s. 37 daily-record composer (21 tests), and Expo delivery receipts (20 tests). Known limitation, documented deliberately: serious-occurrence descriptions are not scrubbed by the child anonymiser — they are Ministry-filed records with their own lifecycle; free text there should avoid naming children, which the console page's guidance encourages.)*

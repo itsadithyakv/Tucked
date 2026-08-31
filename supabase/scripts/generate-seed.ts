@@ -519,10 +519,22 @@ lines.push(
   `  'Ivan has vomiting and is resting in the quiet corner of the office. Please call the centre to arrange pickup. Before coming back: ' || p.return_criteria,`,
   `  true, '${educator.id}', '${EXCLUSION_ID}', now() - interval '2 hours'`,
   `from public.illness_policy p where p.centre_id = '${c.id}' and p.symptom = 'vomiting';`,
-  // and he went home
+  // And he went home. Timed from his OWN arrival rather than from now(): a
+  // depart needs a same-day arrive in the centre's timezone, and a seed run
+  // after local midnight would otherwise put the two on different days.
   `insert into public.attendance_event (centre_id, child_id, room_id, event_type, actual_time, attendance_date, recorded_by)`,
-  `select '${c.id}', '${ivan.id}', ch.current_room_id, 'depart', now() - interval '80 minutes', current_date, '${educator.id}'`,
-  `from public.child ch where ch.id = '${ivan.id}';`,
+  `select '${c.id}', '${ivan.id}', ae.room_id, 'depart',`,
+  `  least(`,
+  `    ae.actual_time + interval '2 hours',`,
+  `    now(),`,
+  `    -- and never past the end of the arrival's OWN local day`,
+  `    ((((ae.actual_time at time zone ct.timezone)::date + 1)::timestamp - interval '1 second') at time zone ct.timezone)`,
+  `  ),`,
+  `  '1970-01-01', '${educator.id}'`,
+  `from public.attendance_event ae`,
+  `join public.centre ct on ct.id = ae.centre_id`,
+  `where ae.child_id = '${ivan.id}' and ae.event_type = 'arrive'`,
+  `order by ae.actual_time desc limit 1;`,
   // an order from Toronto Public Health, still owed to the program advisor
   `insert into public.public_health_notification (centre_id, kind, disease, summary, unit_name, reference, order_received_at, order_summary, recorded_by)`,
   `values ('${c.id}', 'order_received', 'Gastroenteritis', 'Direction following three cases of vomiting in the Preschool room within 48 hours.', 'Toronto Public Health', 'TPH-2026-4417', now() - interval '1 day', 'Exclude symptomatic children for 48 hours after the last symptom; twice-daily disinfection of high-touch surfaces; daily case counts until cleared.', '${supervisor.id}');`,

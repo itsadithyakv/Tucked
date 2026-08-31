@@ -73,7 +73,7 @@ set local role authenticated;
 
 -- the child is here
 select lives_ok(
-  $$select public.record_attendance('31500000-0000-4000-8000-000000000001', '61500000-0000-4000-8000-000000000001', 'arrive', '33500000-0000-4000-8000-000000000001', now() - interval '3 hours', '41500000-0000-4000-8000-000000000002', '7171')$$,
+  $$select public.record_attendance('31500000-0000-4000-8000-000000000001', '61500000-0000-4000-8000-000000000001', 'arrive', '33500000-0000-4000-8000-000000000001', now() - interval '1 minute', '41500000-0000-4000-8000-000000000002', '7171')$$,
   's36_child_signed_in_before_becoming_unwell'
 );
 

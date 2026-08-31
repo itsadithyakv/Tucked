@@ -1,6 +1,6 @@
 # What is NOT built
 
-*Last reviewed: 2026-08-30 (push delivery landed the same day; see the strikethrough in §4). This is the honest counterpart to [docs/compliance-test-report.md](../docs/compliance-test-report.md), which lists what IS built and proves it. An honest gap list is worth more than a decorative feature list: it is what stops a pilot centre discovering a hole at the wrong moment, and it is where the next work comes from.*
+*Last reviewed: 2026-08-31 (push delivery and its receipts have both landed; see the strikethrough in §4). This is the honest counterpart to [docs/compliance-test-report.md](../docs/compliance-test-report.md), which lists what IS built and proves it. An honest gap list is worth more than a decorative feature list: it is what stops a pilot centre discovering a hole at the wrong moment, and it is where the next work comes from.*
 
 Five kinds of "not built" appear below, and they are not the same thing:
 
@@ -113,7 +113,7 @@ Not gaps exactly — decisions with a consequence somebody should know about.
 - **Joining the waiting list is a staff act.** s. 75.1 requires self-serve *position*, which is built and works with no account. Self-serve *joining* would need a public write endpoint and rate limiting.
 - **The evacuation cache is per-device.** A device that has never been online has nothing cached.
 - **One centre per console session.** A supervisor of two centres signs out and back in.
-- **A push is "sent" when Expo accepts it, not when a phone shows it.** Expo returns a ticket on acceptance and a *receipt* later saying what actually happened; Tucked reads the ticket and not the receipt. So a Now alert can be recorded as sent and still never appear — for example if the device has been offline for a month. The console flags alerts with no device and alerts that failed five times; it cannot flag one Expo accepted and then quietly dropped. Fetching receipts is a second round trip and a worthwhile follow-up.
+- **A push is "delivered" when Expo's receipt says so** — which is as far as any sender can see. Tucked reads tickets *and* receipts (migration 0035), sets `delivered_at` from the first receipt that comes back ok, and surfaces `push_never_arrived` when every device's receipt failed. What no receipt can tell you is whether a human looked at the phone; for that, a Now alert still asks to be acknowledged in the app, and the console shows what is unacknowledged.
 
 ---
 

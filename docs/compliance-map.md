@@ -3,7 +3,7 @@
 *Regulation section → where it lives in the product. Every row must eventually name its table(s), function(s), screen(s) and at least one test that fails if the rule is broken (tests are named for their section, e.g. `s72_attendance_requires_actual_times`). Sections are O. Reg. 137/15 unless noted. Source requirements: [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md); acceptance criteria: [build prompt §9](../references/tucked-build-prompt.md).*
 
 Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it lands per the build plan.
-Full audit with test evidence: [compliance-test-report.md](compliance-test-report.md) (522 pgTAP + 75 domain tests as of 2026-08-30).
+Full audit with test evidence: [compliance-test-report.md](compliance-test-report.md) (542 pgTAP + 75 domain tests as of 2026-08-31).
 
 | Section | Requirement (short) | Tables / functions | Screens | Tests | Phase | Status |
 |---|---|---|---|---|---|---|

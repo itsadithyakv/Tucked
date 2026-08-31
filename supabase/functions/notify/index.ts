@@ -24,7 +24,10 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // Overridable so the send path — ticket handling, retirement of dead tokens —
 // can be exercised against a stub instead of Expo's live service.
 const EXPO_PUSH_URL = Deno.env.get('EXPO_PUSH_URL') ?? 'https://exp.host/--/api/v2/push/send';
+const EXPO_RECEIPT_URL =
+  Deno.env.get('EXPO_RECEIPT_URL') ?? 'https://exp.host/--/api/v2/push/getReceipts';
 const BATCH = 100;
+const RECEIPT_BATCH = 300;
 
 interface Pending {
   notification_id: string;
@@ -44,6 +47,55 @@ interface Ticket {
   details?: { error?: string };
 }
 
+interface Receipt {
+  status: 'ok' | 'error';
+  message?: string;
+  details?: { error?: string };
+}
+
+/** Expo answers with a receipt a few minutes after it accepts a message. The
+ * ticket said "we have it"; the receipt says what became of it. Reading them
+ * is the difference between "sent" and "arrived". */
+async function collectReceipts(
+  supabase: ReturnType<typeof createClient>,
+): Promise<{ checked: number; delivered: number; failed: number }> {
+  const { data, error } = await supabase.rpc('push_tickets_awaiting_receipt', {
+    p_limit: RECEIPT_BATCH,
+  });
+  if (error) return { checked: 0, delivered: 0, failed: 0 };
+  const ids = ((data ?? []) as { expo_ticket_id: string }[]).map((r) => r.expo_ticket_id);
+  if (ids.length === 0) return { checked: 0, delivered: 0, failed: 0 };
+
+  let payload: Record<string, Receipt> | null = null;
+  try {
+    const res = await fetch(EXPO_RECEIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    if (res.ok) payload = (await res.json())?.data ?? null;
+  } catch {
+    // Leave them unchecked; the next run asks again. A receipt we could not
+    // fetch must never be recorded as a delivery.
+    return { checked: 0, delivered: 0, failed: 0 };
+  }
+  if (!payload) return { checked: 0, delivered: 0, failed: 0 };
+
+  let delivered = 0;
+  let failed = 0;
+  for (const [ticketId, receipt] of Object.entries(payload)) {
+    const detail = receipt.details?.error ?? receipt.message ?? null;
+    await supabase.rpc('record_push_receipt', {
+      p_expo_ticket_id: ticketId,
+      p_status: receipt.status,
+      p_error: receipt.status === 'ok' ? null : detail,
+    });
+    if (receipt.status === 'ok') delivered += 1;
+    else failed += 1;
+  }
+  return { checked: Object.keys(payload).length, delivered, failed };
+}
+
 Deno.serve(async (req) => {
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -58,14 +110,22 @@ Deno.serve(async (req) => {
     return Response.json({ error: 'forbidden' }, { status: 403 });
   }
 
+  // Every run does both jobs: hand over what is waiting, and collect the
+  // receipts for what was handed over a few minutes ago.
+  const receipts = await collectReceipts(supabase);
+
   const { data, error } = await supabase.rpc('notifications_to_push', { p_limit: 200 });
   if (error) return Response.json({ error: error.message }, { status: 500 });
   const pending = (data ?? []) as Pending[];
-  if (pending.length === 0) return Response.json({ pending: 0, sent: 0, failed: 0 });
+  if (pending.length === 0) {
+    return Response.json({ messages: 0, sent: 0, failed: 0, tokensRetired: 0, receipts });
+  }
 
   const sentIds = new Set<string>();
   const failed: { id: string; error: string }[] = [];
   const deadTokens: { token: string; reason: string }[] = [];
+  // named apart from Expo's own `tickets` inside the loop below
+  const accepted: { notification_id: string; token: string; expo_ticket_id: string }[] = [];
 
   for (let i = 0; i < pending.length; i += BATCH) {
     const chunk = pending.slice(i, i + BATCH);
@@ -110,6 +170,13 @@ Deno.serve(async (req) => {
       if (!n) return;
       if (ticket.status === 'ok') {
         sentIds.add(n.notification_id);
+        if (ticket.id) {
+          accepted.push({
+            notification_id: n.notification_id,
+            token: n.token,
+            expo_ticket_id: ticket.id,
+          });
+        }
         return;
       }
       const detail = ticket.details?.error ?? ticket.message ?? 'rejected by Expo';
@@ -134,6 +201,9 @@ Deno.serve(async (req) => {
   if (sentIds.size > 0) {
     await supabase.rpc('mark_push_sent', { p_ids: [...sentIds] });
   }
+  if (accepted.length > 0) {
+    await supabase.rpc('record_push_tickets', { p_tickets: accepted });
+  }
   for (const [id, message] of failureByNotification) {
     await supabase.rpc('mark_push_failed', { p_id: id, p_error: message });
   }
@@ -146,5 +216,6 @@ Deno.serve(async (req) => {
     sent: sentIds.size,
     failed: failureByNotification.size,
     tokensRetired: uniqueDeadTokens.size,
+    receipts,
   });
 });
