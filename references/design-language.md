@@ -94,6 +94,7 @@ Calm surfaces, one accent: **green = fine, red = act now** (build prompt §3.2).
 - White text on `blue.500` (3.53:1) is acceptable only for large button labels (≥ 18 pt / 14 pt bold); prefer `blue.600` fills for standard buttons so labels pass comfortably.
 - `blue.100` (Heart) is 1.73:1 — decorative only, enforced in review.
 - One accent per screen. If a screen needs two competing accents, the screen is doing too much.
+
 ### Dark
 
 Deferred for Phase 1, built once the semantic tokens had proved themselves — and it was the token swap this section promised, not a rewrite. Three states, because "dark mode" has three:
@@ -119,7 +120,18 @@ Dark values are **chosen for contrast on the dark canvas, not inverted** from th
 | `now` on `now-wash` | 7.1:1 | ✅ |
 | `due` on `due-wash` | 7.7:1 | ✅ |
 
+The table above is **not transcribed by hand**. It is asserted in `packages/ui-tokens/test/tokens.css.test.ts`, which parses this repository's own `tokens.css`, computes each ratio, and holds every pair to the floor it claims — 4.5:1 for body text, 3:1 for the two tokens whose own declarations restrict them to large text and UI (`blue.500`, `slate-muted`). The same file proves the two things a three-block palette can silently get wrong:
+
+- **every colour defined in light is redefined in both dark blocks** — the `@media (prefers-color-scheme: dark)` one and the `[data-theme='dark']` one — because a token added to one and forgotten in the other is invisible until somebody with that exact device *and* that exact choice opens that exact screen;
+- **the two dark blocks hold identical values**, token for token. They are one theme reached two ways, and a reader who picks dark on a light laptop must get precisely what a dark laptop gets.
+
+There is also a **dark is not a downgrade** test: no pair may read worse in the dark than it does in the light. Dark is offered as an equal, not as a concession, and on a dark ground there is always a lighter foreground available.
+
 Clay survives the swap because it is described in tokens rather than literals: `--clay-highlight` (the light catching the top of a form) drops from 70% white to 8%, and the drop shadows deepen. The same white at the same strength on a dark canvas reads as a scratch, not as light. `--surface-sink` (the foot of a card's gradient) and `--scrim` move with it.
+
+**The foot of a clay control is its own token**, and this is the one thing the swap did *not* get for free. `--clay-foot` and `--clay-foot-quiet` are the side wall of the extrusion, and so must be **darker than the face above them**. They used to be steps of the brand ramp (`blue-700` under a primary button, `blue-100` under a quiet one), which is correct in light and wrong in dark — because **the ramp inverts**: `blue-700` is the high-emphasis text colour, so on a dark canvas it becomes the *lightest* blue in the set. Every clay foot came out lighter than its own face: a row of buttons lit from underneath. A ramp that changes direction cannot be borrowed for a shadow, so the foot is named for its job instead. Tested in both palettes.
+
+**Native controls follow `color-scheme`, and only if you declare it.** Every palette block sets it. `<select>` is styled alongside `input` and `textarea` — it was left out originally and nobody could tell in light, because the browser's own control is near enough to white; dark rendered it as a `#3b3b3b` box from no palette of ours, sitting between two correctly themed inputs. **If a control looks right in light, that is not evidence it is styled.**
 
 **Still light-only:** the mobile app. It has its own token face in `packages/ui-tokens/src/tokens.ts` and React Native has no CSS custom properties, so it needs a theme context rather than a swap — recorded in [not-built.md](not-built.md) rather than half-done.
 

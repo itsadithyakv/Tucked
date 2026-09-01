@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **594 pgTAP tests across 27 suites** (`supabase/tests/`), 75 domain tests (`packages/domain/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **594 pgTAP tests across 27 suites** (`supabase/tests/`), 75 domain tests (`packages/domain/test/`), 51 design-token tests (`packages/ui-tokens/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 

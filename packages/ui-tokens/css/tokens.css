@@ -1,5 +1,12 @@
-/* Tucked design tokens — CSS face. Mirrors src/tokens.ts; change both together.
-   Rules: references/design-language.md. Semantic names so dark mode is a swap later. */
+/* Tucked design tokens — CSS face. Rules: references/design-language.md.
+   The palette mirrors src/tokens.ts (the React Native face); change both
+   together. Elevation does NOT: clay is shadows and highlights here, and
+   StyleSheet shadow objects there, so --clay-*, --scrim and --shadow-* live
+   only in this file.
+   Dark mode is the swap the semantic names were for. It is built. Every
+   colour token below is redefined in BOTH dark blocks — one for the device
+   preference, one for an explicit choice — so add a colour to all three or to
+   none, or a reader who picked dark will meet a light value on some screen. */
 
 :root {
   /* Brand blues (sampled from the logo) */
@@ -60,6 +67,18 @@
   --clay-highlight: rgba(255, 255, 255, 0.7);
   --clay-highlight-soft: rgba(255, 255, 255, 0.3);
   --scrim: rgba(23, 50, 92, 0.28);
+
+  /* The foot of a clay control — the side wall of the extrusion, and therefore
+     always DARKER than the face above it. In light that is just a deeper step
+     of the brand ramp. In dark it cannot be: the ramp INVERTS there, because
+     blue-700 has to work as high-emphasis text and so becomes the LIGHTEST
+     blue. Anything that said "0 4px 0 var(--blue-700)" got a foot lighter than
+     its own face — a control lit from below. The foot is its own token now,
+     rather than a step of a ramp that changes direction under it. */
+  --clay-foot: #1c5ab5;
+  --clay-foot-quiet: #a0c8f8;
+  /* the warm lift under a primary press */
+  --clay-glow: rgba(33, 102, 200, 0.45);
 
   /* Elevation — clay: surfaces are soft solids. A thick inner top highlight
      (light hits the top of the form), an inner bottom shade (the form curves
@@ -127,12 +146,12 @@
     --blue-600: #a6cbfa;
     --blue-700: #c2ddfc;
     --blue-100: #2f4a72; /* decorative only, as in light */
-    --blue-50: #1d2b45; /* tinted surface */
+    --blue-50: #24334f; /* tinted surface — level with ok-wash/due-wash */
     --ink: #e9f0fa;
 
     --canvas: #101a2b;
     --surface: #18253c;
-  --surface-sink: #142034;
+    --surface-sink: #142034;
     --line: #26354f;
     --slate: #b6c5db;
     --slate-muted: #8b9cb8;
@@ -150,6 +169,13 @@
     --clay-highlight: rgba(255, 255, 255, 0.08);
     --clay-highlight-soft: rgba(255, 255, 255, 0.05);
     --scrim: rgba(4, 9, 18, 0.6);
+
+    /* Darker than the face, as in light — but reached by going down from the
+       canvas rather than down a ramp that inverts. */
+    --clay-foot: #2a568f;
+    --clay-foot-quiet: #101c30;
+    /* no warm glow in the dark: the lift is a deeper drop, not a brighter halo */
+    --clay-glow: rgba(4, 9, 18, 0.55);
 
     /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
        because the light is dimmer, not because the form changed. */
@@ -171,7 +197,7 @@
   --blue-600: #a6cbfa;
   --blue-700: #c2ddfc;
   --blue-100: #2f4a72; /* decorative only, as in light */
-  --blue-50: #1d2b45; /* tinted surface */
+  --blue-50: #24334f; /* tinted surface — level with ok-wash/due-wash */
   --ink: #e9f0fa;
 
   --canvas: #101a2b;
@@ -194,6 +220,13 @@
   --clay-highlight: rgba(255, 255, 255, 0.08);
   --clay-highlight-soft: rgba(255, 255, 255, 0.05);
   --scrim: rgba(4, 9, 18, 0.6);
+
+  /* Darker than the face, as in light — but reached by going down from the
+     canvas rather than down a ramp that inverts. */
+  --clay-foot: #2a568f;
+  --clay-foot-quiet: #101c30;
+  /* no warm glow in the dark: the lift is a deeper drop, not a brighter halo */
+  --clay-glow: rgba(4, 9, 18, 0.55);
 
   /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
      because the light is dimmer, not because the form changed. */
