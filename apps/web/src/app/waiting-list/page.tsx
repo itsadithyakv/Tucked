@@ -8,6 +8,7 @@
 
 import { useState } from 'react';
 import { getSupabase } from '@/lib/supabase';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 
 interface Position {
   centre_name: string;
@@ -59,6 +60,9 @@ export default function WaitingListPage() {
 
   return (
     <main style={{ maxWidth: 620, margin: '0 auto', padding: '48px 20px' }}>
+      <div className="top-bar">
+        <ThemeToggle />
+      </div>
       <h1>Your place on the waiting list</h1>
       <section className="card">
         <p className="muted">
@@ -91,8 +95,8 @@ export default function WaitingListPage() {
       {notFound ? (
         <section className="card">
           <p>
-            We could not find that code. Check it against the one your centre gave you — or call them and
-            they will read it out again.
+            We could not find that code. Check it against the one your centre gave you — or call
+            them and they will read it out again.
           </p>
         </section>
       ) : null}
@@ -111,7 +115,9 @@ export default function WaitingListPage() {
           {result.status === 'offered' ? (
             <p>
               <span className="pill now">A place has been offered</span>{' '}
-              {result.respond_by ? `Please let ${result.centre_name} know by ${fmt(result.respond_by)}.` : ''}
+              {result.respond_by
+                ? `Please let ${result.centre_name} know by ${fmt(result.respond_by)}.`
+                : ''}
             </p>
           ) : null}
           <p className="muted">
@@ -119,9 +125,9 @@ export default function WaitingListPage() {
             {fmt(result.desired_start_on)}.
           </p>
           <p className="muted">
-            Places are offered in the order set out in the centre&apos;s waiting-list policy, which is in
-            the parent handbook. A position can move when a family ahead of you takes a place or
-            withdraws, or when a child with priority under that policy joins.
+            Places are offered in the order set out in the centre&apos;s waiting-list policy, which
+            is in the parent handbook. A position can move when a family ahead of you takes a place
+            or withdraws, or when a child with priority under that policy joins.
           </p>
         </section>
       ) : null}

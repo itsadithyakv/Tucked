@@ -11,8 +11,10 @@
   --ink: #17325c;
 
   /* Neutrals */
+  color-scheme: light;
   --canvas: #eff4fb;
   --surface: #ffffff;
+  --surface-sink: #f9fbfe; /* the foot of a clay card, just off the surface */
   --line: #d9e2ef;
   --slate: #46587a;
   --slate-muted: #7c8aa0;
@@ -53,19 +55,21 @@
   --radius-tile: 28px;
   --radius-pill: 999px;
 
+  /* The light catching the top of a clay form. The same white at the same
+     strength on a dark canvas reads as a scratch, so it is a token. */
+  --clay-highlight: rgba(255, 255, 255, 0.7);
+  --clay-highlight-soft: rgba(255, 255, 255, 0.3);
+  --scrim: rgba(23, 50, 92, 0.28);
+
   /* Elevation — clay: surfaces are soft solids. A thick inner top highlight
      (light hits the top of the form), an inner bottom shade (the form curves
      away), and a layered ink-tinted drop. Never flat paper shadows. */
   --shadow-resting:
-    inset 0 2px 0 rgba(255, 255, 255, 0.9),
-    inset 0 -4px 8px rgba(23, 50, 92, 0.05),
-    0 3px 6px -2px rgba(23, 50, 92, 0.06),
-    0 16px 32px -16px rgba(23, 50, 92, 0.16);
+    inset 0 2px 0 rgba(255, 255, 255, 0.9), inset 0 -4px 8px rgba(23, 50, 92, 0.05),
+    0 3px 6px -2px rgba(23, 50, 92, 0.06), 0 16px 32px -16px rgba(23, 50, 92, 0.16);
   --shadow-raised:
-    inset 0 2px 0 rgba(255, 255, 255, 0.95),
-    inset 0 -4px 8px rgba(23, 50, 92, 0.05),
-    0 6px 12px -4px rgba(23, 50, 92, 0.08),
-    0 28px 56px -20px rgba(23, 50, 92, 0.24);
+    inset 0 2px 0 rgba(255, 255, 255, 0.95), inset 0 -4px 8px rgba(23, 50, 92, 0.05),
+    0 6px 12px -4px rgba(23, 50, 92, 0.08), 0 28px 56px -20px rgba(23, 50, 92, 0.24);
   --shadow-pressed: inset 0 3px 6px rgba(23, 50, 92, 0.09);
 
   /* Layout */
@@ -97,4 +101,107 @@
     --motion-base: 0ms;
     --motion-gentle: 0ms;
   }
+}
+
+/* ── dark ────────────────────────────────────────────────────────────────────
+   A swap, exactly as the light palette was written to allow: the same semantic
+   names, re-pointed. "Dark mode" has three states, and all three are handled:
+
+     :root                        the light palette
+     prefers-color-scheme: dark   the system's choice — unless the reader has
+                                  explicitly asked for light, which wins
+     [data-theme='dark']          the reader's explicit choice, which also wins
+
+   The colours are chosen for contrast on the dark canvas rather than by
+   inverting the light ones: #17325c ink on white becomes a pale blue-white,
+   and the brand blues lift so a link still reads as a link. Every text pair
+   clears WCAG AA on its own background — the bar design-language.md §2 sets
+   for the light palette, held to here. */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    /* Brand blues, lifted so a link still reads as a link on a dark canvas */
+    --blue-500: #86b8f7;
+    --blue-600: #a6cbfa;
+    --blue-700: #c2ddfc;
+    --blue-100: #2f4a72; /* decorative only, as in light */
+    --blue-50: #1d2b45; /* tinted surface */
+    --ink: #e9f0fa;
+
+    --canvas: #101a2b;
+    --surface: #18253c;
+  --surface-sink: #142034;
+    --line: #26354f;
+    --slate: #b6c5db;
+    --slate-muted: #8b9cb8;
+
+    --sparkle-gold: #ffd98a;
+
+    /* Semantic pairs: the text colour sits on its own wash, not on the canvas */
+    --ok: #7fe0ad;
+    --ok-wash: #123a2a;
+    --now: #ffa295;
+    --now-wash: #4a221d;
+    --due: #f5bd72;
+    --due-wash: #452c11;
+
+    --clay-highlight: rgba(255, 255, 255, 0.08);
+    --clay-highlight-soft: rgba(255, 255, 255, 0.05);
+    --scrim: rgba(4, 9, 18, 0.6);
+
+    /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
+       because the light is dimmer, not because the form changed. */
+    --shadow-resting:
+      inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -4px 8px rgba(0, 0, 0, 0.2),
+      0 3px 6px -2px rgba(0, 0, 0, 0.4), 0 16px 32px -16px rgba(0, 0, 0, 0.6);
+    --shadow-raised:
+      inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 8px rgba(0, 0, 0, 0.22),
+      0 6px 12px -4px rgba(0, 0, 0, 0.45), 0 28px 56px -20px rgba(0, 0, 0, 0.7);
+    --shadow-pressed: inset 0 3px 6px rgba(0, 0, 0, 0.5);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* Brand blues, lifted so a link still reads as a link on a dark canvas */
+  --blue-500: #86b8f7;
+  --blue-600: #a6cbfa;
+  --blue-700: #c2ddfc;
+  --blue-100: #2f4a72; /* decorative only, as in light */
+  --blue-50: #1d2b45; /* tinted surface */
+  --ink: #e9f0fa;
+
+  --canvas: #101a2b;
+  --surface: #18253c;
+  --surface-sink: #142034;
+  --line: #26354f;
+  --slate: #b6c5db;
+  --slate-muted: #8b9cb8;
+
+  --sparkle-gold: #ffd98a;
+
+  /* Semantic pairs: the text colour sits on its own wash, not on the canvas */
+  --ok: #7fe0ad;
+  --ok-wash: #123a2a;
+  --now: #ffa295;
+  --now-wash: #4a221d;
+  --due: #f5bd72;
+  --due-wash: #452c11;
+
+  --clay-highlight: rgba(255, 255, 255, 0.08);
+  --clay-highlight-soft: rgba(255, 255, 255, 0.05);
+  --scrim: rgba(4, 9, 18, 0.6);
+
+  /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
+     because the light is dimmer, not because the form changed. */
+  --shadow-resting:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06), inset 0 -4px 8px rgba(0, 0, 0, 0.2),
+    0 3px 6px -2px rgba(0, 0, 0, 0.4), 0 16px 32px -16px rgba(0, 0, 0, 0.6);
+  --shadow-raised:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 8px rgba(0, 0, 0, 0.22),
+    0 6px 12px -4px rgba(0, 0, 0, 0.45), 0 28px 56px -20px rgba(0, 0, 0, 0.7);
+  --shadow-pressed: inset 0 3px 6px rgba(0, 0, 0, 0.5);
 }

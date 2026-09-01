@@ -57,6 +57,7 @@ Everything in O. Reg. 137/15 that the [compliance test report](../docs/complianc
 | **Multi-site licensee view** | One centre per console. `licensee` exists and owns centres; nothing aggregates across them. P3. |
 | **Manitoba and Quebec rule packs** | `jurisdiction` seeds CA-MB and CA-QC as `planned`/inactive, and `admin_create_centre` refuses to create a centre in a jurisdiction whose pack is not `implemented` (pgTAP-proven). Every rule pack that would need rows already exists as data — handbook sections, outdoor minutes, staff requirements, CWELCC parameters, statutory holidays — so a province is largely rows plus a requirements document. Quebec additionally needs French-first UI and Law 25 workflows. |
 | **In-app messaging attachments** | Messages are text. |
+| **Dark mode in the mobile app** | The web console, sign-in and public pages have a three-state light/dark/system toggle (top right) and a contrast-checked dark palette. The Expo app does not: its tokens are a TypeScript object and React Native has no CSS custom properties, so it needs a theme context threaded through the component library rather than a token swap. Families and room devices are light-only for now. |
 | **A parent-facing web app** | Families are mobile-only by design; there is no web fallback if someone has no phone. Worth revisiting with a pilot centre. |
 
 ---

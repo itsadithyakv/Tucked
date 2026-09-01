@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { enCA } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
+import { ThemeToggle } from '@/ui/ThemeToggle';
 import { ConsoleProvider, useConsole } from '@/lib/console';
 import { Sparkles, clickPulse, sparkleBurst } from '@/ui/sparkles';
 
@@ -136,7 +137,11 @@ function Shell({ children }: { children: ReactNode }) {
               {collapsed ? <PanelLeftOpen aria-hidden /> : <PanelLeftClose aria-hidden />}
               <span className="side-label">Collapse</span>
             </button>
-            <button type="button" className="side-signout" onClick={() => getSupabase().auth.signOut()}>
+            <button
+              type="button"
+              className="side-signout"
+              onClick={() => getSupabase().auth.signOut()}
+            >
               <LogOut aria-hidden />
               <span className="side-label">{enCA.auth.signOut}</span>
             </button>
@@ -144,14 +149,17 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
       </aside>
       <main>
-        <button
-          type="button"
-          className="menu-button"
-          aria-label="Open menu"
-          onClick={() => setDrawerOpen(true)}
-        >
-          <Menu aria-hidden />
-        </button>
+        <div className="top-bar">
+          <button
+            type="button"
+            className="menu-button"
+            aria-label="Open menu"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <Menu aria-hidden />
+          </button>
+          <ThemeToggle />
+        </div>
         {children}
       </main>
     </div>
@@ -202,7 +210,10 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
   async function signIn(e: React.FormEvent) {
     e.preventDefault();
     setNotice(null);
-    const { error } = await getSupabase().auth.signInWithPassword({ email: email.trim(), password });
+    const { error } = await getSupabase().auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
     if (error) setNotice(enCA.errors.signInFailed);
   }
 
@@ -211,23 +222,49 @@ export default function ConsoleLayout({ children }: { children: ReactNode }) {
   if (!session) {
     return (
       <main className="signin">
+        {/* Someone signing in at six in the morning in a dark room should be
+            able to fix that before they have an account, not after. */}
+        <div className="top-bar">
+          <ThemeToggle />
+        </div>
         <Sparkles count={3}>
-          <Image className="mark" src="/tucked-mark.png" alt="Tucked" width={96} height={96} priority />
+          <Image
+            className="mark"
+            src="/tucked-mark.png"
+            alt="Tucked"
+            width={96}
+            height={96}
+            priority
+          />
         </Sparkles>
         <form className="card" onSubmit={signIn}>
           <h2>{enCA.auth.staffSignInTitle}</h2>
           <label>
             Email
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required />
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="username"
+              required
+            />
           </label>
           <label>
             Password
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
           </label>
           <button type="submit">{enCA.auth.staffSignInAction}</button>
           {notice ? <p className="muted">{notice}</p> : null}
         </form>
-        <p className="caption">Demo: supervisor@mapleleaf.example · tucked-demo (local stack only)</p>
+        <p className="caption">
+          Demo: supervisor@mapleleaf.example · tucked-demo (local stack only)
+        </p>
       </main>
     );
   }

@@ -94,7 +94,34 @@ Calm surfaces, one accent: **green = fine, red = act now** (build prompt §3.2).
 - White text on `blue.500` (3.53:1) is acceptable only for large button labels (≥ 18 pt / 14 pt bold); prefer `blue.600` fills for standard buttons so labels pass comfortably.
 - `blue.100` (Heart) is 1.73:1 — decorative only, enforced in review.
 - One accent per screen. If a screen needs two competing accents, the screen is doing too much.
-- **Dark mode is deferred** (not a Phase 1 promise). Structure tokens as semantic names (`canvas`, `surface`, `ink`) so a dark theme is a token swap later, not a rewrite.
+### Dark
+
+Deferred for Phase 1, built once the semantic tokens had proved themselves — and it was the token swap this section promised, not a rewrite. Three states, because "dark mode" has three:
+
+| State | How it is expressed | Wins over |
+|---|---|---|
+| Follow the device | **no** `data-theme` attribute — the default | — |
+| Light | `data-theme="light"` on `<html>` | a device set to dark |
+| Dark | `data-theme="dark"` on `<html>` | a device set to light |
+
+The reader cycles them from the control in the **top right** of every console page, the sign-in screen and the public pages. The choice is stored in `localStorage` and re-applied by an inline script in the root layout **before first paint**, so a supervisor who chose dark never gets a white flash at six in the morning. (That script is the pattern Next documents in *Preventing flash before hydration*, with one deliberate difference: we render no `data-theme` default, because its absence is what "follow the device" means.)
+
+Dark values are **chosen for contrast on the dark canvas, not inverted** from the light ones. `#17325c` ink becomes a pale blue-white; the brand blues lift so a link still reads as a link; each semantic text colour is measured against **its own wash**, not against the canvas. Measured on the built page:
+
+| Pair | Ratio | |
+|---|---|---|
+| `ink` on `surface` | 13.4:1 | ✅ |
+| `ink` on `canvas` | 15.2:1 | ✅ |
+| `slate` on `surface` | 8.8:1 | ✅ |
+| `slate-muted` on `surface` | 5.5:1 | ✅ AA |
+| `blue.500` link on `surface` | 7.5:1 | ✅ |
+| `ok` on `ok-wash` | 7.9:1 | ✅ |
+| `now` on `now-wash` | 7.1:1 | ✅ |
+| `due` on `due-wash` | 7.7:1 | ✅ |
+
+Clay survives the swap because it is described in tokens rather than literals: `--clay-highlight` (the light catching the top of a form) drops from 70% white to 8%, and the drop shadows deepen. The same white at the same strength on a dark canvas reads as a scratch, not as light. `--surface-sink` (the foot of a card's gradient) and `--scrim` move with it.
+
+**Still light-only:** the mobile app. It has its own token face in `packages/ui-tokens/src/tokens.ts` and React Native has no CSS custom properties, so it needs a theme context rather than a swap — recorded in [not-built.md](not-built.md) rather than half-done.
 
 ---
 
