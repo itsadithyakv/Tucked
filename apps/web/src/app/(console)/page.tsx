@@ -55,6 +55,7 @@ export default function ExceptionsHome() {
   const [menuGap, setMenuGap] = useState<string | null>(null);
   const [staleOffers, setStaleOffers] = useState(0);
   const [outdoorShort, setOutdoorShort] = useState<string[]>([]);
+  const [sleepOffBack, setSleepOffBack] = useState<{ full_name: string }[]>([]);
   const [unreached, setUnreached] = useState(0);
   const [noDevice, setNoDevice] = useState<string[]>([]);
   const [stuckPush, setStuckPush] = useState(0);
@@ -231,6 +232,15 @@ export default function ExceptionsHome() {
           .map((r) => r.name),
       );
     })();
+
+    // s. 33.1: a child under 12 months found off their back today, with no
+    // physician's direction permitting it. The check itself was right to be
+    // recorded — this is the reading of it, not a complaint about it.
+    sb.from('sleep_position_finding')
+      .select('full_name')
+      .eq('centre_id', centre.id)
+      .eq('log_date', today)
+      .then(({ data }) => setSleepOffBack((data as never) ?? []));
 
     // s. 75.1: a place offered and never answered holds up the family behind
     sb.from('waitlist_entry')
@@ -418,6 +428,16 @@ export default function ExceptionsHome() {
             <span className="pill due">Due</span> Outdoor play (s. 47) is under two hours today in{' '}
             {outdoorShort.join(', ')} — record the time outside, or why the day was short —{' '}
             <Link href="/outdoor">outdoor play</Link>
+          </p>
+        ) : null}
+        {sleepOffBack.length > 0 ? (
+          <p>
+            <span className="pill now">Now</span>{' '}
+            {sleepOffBack.length === 1
+              ? `${sleepOffBack[0]!.full_name} was`
+              : `${sleepOffBack.length} children under 12 months were`}{' '}
+            found off their back at a sleep check today, with no physician&apos;s direction on file
+            (s. 33.1) — <Link href="/sleep-checks">sleep</Link>
           </p>
         ) : null}
         {staleOffers > 0 ? (

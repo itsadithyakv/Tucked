@@ -193,9 +193,42 @@ lines.push(
 );
 for (const inf of infants.filter((ch) => ch.id !== dischargedChild.id)) {
   lines.push(
-    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'nap_start', now() - interval '60 minutes', '1970-01-01', '{}', '${educator.id}');`,
+    // s. 33.1: how the child was PLACED. The database refuses a nap_start
+    // without it under 12 months, which is how this seed first found out.
+    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'nap_start', now() - interval '60 minutes', '1970-01-01', '{"position": "back"}', '${educator.id}');`,
     `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'sleep_check', now() - interval '45 minutes', '1970-01-01', '{"breathing_ok": true, "position": "back"}', '${educator.id}');`,
     `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${inf.id}', '${inf.currentRoomId}', 'sleep_check', now() - interval '30 minutes', '1970-01-01', '{"breathing_ok": true, "position": "back"}', '${educator.id}');`,
+  );
+}
+
+// s. 33.1 sleep directions, so the demo has all three shapes on the board: a
+// physician's note that varies back-to-sleep, a family's rest request that
+// cannot, and a baby found off their back with nothing on file permitting it.
+const sleepInfants = infants.filter((ch) => ch.id !== dischargedChild.id);
+const refluxBaby = sleepInfants[0];
+const rolledBaby = sleepInfants[1] ?? sleepInfants[0];
+if (refluxBaby) {
+  lines.push(
+    `insert into public.sleep_direction (centre_id, child_id, source, kind, permitted_positions, practitioner, instruction, starts_on, recorded_by)`,
+    `values ('${c.id}', '${refluxBaby.id}', 'physician', 'position', array['side'], 'Dr A. Chen, paediatrics', 'Side-lying permitted while reflux is treated; back at all other times. Review in three months.', current_date - 20, '${supervisor.id}');`,
+  );
+  const refluxHousehold = f.childHouseholds.find((l) => l.childId === refluxBaby.id);
+  const consentingMember = refluxHousehold
+    ? f.householdMembers.find((m) => m.householdId === refluxHousehold.householdId && m.canConsent)
+    : undefined;
+  if (consentingMember) {
+    lines.push(
+      `insert into public.sleep_direction (centre_id, child_id, source, kind, provided_by, instruction, starts_on, recorded_by)`,
+      `values ('${c.id}', '${refluxBaby.id}', 'parent', 'rest', '${consentingMember.personId}', 'Please wake her by 2:30 if she is still asleep — otherwise bedtime is impossible.', current_date - 5, '${supervisor.id}');`,
+    );
+  }
+}
+if (rolledBaby && rolledBaby.id !== refluxBaby?.id) {
+  // The educator walked to the crib, saw her on her front, and put her back.
+  // That is the right thing done and written down — and it still belongs in
+  // the day's record, because nothing on file permits front for this child.
+  lines.push(
+    `insert into public.care_log (centre_id, child_id, room_id, log_type, logged_at, log_date, payload, recorded_by) values ('${c.id}', '${rolledBaby.id}', '${rolledBaby.currentRoomId}', 'sleep_check', now() - interval '20 minutes', '1970-01-01', '{"breathing_ok": true, "position": "front", "repositioned": true}', '${educator.id}');`,
   );
 }
 

@@ -19,11 +19,29 @@ export const bottlePayload = z.object({
   finished: z.boolean().optional(),
 });
 
+/** The three positions a child can be placed or found in (s. 33.1). */
+export const sleepPosition = z.enum(['back', 'side', 'front']);
+
+/**
+ * nap_start is the PLACING, and for a child under 12 months the position is the
+ * regulated fact — so the database refuses a nap_start without one. It stays
+ * optional here because the same log type covers a four year old on a cot,
+ * whose sleep position no regulation names.
+ */
+export const napStartPayload = z
+  .object({ position: sleepPosition.optional() })
+  .passthrough();
+
 export const napPayload = z.object({}).passthrough();
 
 export const sleepCheckPayload = z.object({
   breathing_ok: z.boolean(),
-  position: z.enum(['back', 'side', 'front']).optional(),
+  // What the educator SAW. It may differ from how the child was placed —
+  // babies roll — and unlike a placing it is never refused: refusing to record
+  // a child found on their front would only delete the evidence that somebody
+  // noticed.
+  position: sleepPosition.optional(),
+  repositioned: z.boolean().optional(),
   intervention: z.string().optional(),
 });
 
@@ -63,7 +81,7 @@ export const photoPayload = z.object({
 export const careLogPayloads: Record<CareLogType, z.ZodTypeAny> = {
   meal: mealPayload,
   bottle: bottlePayload,
-  nap_start: napPayload,
+  nap_start: napStartPayload,
   nap_end: napPayload,
   sleep_check: sleepCheckPayload,
   diaper: diaperPayload,

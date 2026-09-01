@@ -41,7 +41,6 @@ Everything in O. Reg. 137/15 that the [compliance test report](../docs/complianc
 | **Toronto AQI support** | Nothing addresses the 1–5 assessment directly. Documentation that helps (observations, programming records) exists as a side-effect rather than as a feature. | Product decision first |
 | **Fee subsidy administration** | A subsidy payment can be *recorded* (`fee_payment.method = 'subsidy'`), but the subsidy relationship itself — eligibility, the City's portion vs the family's, reconciliation — is not modelled. | `fee_charge`/`fee_payment` extension |
 | **Employer duty to report RECE matters to the College** | Not modelled at all. | New workflow |
-| **s. 33.1 parent-requested sleep variations** | Back-to-sleep and the check cadence are enforced; a physician's or parent's written variation is not modelled the way the s. 47 outdoor exemption is. | Copy the `outdoor_exemption` shape |
 | **PIPEDA access and deletion requests** | The 30-day SLA workflow noted in the plan. RLS gives every family read access to their own child's record, which covers the spirit; there is no request-and-response record, and no consent-withdrawal cascade. | New module |
 
 ---
