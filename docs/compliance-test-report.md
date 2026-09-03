@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **634 pgTAP tests across 28 suites** (`supabase/tests/`), 75 domain tests (`packages/domain/test/`), 51 design-token tests (`packages/ui-tokens/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [03-features-records-and-obligations.md](../references/03-features-records-and-obligations.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **634 pgTAP tests across 28 suites** (`supabase/tests/`), 75 domain tests (`packages/domain/test/`), 51 design-token tests (`packages/ui-tokens/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
@@ -67,12 +67,12 @@ It is true now, and the tests named in that row are the ones that make it true. 
 ## Gaps that matter next (in order)
 
 1. **Service-system-manager reporting (Toronto Children's Services)** — the fee ledger holds the numbers, but the City's actual file formats have to come from discovery. Deliberately not invented.
-2. **Running the airplane-mode runbook on a device** — the queue's logic now has 15 automated tests, and the device script is written ([airplane-mode-runbook.md](../references/airplane-mode-runbook.md)); it needs a dev build, which nobody has asked for.
+2. **Running the airplane-mode runbook on a device** — the queue's logic now has 15 automated tests, and the device script is written ([06-gaps-risks-and-roadmap.md §7](../references/06-gaps-risks-and-roadmap.md)); it needs a dev build, which nobody has asked for.
 3. **A parent-facing web fallback** — families are mobile-only by design. Worth revisiting with a pilot centre that has a parent without a smartphone.
 
-**The full inventory of what is not built** — deliberate non-goals, genuine gaps, code that is written but not wired, partial areas, and every seeded value still needing a human to check it against the regulation — is [references/not-built.md](../references/not-built.md).
+**The full inventory of what is not built** — deliberate non-goals, genuine gaps, code that is written but not wired, partial areas, and every seeded value still needing a human to check it against the regulation — is [references/06-gaps-risks-and-roadmap.md](../references/06-gaps-risks-and-roadmap.md).
 
-**One item needs a human with the regulation open:** the s. 47 rule pack sets an 18-month age floor and a 6-hour care threshold, following the summary in [tucked-ontario-requirements.md](../references/tucked-ontario-requirements.md) rather than the section text itself. Both are rows in `outdoor_requirement`, so confirming or correcting them is a one-line change with no code involved — but they should be confirmed before a real inspection.
+**One item needs a human with the regulation open:** the s. 47 rule pack sets an 18-month age floor and a 6-hour care threshold, following the summary in [03-features-records-and-obligations.md](../references/03-features-records-and-obligations.md) rather than the section text itself. Both are rows in `outdoor_requirement`, so confirming or correcting them is a one-line change with no code involved — but they should be confirmed before a real inspection.
 
 Every Phase 0/1 compliance item is built and machine-proven; from the Phase 2 list, the Parts 4/10 compliance calendar, the ss. 42–44 menus module, the s. 45 parent handbook, the s. 75.1 waiting list and the s. 47 outdoor play log have now landed too.
 

@@ -5,7 +5,7 @@
  * child was signed out, and that record has to survive, keep its place in the
  * order, and never disappear quietly. Until now the only proof of that was a
  * person putting a device in airplane mode and watching — which is worth
- * doing, and is now the runbook in references/airplane-mode-runbook.md, but it
+ * doing, and is now the runbook in references/06-gaps-risks-and-roadmap.md §7, but it
  * is not something CI can run before every merge. These are.
  */
 

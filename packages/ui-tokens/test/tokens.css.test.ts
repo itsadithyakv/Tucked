@@ -7,7 +7,7 @@
  * another is invisible until somebody with that exact combination of device and
  * choice opens the exact screen that uses it. So the agreement is a test.
  *
- * The contrast numbers in references/design-language.md §3 are checked here
+ * The contrast numbers in references/05-apps-and-design-system.md §6 are checked here
  * too. A ratio written in a document is a claim; a ratio in a test is a rule.
  */
 
@@ -133,7 +133,7 @@ describe('the palette is defined three times and must agree', () => {
   });
 });
 
-// ── contrast, per design-language.md §3 ──────────────────────────────────────
+// ── contrast, per 05-apps-and-design-system.md §6 ────────────────────────────
 
 /** [foreground, background, floor].
  *

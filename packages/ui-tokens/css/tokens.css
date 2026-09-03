@@ -1,4 +1,4 @@
-/* Tucked design tokens — CSS face. Rules: references/design-language.md.
+/* Tucked design tokens — CSS face. Rules: references/05-apps-and-design-system.md.
    The palette mirrors src/tokens.ts (the React Native face); change both
    together. Elevation does NOT: clay is shadows and highlights here, and
    StyleSheet shadow objects there, so --clay-*, --scrim and --shadow-* live
@@ -134,7 +134,7 @@
    The colours are chosen for contrast on the dark canvas rather than by
    inverting the light ones: #17325c ink on white becomes a pale blue-white,
    and the brand blues lift so a link still reads as a link. Every text pair
-   clears WCAG AA on its own background — the bar design-language.md §2 sets
+   clears WCAG AA on its own background — the bar 05-apps-and-design-system.md §6 sets
    for the light palette, held to here. */
 
 @media (prefers-color-scheme: dark) {

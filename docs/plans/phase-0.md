@@ -1,6 +1,6 @@
 # Phase 0 — Foundation
 
-*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8. Status: **built 29 Aug 2026** (same day as go-ahead). The §8 answers are recorded in [decisions.md](../decisions.md): global person, day-bounded attendance, `ca.tucked.app` identifiers, local-only Supabase with no git remote.*
+*Per [01-overview-and-architecture.md](../../references/01-overview-and-architecture.md). Status: **built 29 Aug 2026** (same day as go-ahead). The §8 answers are recorded in [decisions.md](../decisions.md): global person, day-bounded attendance, `ca.tucked.app` identifiers, local-only Supabase with no git remote.*
 
 **✅ Done-when met (verified 29 Aug 2026, after WSL2 + Docker Desktop install):**
 
@@ -29,7 +29,7 @@ Phase 0 builds the skeleton everything else hangs on: monorepo + tooling, design
 
 ## 3. `packages/ui-tokens`
 
-Everything in [design-language.md](../../references/design-language.md) §3–§6 as code, exported twice from one source:
+Everything in [05-apps-and-design-system.md](../../references/05-apps-and-design-system.md) §6–§8 as code, exported twice from one source:
 
 - `tokens.ts` — typed objects for React Native `StyleSheet` (colour, type styles, spacing, radius, shadow, motion).
 - `tokens.css` — the same values as CSS custom properties for the web console.

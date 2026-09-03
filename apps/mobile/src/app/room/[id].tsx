@@ -118,7 +118,7 @@ function Board() {
   const [periods, setPeriods] = useState<{ id: string; started_at: string; ended_at: string | null }[]>([]);
   const [weatherOpen, setWeatherOpen] = useState(false);
   const [tick, setTick] = useState(0);
-  // face-to-name headcount at transitions (attendance-model.md §3)
+  // face-to-name headcount at transitions (02-features-daily-care.md §4)
   const [headOpen, setHeadOpen] = useState(false);
   const [headKind, setHeadKind] = useState<'transition_out' | 'transition_in' | 'spot' | null>(null);
   const [headCounted, setHeadCounted] = useState<Set<string>>(new Set());

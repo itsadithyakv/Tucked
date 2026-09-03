@@ -10,11 +10,11 @@ Parents get one quiet daily story of their child's day plus loud alerts only for
 
 | Where | What |
 |---|---|
-| [references/](references/README.md) | The plan, the master build spec, Ontario compliance requirements, competitor matrix, architecture, design language, cost model. **Read [references/tucked-build-prompt.md](references/tucked-build-prompt.md) first — it is the canonical spec.** |
+| [references/](references/01-overview-and-architecture.md) | Six documents covering the whole system: product and architecture, every feature and every case it handles, the data and security model, both apps and the design system, and the honest gap list. **Start at [01-overview-and-architecture.md](references/01-overview-and-architecture.md)**, which indexes the rest; **read [06-gaps-risks-and-roadmap.md](references/06-gaps-risks-and-roadmap.md) before writing code.** |
 | [docs/plans/](docs/plans/) | Per-phase build plans (`phase-N.md`), written before each phase begins. |
 | [docs/decisions.md](docs/decisions.md) | Why, not what — every decision that would otherwise get relitigated. |
 | [docs/compliance-map.md](docs/compliance-map.md) | Regulation section → table / function / screen / test. |
-| [assets/](assets/) | Brand mark and the Gilroy typeface (woff2 for web, ttf for mobile). |
+| [assets/](assets/) | Brand mark and the Baloo 2 + Nunito typefaces (variable woff2 for web, instantiated ttf for mobile). The retired Gilroy files remain archived; nothing loads them. |
 
 ## Status
 

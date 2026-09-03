@@ -1,5 +1,5 @@
 /**
- * en-CA strings. Ontario's words are binding (tucked-ontario-requirements.md §0):
+ * en-CA strings. Ontario's words are binding:
  * supervisor, RECE, program advisor, licensee, age group, children's record,
  * daily written record, serious occurrence. Canadian spelling throughout.
  * No exclamation marks in the working UI; no emoji; specific over generic.

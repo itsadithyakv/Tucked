@@ -2,7 +2,7 @@
  * Phase 1 primitives, styled entirely from @tucked/ui-tokens — minimal
  * claymorphic: generous radii, soft ink-tinted shadows, gentle press-scale
  * feedback. Screens never hard-code a hex, radius or font name
- * (design-language.md §11).
+ * (05-apps-and-design-system.md §10).
  */
 
 import { useState } from 'react';

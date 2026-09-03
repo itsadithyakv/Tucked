@@ -1,6 +1,6 @@
 # Phase 1 — Record-keeping core + calm family app
 
-*Per [tucked-build-prompt.md](../../references/tucked-build-prompt.md) §8 (target 6–8 weeks). Status: **substantially built and verified locally** (see [compliance-map.md](../compliance-map.md) for per-section state, [demo-script.md](../demo-script.md) for the click-through, [release-notes-phase-1.md](../release-notes-phase-1.md) for the plain-English summary).*
+*Per [01-overview-and-architecture.md](../../references/01-overview-and-architecture.md) (target 6–8 weeks). Status: **substantially built and verified locally** (see [compliance-map.md](../compliance-map.md) for per-section state, [demo-script.md](../demo-script.md) for the click-through, [release-notes-phase-1.md](../release-notes-phase-1.md) for the plain-English summary).*
 
 **Remaining before the phase closes:** real push on a device (needs the founder's `npx eas login`, then `eas init` + a dev build; the notify Edge Function and token registration are written), the airplane-mode quality-gate script run on that device, an accessibility sweep (screen-reader labels are in place; contrast is enforced by tokens), photo capture/story publishing from the room device, and the enrolment invite email path (invites exist; email sending joins the notify plumbing).
 

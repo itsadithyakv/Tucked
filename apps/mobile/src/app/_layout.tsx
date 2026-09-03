@@ -11,7 +11,7 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   // Static instances, each under its own family name; select by fontFamily
-  // only — never fontWeight (design-language.md §4). Baloo 2 = display
+  // only — never fontWeight (05-apps-and-design-system.md §7). Baloo 2 = display
   // personality, Nunito = readable body.
   const [fontsLoaded] = useFonts({
     'Baloo2-SemiBold': require('@/assets/fonts/Baloo2-SemiBold.ttf'),

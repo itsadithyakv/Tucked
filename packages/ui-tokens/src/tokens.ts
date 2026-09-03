@@ -1,6 +1,6 @@
 /**
  * Tucked design tokens — single source of truth.
- * Values and rules: references/design-language.md. Colours were sampled from the
+ * Values and rules: references/05-apps-and-design-system.md §6-§8. Colours were sampled from the
  * logo and contrast-checked; do not add a colour here without a computed ratio.
  * Consumed as TS objects by React Native StyleSheet and mirrored in css/tokens.css.
  */

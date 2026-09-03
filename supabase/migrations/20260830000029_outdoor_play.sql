@@ -21,7 +21,7 @@
 --     attendance. A room-level number alone would quietly overstate it.
 --
 -- NOTE FOR REGULATORY REVIEW: the 18-month age floor below follows the
--- summary in references/tucked-ontario-requirements.md. Confirm it against
+-- summary in the source requirements, not the section text. Confirm it against
 -- the s. 47 text before a real inspection; it is one row to change.
 
 -- ── the rule pack ───────────────────────────────────────────────────────────
