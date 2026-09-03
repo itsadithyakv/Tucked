@@ -637,9 +637,19 @@ Android gets two notification channels (Now = high importance with sound; Later 
 
 ### The daily story
 
-One calm, specific letter per child per day, assembled from the day's care logs by `packages/domain/src/story.ts`. Template-drafted. **The educator's own note always sits on top, untouched.** Families read 12-hour times.
+One calm, specific letter per child per day, composed by **`app.story_compose(child, date)`** as arithmetic over the day's own rows: the opening line from the day outside or the first activity, then meals in the order they were eaten, rest periods in 12-hour times, the rest of the activities, the photo count, and — if the child went home unwell — a plain sentence saying so rather than carrying on as though the day had been ordinary. A day with nothing in it still says something kind.
+
+**Deterministic, never generated.** The same day composes to the same words; no model is involved.
+
+**It publishes at pick-up**, which is what the family screen has always promised in its empty state. A `depart` fires `app.story_on_depart` and the story lands as the parent is collecting. `app.publish_daily_stories()` runs hourly as the floor: once a centre has closed, any child who arrived and has no published story gets one, so a forgotten sign-out costs a family a late story rather than no story.
+
+**The publish trigger can never block a departure.** It runs inside the sign-out transaction, and a child being released to their parent must not depend on a story composing cleanly, so anything that goes wrong there is swallowed on purpose and left to the sweep. A late story is a disappointment; a sign-out that will not complete is an incident.
+
+**The educator's own note always sits on top, untouched.** `save_story_note` writes it and publishes if the story has not gone yet; a recomposition never overwrites it.
 
 AI polish is a labelled, optional Phase 2 add-on and **never a dependency** — the template-drafted story ships without it.
+
+*(Composed in SQL rather than in `packages/domain`, for the reason `app.dwr_compose` is: it has to run when no client is present. The `buildStory()` that nothing called has been deleted and its voice tests ported to pgTAP — one implementation, not two.)*
 
 ### Messages and announcements
 
@@ -663,7 +673,8 @@ Family adults can see the **workforce** of their centre by name — a parent mus
 
 This is the weakest module in the product relative to how central it is to the pitch. Three of the four items below are **written, not wired**.
 
-- **Nothing publishes a story.** `publish_story` exists as an RPC and is exercised by pgTAP; the family app's home screen *reads* `story` rows. **No surface and no cron calls `publish_story`.** In a real centre the daily story — the single loudest promise in the product — would never appear. This is the highest-value gap in the repository.
+- **The educator's note has no surface.** `save_story_note` is the RPC and nothing on either app calls it, so in practice every story is the composed draft with no human voice on top. The publishing itself is fixed; the note is not.
+- **Publishing is unverified against a live database.** Migration 0039 and its 28 pgTAP tests were written while Docker was down on the development machine; `pnpm exec supabase test db` has not been run against them. Treat the module as written-and-reviewed, not proven, until it has.
 - **The opt-up preference has no storage.** `routeNotification` takes a `prefs` argument with a `realtimeOptIn` set, and it is unit-tested, but **no table holds it and nothing passes it**. Every family therefore gets the default: quiet. The default is the right one, which is why this has stayed invisible.
 - **Quiet hours are a property of the Now channel, not a per-family window.** Now bypasses quiet hours by design; there is no way for a family to say "nothing before 7 unless it is urgent", because there is no per-family window at all.
 - **Messages have no attachments.**

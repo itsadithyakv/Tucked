@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import { validateCareLogPayload } from '../src/careLogSchemas';
-import { buildStory, twelveHour } from '../src/story';
 import {
   nextSleepCheckDue,
   restOverCap,
@@ -38,45 +37,6 @@ describe('care log payload schemas (mirror of app.validate_care_log_payload)', (
       }).success,
     ).toBe(true);
     expect(validateCareLogPayload('health_observation', { observation: '' }).success).toBe(false);
-  });
-});
-
-describe('the daily story', () => {
-  it('story_reads_like_a_letter_with_12_hour_times', () => {
-    const story = buildStory({
-      childFirstName: 'Maya',
-      meals: [{ meal: 'lunch', eaten: 'most' }],
-      naps: [{ start: '12:40', end: '14:10' }],
-      diapers: 3,
-      outdoorMinutes: 90,
-      outdoorSkippedReason: null,
-      activities: ['Maya loved the leaf pile'],
-      photoCount: 2,
-    });
-    expect(story).toContain('Maya ate most of lunch.');
-    expect(story).toContain('12:40 p.m. to 2:10 p.m.');
-    expect(story).toContain('2 new photos');
-    expect(story).not.toContain('!'); // calm voice: no exclamation marks
-  });
-
-  it('story_quiet_day_still_says_something_kind', () => {
-    const story = buildStory({
-      childFirstName: 'Theo',
-      meals: [],
-      naps: [],
-      diapers: 0,
-      outdoorMinutes: 0,
-      outdoorSkippedReason: null,
-      activities: [],
-      photoCount: 0,
-    });
-    expect(story).toBe('Theo had a steady, quiet day with us.');
-  });
-
-  it('twelve_hour_boundaries', () => {
-    expect(twelveHour('00:05')).toBe('12:05 a.m.');
-    expect(twelveHour('12:00')).toBe('12:00 p.m.');
-    expect(twelveHour('18:30')).toBe('6:30 p.m.');
   });
 });
 

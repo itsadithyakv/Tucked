@@ -47,8 +47,7 @@ select set_config('request.jwt.claims', '{"sub":"16000000-0000-4000-8000-0000000
 set local role authenticated;
 
 select lives_ok(
-  $$select public.publish_story('66000000-0000-4000-8000-000000000001', current_date,
-      'We spent the morning outside — the leaf pile was a hit. Lunch went well, and rest time was quiet.',
+  $$select public.save_story_note('66000000-0000-4000-8000-000000000001', current_date,
       'Lovely day. Ask about the leaf fort.',
       '46000000-0000-4000-8000-000000000001', '4242')$$,
   'story_published_at_pickup'
@@ -62,7 +61,6 @@ select is(
 
 select lives_ok(
   $$select public.publish_story('66000000-0000-4000-8000-000000000001', current_date,
-      'updated draft', 'Lovely day. Ask about the leaf fort.',
       '46000000-0000-4000-8000-000000000001', '4242')$$,
   'story_republish_is_idempotent'
 );

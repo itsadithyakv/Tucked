@@ -2,7 +2,7 @@
 
 *The honest counterpart to everything else in this folder. An honest gap list is worth more than a decorative feature list: it is what stops a pilot centre discovering a hole at the wrong moment, and it is where the next work comes from.*
 
-**Read this before writing code.** It is faster to learn here that nothing publishes the daily story than to discover it in a pilot.
+**Read this before writing code.** It is faster to learn here that the airplane-mode runbook has never been run on hardware than to discover it in a pilot.
 
 *Last reviewed: 2026-09-03.*
 
@@ -59,7 +59,8 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 
 | # | Work | Why it is first |
 |---|---|---|
-| 1 | **Publish the daily story.** `publish_story` exists and is pgTAP-proven; the family Home tab reads `story` rows; **nothing calls it.** A cron at pickup time, or a room action, or both | The single loudest promise in the product currently never happens. A pilot family would open the app every evening to an empty screen |
+| 1 | **Verify the story publishing** — migration 0039 composes in SQL, publishes on `depart`, and sweeps hourly as a floor. Written with 28 pgTAP tests that **have never been run**, because Docker was down when it landed. `pnpm exec supabase db reset && pnpm exec supabase test db` | The fix itself is in; the proof is not. Until the suite runs, the loudest promise in the product is code review rather than evidence |
+| 1b | **Give the educator's note a surface.** `save_story_note` is the RPC; no screen calls it, so every story ships with no human voice on top | "The educator's own note always sits on top" is currently true of the schema and false of the product |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
 | 3 | **Run pgTAP in CI** | The 634 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
@@ -126,7 +127,8 @@ These exist in the tree and do nothing today.
 
 | Thing | State |
 |---|---|
-| **The daily story** | `publish_story` is an RPC, exercised by pgTAP; `(family)/home.tsx` reads `story` rows. **No surface and no cron calls it.** Backlog #1 |
+| ~~**The daily story**~~ | **Wired** (migration 0039). Composed by `app.story_compose`, published by a `depart` trigger, with `app.publish_daily_stories()` hourly as the floor. **Not yet run against a database** — see backlog #1 |
+| **The educator's story note** | `save_story_note` is written and reachable; no screen calls it. Backlog #1b |
 | **Notification opt-up preferences** | `routeNotification` accepts a `prefs.realtimeOptIn` set and is unit-tested. **No table holds it and nothing passes it.** Every family gets the default (quiet), which is why this has stayed invisible |
 | **The `photos` storage bucket** | Policies written in migration 0012, consent-gated, never used. No upload surface anywhere |
 | **The `photo` care-log type** | Validated, never produced |
