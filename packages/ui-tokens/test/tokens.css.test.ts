@@ -181,6 +181,44 @@ describe('dark is not a downgrade', () => {
   });
 });
 
+// ── neumorphism: two shadows, one light source ───────────────────────────────
+
+describe.each(PALETTES)('%s neumorphism', (_name, palette) => {
+  it('pairs a LIT face with a SHADED one', () => {
+    // The whole illusion is that a form the same colour as its ground is lit
+    // from somewhere. One shadow is not a form, it is a smudge.
+    expect(luminance(colour(palette, 'neu-light'))).toBeGreaterThan(
+      luminance(colour(palette, 'neu-shade')),
+    );
+  });
+
+  it('defines a raise, an inset and a subtle raise, and keeps them distinct', () => {
+    const raised = colour(palette, 'shadow-neu-raised');
+    const inset = colour(palette, 'shadow-neu-inset');
+    const subtle = colour(palette, 'shadow-neu-subtle');
+    expect(raised).not.toBe(inset);
+    expect(raised).not.toBe(subtle);
+    // An inset is an inset. A "pressed" state drawn outside the box is the
+    // single easiest way to get neumorphism wrong.
+    expect(inset).toContain('inset');
+    expect(raised).not.toContain('inset');
+    expect(subtle).not.toContain('inset');
+  });
+
+  it('lights every surface from the SAME corner', () => {
+    // Top-left, everywhere: the lit offsets are negative on both axes and the
+    // shaded offsets positive. A screen lit from two directions does not read
+    // as soft, it reads as broken — and it is invisible in review because each
+    // control looks fine on its own.
+    for (const name of ['shadow-neu-raised', 'shadow-neu-inset', 'shadow-neu-subtle']) {
+      const value = colour(palette, name);
+      const [lit, shaded] = value.split(/,(?![^()]*\))/).map((part) => part.trim());
+      expect(lit, `--${name} lit half`).toMatch(/-\d+px -\d+px/);
+      expect(shaded, `--${name} shaded half`).toMatch(/(?:^|\s)\d+px \d+px/);
+    }
+  });
+});
+
 // ── clay is a physical metaphor, and physics does not invert ─────────────────
 
 describe.each(PALETTES)('%s clay', (_name, palette) => {

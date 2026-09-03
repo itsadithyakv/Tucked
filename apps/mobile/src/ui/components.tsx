@@ -25,7 +25,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { a11y, colour, radius, shadow, space, type } from '@tucked/ui-tokens';
+import { a11y, colour, neu, radius, shadow, space, type } from '@tucked/ui-tokens';
 import { SparkleBurst } from './sparkle';
 
 /** Every screen respects the device's status bar / camera cutout. */
@@ -283,11 +283,15 @@ const styles = StyleSheet.create({
     ...type.body,
     color: colour.ink,
     backgroundColor: colour.surface,
+    // The border stays. A field boundary made only of soft shadow is the
+    // accessibility complaint neumorphism has earned; the line is the honest
+    // edge and the inset is the depth.
     borderColor: colour.line,
     borderWidth: 1,
     borderRadius: radius.md,
     minHeight: a11y.minTouchTarget + 4,
     paddingHorizontal: space.base,
+    boxShadow: neu.inset,
   },
   sheetBackdrop: {
     flex: 1,

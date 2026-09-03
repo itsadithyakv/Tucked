@@ -309,12 +309,38 @@ The retired Gilroy files remain archived in `assets/fonts/`; nothing loads them.
 
 Surfaces are **soft solids**, never flat paper shadows. Each level is a thick inner top highlight (light hits the top of the form), an inner bottom shade (the form curves away), and a layered ink-tinted drop:
 
-- `--shadow-resting`, `--shadow-raised`, `--shadow-pressed`
+- `--shadow-resting`, `--shadow-raised`
 - `--clay-highlight` / `--clay-highlight-soft` — the light on the top edge
 - `--clay-foot` / `--clay-foot-quiet` — the side wall
 - `--clay-glow` — the warm lift under a primary press (a deeper drop in dark, not a brighter halo)
 
 **In dark, shadows barely work** — you cannot cast a dark shadow on a dark canvas — so surfaces separate by lightness instead. Dark deliberately separates ~15 % more than light, and that is correct rather than a bug.
+
+### Neumorphism — the cousin, used sparingly
+
+Clay is a solid form sitting **on a different-coloured ground**: one top highlight and one ink-tinted drop. Neumorphism is a form pressed **out of or into a ground of the same colour**, which needs *two* shadows — a lit face toward the light and a shaded face away from it.
+
+| Token | What it is |
+|---|---|
+| `--neu-light` / `--neu-shade` | The lit and shaded faces. In dark the light dims to 5.5 % white and the shade goes near-black |
+| `--shadow-neu-raised` | Pressed out of the ground |
+| `--shadow-neu-inset` | Carved into it — a field, a read-only panel |
+| `--shadow-neu-subtle` | Touchable without announcing itself |
+
+**The light sits top-left, always, everywhere.** A screen where some controls are lit from the left and others from the right does not read as soft, it reads as broken — and it is invisible in review, because each control looks fine on its own. Three tests per palette hold the direction, the lit/shaded pairing, and the fact that an inset is drawn `inset`.
+
+**The rule that keeps it honest: neumorphism carries no meaning.** An element the same colour as its ground cannot carry contrast, so it is never the only thing saying something. Where it is allowed:
+
+| Allowed | Why it is safe |
+|---|---|
+| `input`, `select`, `textarea` | The `--line` border stays. A field boundary made only of soft shadow is exactly the accessibility complaint neumorphism has earned; the line is the honest edge (1.4.11), the shadow is the depth |
+| `.theme-toggle` | Background is `--canvas`, deliberately the same colour as the page, which is the whole premise. Its label still measures 6.5:1. Pressing it swaps the raise for the inset |
+| `.sidebar nav a[aria-current='page']` | Reads as pressed *into* the rail. The blue tint stays — a state told only in shadow is a state many people cannot see, and `aria-current` plus the visible label are what carry it |
+| `.well` | Read-only prose a reader dwells on: a published policy, a composed story draft |
+
+Where it is **not** allowed: a primary button, a Now pill, or anything holding regulated content, where the clay drop is doing real separation work.
+
+**It mirrors to React Native**, unlike the rest of elevation. RN ≥ 0.76 takes the `boxShadow` shorthand with multiple shadows and `inset` on both platforms, so `neu` in `tokens.ts` is the same string — the mobile `Field` is the same carved well. The RN face carries the light values only, because the app is light-only.
 
 ---
 

@@ -171,10 +171,13 @@ aside.sidebar {
   animation: float 6s ease-in-out 2s infinite;
 }
 
+/* You-are-here reads as pressed INTO the rail. The blue tint stays: a state
+   told only in shadow is a state a lot of people cannot see, and aria-current
+   plus the visible label are what actually carry it. The inset is the feel. */
 .sidebar nav a[aria-current='page'] {
   background: var(--blue-50);
   color: var(--blue-700);
-  box-shadow: inset 0 1px 0 var(--clay-highlight);
+  box-shadow: var(--shadow-neu-inset);
 }
 
 /* labels melt away as the rail narrows */
@@ -434,11 +437,15 @@ textarea {
   font: var(--type-body);
   color: var(--ink);
   background: var(--surface);
+  /* The border stays. A neumorphic well is defined by its shadows, and purists
+     drop the line — but a field boundary made only of soft shadow is exactly
+     the accessibility complaint neumorphism has earned. The line is the honest
+     edge (1.4.11); the shadow is the depth. */
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   min-height: 46px;
   padding: var(--space-sm) var(--space-md);
-  box-shadow: var(--shadow-pressed);
+  box-shadow: var(--shadow-neu-inset);
   transition: border-color var(--motion-fast) ease-out;
 }
 
@@ -502,6 +509,16 @@ tbody tr:hover {
 td.wrap {
   max-width: 380px;
   white-space: normal;
+}
+
+/* A carved-in panel for read-only text a reader is meant to dwell on — a
+   composed story draft, a quoted policy, a day's summary. Same colour as the
+   card it sits in, so the depth comes entirely from the two shadows. */
+.well {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-base);
+  box-shadow: var(--shadow-neu-inset);
 }
 
 /* ── pills — never colour alone; the word carries the meaning ──────────── */
@@ -818,7 +835,11 @@ button.small {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  background: var(--surface);
+  /* CANVAS, not surface — deliberately the same colour as the ground it sits
+     on, which is the whole premise of the neumorphic raise below. A different
+     colour here and the two shadows would read as a mistake rather than a
+     form. */
+  background: var(--canvas);
   color: var(--slate);
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
@@ -827,10 +848,16 @@ button.small {
   min-height: 38px;
   padding: 6px 14px;
   font: var(--type-caption);
-  box-shadow: inset 0 1px 0 var(--clay-highlight);
+  box-shadow: var(--shadow-neu-raised);
   transition:
     color var(--motion-fast) ease,
+    box-shadow var(--motion-fast) ease,
     background var(--motion-fast) ease;
+}
+
+/* the press: the same form, pushed into the page rather than out of it */
+.theme-toggle:active {
+  box-shadow: var(--shadow-neu-inset);
 }
 
 .theme-toggle:hover {

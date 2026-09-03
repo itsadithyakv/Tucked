@@ -1,8 +1,11 @@
 /* Tucked design tokens — CSS face. Rules: references/05-apps-and-design-system.md.
    The palette mirrors src/tokens.ts (the React Native face); change both
-   together. Elevation does NOT: clay is shadows and highlights here, and
-   StyleSheet shadow objects there, so --clay-*, --scrim and --shadow-* live
-   only in this file.
+   together. Elevation mostly does NOT: clay is shadows and highlights here and
+   StyleSheet shadow objects there, so --clay-*, --scrim and --shadow-resting/
+   raised live only in this file. The exception is --neu-*, which DOES mirror,
+   as `neu` in tokens.ts — React Native ≥ 0.76 takes the boxShadow shorthand,
+   so neumorphism is one string on both faces. Change those together too; the
+   RN face carries the light values only, because the app is light-only.
    Dark mode is the swap the semantic names were for. It is built. Every
    colour token below is redefined in BOTH dark blocks — one for the device
    preference, one for an explicit choice — so add a colour to all three or to
@@ -80,6 +83,31 @@
   /* the warm lift under a primary press */
   --clay-glow: rgba(33, 102, 200, 0.45);
 
+  /* NEUMORPHISM — a cousin of the clay above, not a replacement, and used
+     sparingly. Clay is a solid form sitting ON a different-coloured ground:
+     one top highlight, one ink-tinted drop. Neumorphism is a form pressed
+     OUT OF or INTO a ground of THE SAME COLOUR, which needs two shadows —
+     a lit face toward the light and a shaded face away from it.
+
+     The light sits top-left, always, everywhere. A screen where some
+     controls are lit from the left and others from the right does not read
+     as soft, it reads as broken.
+
+     THE RULE THAT KEEPS IT HONEST: neumorphism carries no meaning, because
+     an element the same colour as its ground cannot carry contrast. It is
+     allowed on wells, toggles and the you-are-here rail item — things whose
+     state is already said in words, a label, or aria-current. It is NOT
+     allowed on a primary button, a Now pill, or anything holding regulated
+     content, where the clay drop is doing real separation work. §3 keeps its
+     AA floors either way: none of this changes a text or background colour. */
+  --neu-light: rgba(255, 255, 255, 0.9);
+  --neu-shade: rgba(23, 50, 92, 0.13);
+  --shadow-neu-raised: -4px -4px 10px var(--neu-light), 5px 5px 12px var(--neu-shade);
+  --shadow-neu-inset:
+    inset -3px -3px 7px var(--neu-light), inset 4px 4px 9px var(--neu-shade);
+  /* for a control that should feel touchable without announcing itself */
+  --shadow-neu-subtle: -2px -2px 6px var(--neu-light), 3px 3px 7px var(--neu-shade);
+
   /* Elevation — clay: surfaces are soft solids. A thick inner top highlight
      (light hits the top of the form), an inner bottom shade (the form curves
      away), and a layered ink-tinted drop. Never flat paper shadows. */
@@ -89,7 +117,6 @@
   --shadow-raised:
     inset 0 2px 0 rgba(255, 255, 255, 0.95), inset 0 -4px 8px rgba(23, 50, 92, 0.05),
     0 6px 12px -4px rgba(23, 50, 92, 0.08), 0 28px 56px -20px rgba(23, 50, 92, 0.24);
-  --shadow-pressed: inset 0 3px 6px rgba(23, 50, 92, 0.09);
 
   /* Layout */
   --sidebar-w: 248px;
@@ -177,6 +204,17 @@
     /* no warm glow in the dark: the lift is a deeper drop, not a brighter halo */
     --clay-glow: rgba(4, 9, 18, 0.55);
 
+    /* Neumorphism in the dark. The light source has not moved; it is dimmer,
+       and the shade it casts is nearly black rather than ink-tinted. The same
+       white at the same strength that models a form on paper reads as a
+       scratch here — the lesson --clay-highlight already learned. */
+    --neu-light: rgba(255, 255, 255, 0.055);
+    --neu-shade: rgba(2, 6, 14, 0.66);
+    --shadow-neu-raised: -4px -4px 10px var(--neu-light), 6px 6px 14px var(--neu-shade);
+    --shadow-neu-inset:
+      inset -3px -3px 7px var(--neu-light), inset 4px 4px 10px var(--neu-shade);
+    --shadow-neu-subtle: -2px -2px 6px var(--neu-light), 4px 4px 9px var(--neu-shade);
+
     /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
        because the light is dimmer, not because the form changed. */
     --shadow-resting:
@@ -185,7 +223,6 @@
     --shadow-raised:
       inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 8px rgba(0, 0, 0, 0.22),
       0 6px 12px -4px rgba(0, 0, 0, 0.45), 0 28px 56px -20px rgba(0, 0, 0, 0.7);
-    --shadow-pressed: inset 0 3px 6px rgba(0, 0, 0, 0.5);
   }
 }
 
@@ -228,6 +265,17 @@
   /* no warm glow in the dark: the lift is a deeper drop, not a brighter halo */
   --clay-glow: rgba(4, 9, 18, 0.55);
 
+  /* Neumorphism in the dark. The light source has not moved; it is dimmer,
+     and the shade it casts is nearly black rather than ink-tinted. The same
+     white at the same strength that models a form on paper reads as a
+     scratch here — the lesson --clay-highlight already learned. */
+  --neu-light: rgba(255, 255, 255, 0.055);
+  --neu-shade: rgba(2, 6, 14, 0.66);
+  --shadow-neu-raised: -4px -4px 10px var(--neu-light), 6px 6px 14px var(--neu-shade);
+  --shadow-neu-inset:
+    inset -3px -3px 7px var(--neu-light), inset 4px 4px 10px var(--neu-shade);
+  --shadow-neu-subtle: -2px -2px 6px var(--neu-light), 4px 4px 9px var(--neu-shade);
+
   /* Clay in the dark: the top highlight nearly vanishes and the drop deepens,
      because the light is dimmer, not because the form changed. */
   --shadow-resting:
@@ -236,5 +284,4 @@
   --shadow-raised:
     inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -4px 8px rgba(0, 0, 0, 0.22),
     0 6px 12px -4px rgba(0, 0, 0, 0.45), 0 28px 56px -20px rgba(0, 0, 0, 0.7);
-  --shadow-pressed: inset 0 3px 6px rgba(0, 0, 0, 0.5);
 }

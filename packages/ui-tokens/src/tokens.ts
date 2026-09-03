@@ -117,6 +117,30 @@ export const shadow = {
   },
 } as const;
 
+/**
+ * Neumorphism — the CSS face's --neu-* tokens, in the form React Native takes.
+ *
+ * Two shadows, lit from the top-left, on an element THE SAME COLOUR as its
+ * ground. RN ≥ 0.76 supports the `boxShadow` shorthand with multiple shadows
+ * and `inset` on both platforms, so this is the real thing rather than an
+ * approximation with `shadowOffset` — which cannot do two shadows, and cannot
+ * do inset at all.
+ *
+ * Same restraint as the web: wells, toggles and you-are-here. Never a primary
+ * button, never a Now surface. An element the same colour as its ground cannot
+ * carry contrast, so it must never be the only thing saying something.
+ */
+export const neu = {
+  light: 'rgba(255, 255, 255, 0.9)',
+  shade: 'rgba(23, 50, 92, 0.13)',
+  /** pressed out of the ground */
+  raised: '-4px -4px 10px rgba(255, 255, 255, 0.9), 5px 5px 12px rgba(23, 50, 92, 0.13)',
+  /** carved into it — a field, a read-only panel */
+  inset:
+    'inset -3px -3px 7px rgba(255, 255, 255, 0.9), inset 4px 4px 9px rgba(23, 50, 92, 0.13)',
+  subtle: '-2px -2px 6px rgba(255, 255, 255, 0.9), 3px 3px 7px rgba(23, 50, 92, 0.13)',
+} as const;
+
 /** Durations in ms. Respect prefers-reduced-motion on both platforms. */
 export const motion = {
   fast: 120,

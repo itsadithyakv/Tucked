@@ -196,7 +196,9 @@ export default function PoliciesPage() {
             {isOpen ? (
               <>
                 {v ? (
-                  <p className="wrap" style={{ whiteSpace: 'pre-wrap' }}>
+                  /* The published words themselves, carved into the card — this
+                     is the text a person is attesting they have read. */
+                  <p className="wrap well" style={{ whiteSpace: 'pre-wrap' }}>
                     {v.body}
                     <br />
                     <span className="caption">Published {fmtDate(v.published_at)}</span>
