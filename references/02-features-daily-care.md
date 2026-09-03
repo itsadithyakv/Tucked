@@ -302,7 +302,7 @@ Console: **Sleep** — findings card, the register, the directions card with a P
 
 ### Where this is weak
 
-- **The room device does not yet call `sleep_placement_options`.** The function exists and is tested; the nap board still offers positions generically and relies on the refusal. That is safe but it is a bad interaction — an educator learns the rule by being told no.
+- **The nap board's offline fallback is back-only.** `sleep_placement_options` is a live read, so a room with no connection is offered only "on their back" — correct and safe, since back never needs permission, but a child with a side-lying direction on file cannot be laid on their side until the connection returns. The permitted set is not in the offline cache.
 - **`long_rest_finding` uses `lead()` over the day's logs** and assumes naps do not interleave. A child with two overlapping nap records in one day produces a confusing pair.
 - **The compliance calendar has a `sleep_monitor_check` task** for the daily electronic-monitor check, but nothing links a monitor to a room, so it is a reminder rather than a record of *which* monitor.
 - **Nothing enforces the check cadence.** The interval is configured and the device prompts, but a missed check produces no finding. The register shows what was done; it does not show what was skipped.
@@ -645,7 +645,7 @@ One calm, specific letter per child per day, composed by **`app.story_compose(ch
 
 **The publish trigger can never block a departure.** It runs inside the sign-out transaction, and a child being released to their parent must not depend on a story composing cleanly, so anything that goes wrong there is swallowed on purpose and left to the sweep. A late story is a disappointment; a sign-out that will not complete is an incident.
 
-**The educator's own note always sits on top, untouched.** `save_story_note` writes it and publishes if the story has not gone yet; a recomposition never overwrites it.
+**The educator's own note always sits on top, untouched.** Written from Room mode — a child's **More → Today's story** — which shows the composed draft as it currently reads and saves the note through `save_story_note`, publishing if the story has not gone yet. A recomposition never overwrites it.
 
 AI polish is a labelled, optional Phase 2 add-on and **never a dependency** — the template-drafted story ships without it.
 
@@ -673,7 +673,7 @@ Family adults can see the **workforce** of their centre by name — a parent mus
 
 This is the weakest module in the product relative to how central it is to the pitch. Three of the four items below are **written, not wired**.
 
-- **The educator's note has no surface.** `save_story_note` is the RPC and nothing on either app calls it, so in practice every story is the composed draft with no human voice on top. The publishing itself is fixed; the note is not.
+- **The room screen is not click-verified.** The note sheet, the nap-position sheet and the sleep-check sheet are typechecked, linted, and their three RPCs are proven against a live database as a real educator with a real PIN — but nobody has tapped them. Expo web renders in the harness and refuses to accept synthetic or automated taps (React Native Web's responder system), so this needs a device build, like the airplane-mode runbook.
 - **`long_rest_finding` and the story's own nap pairing both use `lead()`** over the day's logs and assume naps do not interleave. A child with two `nap_start` rows before one `nap_end` produces a pair measured from the *second* start. This was a live flake in the sleep suite for a while: an unrelated `now()`-anchored nap landed between a fixture's noon and 14:30 pair, and the long-rest test read 149 minutes instead of 150 — but only when the suite ran shortly after local noon.
 - **The opt-up preference has no storage.** `routeNotification` takes a `prefs` argument with a `realtimeOptIn` set, and it is unit-tested, but **no table holds it and nothing passes it**. Every family therefore gets the default: quiet. The default is the right one, which is why this has stayed invisible.
 - **Quiet hours are a property of the Now channel, not a per-family window.** Now bypasses quiet hours by design; there is no way for a family to say "nothing before 7 unless it is urgent", because there is no per-family window at all.

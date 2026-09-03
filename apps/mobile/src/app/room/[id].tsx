@@ -85,8 +85,24 @@ function Board() {
   const [obsParent, setObsParent] = useState('');
   const [moreFor, setMoreFor] = useState<{ childId: string; firstName: string } | null>(null);
   const [moreView, setMoreView] = useState<
-    'menu' | 'meal' | 'diaper' | 'note' | 'accident' | 'medication' | 'illness'
+    'menu' | 'meal' | 'diaper' | 'note' | 'accident' | 'medication' | 'illness' | 'story'
   >('menu');
+  // s. 33.1: how a child under 12 months may be PLACED for sleep. Fetched per
+  // child because it depends on what is on their file; 'back' is the offline
+  // fallback because back never needs permission and no note can take it away.
+  const [napFor, setNapFor] = useState<{
+    childId: string;
+    firstName: string;
+    positions: string[];
+    instruction: string | null;
+    practitioner: string | null;
+    underTwelveMonths: boolean;
+  } | null>(null);
+  const [checkFor, setCheckFor] = useState<{ childId: string; firstName: string } | null>(null);
+  const [seenPosition, setSeenPosition] = useState<'back' | 'side' | 'front'>('side');
+  const [putBack, setPutBack] = useState(true);
+  const [storyNote, setStoryNote] = useState('');
+  const [storyDraft, setStoryDraft] = useState<string | null>(null);
   const [medAuths, setMedAuths] = useState<
     { id: string; drug_name: string; dose: string | null; schedule: string | null; symptoms: string | null; kind: string }[]
   >([]);
@@ -311,6 +327,62 @@ function Board() {
         p_type: logType,
         p_logged_at: new Date().toISOString(),
         p_payload: payload,
+        p_recorder: recorder.personId,
+        p_pin: recorder.pin,
+      }),
+    );
+  }
+
+  /** The nap board asks the database what this child may be placed in, so an
+   *  educator is never offered a choice the write will then refuse. */
+  async function openNap(childId: string, firstName: string) {
+    const { data } = await supabase.rpc('sleep_placement_options', { p_child: childId });
+    const row = (data as { positions: string[]; under_twelve_months: boolean; direction_instruction: string | null; practitioner: string | null }[] | null)?.[0];
+    if (row && !row.under_twelve_months) {
+      // Over twelve months the position is not a regulated fact; go straight through.
+      void careLog(childId, 'nap_start', {});
+      return;
+    }
+    setNapFor({
+      childId,
+      firstName,
+      // No answer (offline, or the read failed) means back only. That is the
+      // safe default rather than a blocked button: a baby can always be laid
+      // on their back, and a side-lying direction simply is not offered until
+      // the connection returns.
+      positions: row?.positions?.length ? row.positions : ['back'],
+      instruction: row?.direction_instruction ?? null,
+      practitioner: row?.practitioner ?? null,
+      underTwelveMonths: row?.under_twelve_months ?? true,
+    });
+  }
+
+  async function openStory(childId: string) {
+    setStoryNote('');
+    setStoryDraft(null);
+    setMoreView('story');
+    const [{ data: existing }, { data: preview }] = await Promise.all([
+      supabase
+        .from('story')
+        .select('educator_note')
+        .eq('child_id', childId)
+        .eq('story_date', new Date().toISOString().slice(0, 10))
+        .maybeSingle(),
+      supabase.rpc('story_preview', {
+        p_child: childId,
+        p_date: new Date().toISOString().slice(0, 10),
+      }),
+    ]);
+    setStoryNote((existing as { educator_note: string | null } | null)?.educator_note ?? '');
+    setStoryDraft((preview as string | null) ?? null);
+  }
+
+  function saveStoryNote(childId: string, note: string) {
+    return act(childId, (recorder) =>
+      runCommand('save_story_note', {
+        p_child: childId,
+        p_date: new Date().toISOString().slice(0, 10),
+        p_note: note,
         p_recorder: recorder.personId,
         p_pin: recorder.pin,
       }),
@@ -654,14 +726,32 @@ function Board() {
               {isPresent ? (
                 <View style={styles.actions}>
                   {needsChecks && !napping ? (
-                    <Button label="Start nap" kind="quiet" onPress={() => void careLog(item.id, 'nap_start', {})} />
+                    <Button
+                      label="Start nap"
+                      kind="quiet"
+                      onPress={() => void openNap(item.id, item.full_name.split(' ')[0]!)}
+                    />
                   ) : null}
                   {napping ? (
                     <>
+                      {/* The fast path is one tap and says exactly what it
+                          records. Anything else — a baby who has rolled, or a
+                          child who needs help — is one tap further, because a
+                          check that always asserts "on their back" would make
+                          the s. 33.1 finding unreachable in practice. */}
                       <Button
-                        label={checkDue ? 'Sleep check due' : 'Record sleep check'}
+                        label={checkDue ? 'On their back, breathing' : 'Sleep check — on their back'}
                         kind={checkDue ? 'primary' : 'quiet'}
                         onPress={() => void careLog(item.id, 'sleep_check', { breathing_ok: true, position: 'back' })}
+                      />
+                      <Button
+                        label="Something else…"
+                        kind="quiet"
+                        onPress={() => {
+                          setSeenPosition('side');
+                          setPutBack(true);
+                          setCheckFor({ childId: item.id, firstName: item.full_name.split(' ')[0]! });
+                        }}
                       />
                       <Button label="End nap" kind="quiet" onPress={() => void careLog(item.id, 'nap_end', {})} />
                     </>
@@ -734,6 +824,11 @@ function Board() {
             <Button label="Record meal" kind="quiet" onPress={() => setMoreView('meal')} />
             <Button label="Record diaper" kind="quiet" onPress={() => setMoreView('diaper')} />
             <Button label="Add note" kind="quiet" onPress={() => setMoreView('note')} />
+            <Button
+              label="Today's story"
+              kind="quiet"
+              onPress={() => void openStory(moreFor!.childId)}
+            />
             {medAuths.length > 0 ? (
               <Button label="Give medication" kind="quiet" onPress={() => setMoreView('medication')} />
             ) : null}
@@ -848,6 +943,38 @@ function Board() {
                   const id = moreFor.childId;
                   setMoreFor(null);
                   void careLog(id, 'note', { text: noteText.trim() });
+                }
+              }}
+            />
+          </>
+        ) : null}
+        {moreView === 'story' ? (
+          <>
+            <Body muted>
+              Your words sit at the top of what the family reads tonight. The rest is written from
+              the day&apos;s own records and goes out at pick-up.
+            </Body>
+            <Field
+              placeholder="Anything you want them to know — one or two lines"
+              value={storyNote}
+              onChangeText={setStoryNote}
+              multiline
+              autoCapitalize="sentences"
+            />
+            {storyDraft ? (
+              <>
+                <Caption>The day, as it reads now</Caption>
+                <Body muted>{storyDraft}</Body>
+              </>
+            ) : null}
+            <Button
+              label="Save"
+              onPress={() => {
+                if (moreFor) {
+                  const id = moreFor.childId;
+                  const note = storyNote.trim();
+                  setMoreFor(null);
+                  void saveStoryNote(id, note);
                 }
               }}
             />
@@ -1002,6 +1129,93 @@ function Board() {
         ].map((w) => (
           <Button key={w.value} label={w.label} kind="quiet" onPress={() => goOutside(w.value)} />
         ))}
+      </Sheet>
+
+      {/* s. 33.1: how the child is being PLACED. Only what the file permits. */}
+      <Sheet
+        visible={napFor !== null}
+        onClose={() => setNapFor(null)}
+        title={napFor ? `${napFor.firstName} — laying down` : ''}
+      >
+        <Body muted>
+          Under 12 months a child is placed on their back, unless their physician has recommended
+          otherwise in writing (s. 33.1).
+        </Body>
+        {napFor?.instruction ? (
+          <>
+            <Caption>On file{napFor.practitioner ? ` — ${napFor.practitioner}` : ''}</Caption>
+            <Body muted>{napFor.instruction}</Body>
+          </>
+        ) : null}
+        {napFor?.positions.map((position) => (
+          <Button
+            key={position}
+            label={position === 'back' ? 'On their back' : `On their ${position}`}
+            kind={position === 'back' ? 'primary' : 'quiet'}
+            onPress={() => {
+              const target = napFor;
+              setNapFor(null);
+              if (target) void careLog(target.childId, 'nap_start', { position });
+            }}
+          />
+        ))}
+      </Sheet>
+
+      {/* s. 33.1: what the educator actually SAW. Never refused. */}
+      <Sheet
+        visible={checkFor !== null}
+        onClose={() => setCheckFor(null)}
+        title={checkFor ? `${checkFor.firstName} — sleep check` : ''}
+      >
+        <Body muted>
+          Record what you saw. A child found off their back is always recordable — the day&apos;s
+          record picks it up, and nothing here refuses it.
+        </Body>
+        <Caption>Where they were</Caption>
+        {(['back', 'side', 'front'] as const).map((position) => (
+          <Button
+            key={position}
+            label={position === 'back' ? 'On their back' : `On their ${position}`}
+            kind={seenPosition === position ? 'primary' : 'quiet'}
+            onPress={() => setSeenPosition(position)}
+          />
+        ))}
+        {seenPosition !== 'back' ? (
+          <Button
+            label={putBack ? 'Placed them back ✓' : 'Placed them back'}
+            kind={putBack ? 'primary' : 'quiet'}
+            onPress={() => setPutBack((v) => !v)}
+          />
+        ) : null}
+        <Button
+          label="Breathing normally — record"
+          onPress={() => {
+            const target = checkFor;
+            setCheckFor(null);
+            if (target) {
+              void careLog(target.childId, 'sleep_check', {
+                breathing_ok: true,
+                position: seenPosition,
+                ...(seenPosition === 'back' ? {} : { repositioned: putBack }),
+              });
+            }
+          }}
+        />
+        <Button
+          label="Not breathing normally — intervened"
+          kind="quiet"
+          onPress={() => {
+            const target = checkFor;
+            setCheckFor(null);
+            if (target) {
+              void careLog(target.childId, 'sleep_check', {
+                breathing_ok: false,
+                position: seenPosition,
+                ...(seenPosition === 'back' ? {} : { repositioned: putBack }),
+              });
+            }
+          }}
+        />
       </Sheet>
 
       <Sheet visible={headOpen} onClose={() => setHeadOpen(false)} title="Headcount">

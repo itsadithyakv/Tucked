@@ -59,7 +59,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 
 | # | Work | Why it is first |
 |---|---|---|
-| 1 | **Give the educator's note a surface.** `save_story_note` is the RPC and no screen calls it, so every story ships as the composed draft with no human voice on top | "The educator's own note always sits on top" is true of the schema and false of the product. The publishing itself is done and proven (29 tests) |
+| 1 | **Click through the room screen on a device.** Three new sheets landed there — the story note, the nap position, the sleep check — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
 | 3 | **Run pgTAP in CI** | The 663 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
@@ -83,7 +83,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | 12 | **Dark mode in the Expo app** — needs a theme context threaded through the component library |
 | 13 | **PIPEDA access/deletion workflow** with a 30-day SLA tracker and a consent-withdrawal cascade |
 | 14 | **Break `room/[id].tsx` apart** — 1,075 lines doing sign-in, care logs, the nap board, bulk logging and medication |
-| 15 | **Wire the nap board to `sleep_placement_options`** so an educator is offered only what the file permits |
+| 15 | **Put the permitted sleep positions in the offline cache.** The nap board now reads `sleep_placement_options` live and falls back to back-only with no connection — safe, but a child with a side-lying direction cannot be laid on their side offline |
 | 16 | **PIN rate limiting** — 10,000 possibilities and nothing throttles |
 | 17 | **A mechanical check that `careLogSchemas.ts` and `app.validate_care_log_payload` agree** |
 | 18 | **A "did last night's sweeps run" signal** — three crons, no reporting, silent failure |
@@ -127,7 +127,7 @@ These exist in the tree and do nothing today.
 | Thing | State |
 |---|---|
 | ~~**The daily story**~~ | **Wired** (migration 0039). Composed by `app.story_compose`, published by a `depart` trigger, with `app.publish_daily_stories()` hourly as the floor. Proven by 29 pgTAP tests, including one that breaks the composer on purpose and then signs a child out |
-| **The educator's story note** | `save_story_note` is written and reachable; no screen calls it. Backlog #1 |
+| ~~**The educator's story note**~~ | **Wired.** Room mode → a child's More → Today's story, showing the composed draft and saving the note through `save_story_note` |
 | **Notification opt-up preferences** | `routeNotification` accepts a `prefs.realtimeOptIn` set and is unit-tested. **No table holds it and nothing passes it.** Every family gets the default (quiet), which is why this has stayed invisible |
 | **The `photos` storage bucket** | Policies written in migration 0012, consent-gated, never used. No upload surface anywhere |
 | **The `photo` care-log type** | Validated, never produced |
