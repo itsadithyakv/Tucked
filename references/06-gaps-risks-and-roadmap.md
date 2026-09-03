@@ -59,10 +59,9 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 
 | # | Work | Why it is first |
 |---|---|---|
-| 1 | **Verify the story publishing** — migration 0039 composes in SQL, publishes on `depart`, and sweeps hourly as a floor. Written with 28 pgTAP tests that **have never been run**, because Docker was down when it landed. `pnpm exec supabase db reset && pnpm exec supabase test db` | The fix itself is in; the proof is not. Until the suite runs, the loudest promise in the product is code review rather than evidence |
-| 1b | **Give the educator's note a surface.** `save_story_note` is the RPC; no screen calls it, so every story ships with no human voice on top | "The educator's own note always sits on top" is currently true of the schema and false of the product |
+| 1 | **Give the educator's note a surface.** `save_story_note` is the RPC and no screen calls it, so every story ships as the composed draft with no human voice on top | "The educator's own note always sits on top" is true of the schema and false of the product. The publishing itself is done and proven (29 tests) |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
-| 3 | **Run pgTAP in CI** | The 634 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
+| 3 | **Run pgTAP in CI** | The 663 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
 
 ### Tier 2 — would embarrass in an inspection or a demo
@@ -127,8 +126,8 @@ These exist in the tree and do nothing today.
 
 | Thing | State |
 |---|---|
-| ~~**The daily story**~~ | **Wired** (migration 0039). Composed by `app.story_compose`, published by a `depart` trigger, with `app.publish_daily_stories()` hourly as the floor. **Not yet run against a database** — see backlog #1 |
-| **The educator's story note** | `save_story_note` is written and reachable; no screen calls it. Backlog #1b |
+| ~~**The daily story**~~ | **Wired** (migration 0039). Composed by `app.story_compose`, published by a `depart` trigger, with `app.publish_daily_stories()` hourly as the floor. Proven by 29 pgTAP tests, including one that breaks the composer on purpose and then signs a child out |
+| **The educator's story note** | `save_story_note` is written and reachable; no screen calls it. Backlog #1 |
 | **Notification opt-up preferences** | `routeNotification` accepts a `prefs.realtimeOptIn` set and is unit-tested. **No table holds it and nothing passes it.** Every family gets the default (quiet), which is why this has stayed invisible |
 | **The `photos` storage bucket** | Policies written in migration 0012, consent-gated, never used. No upload surface anywhere |
 | **The `photo` care-log type** | Validated, never produced |
@@ -186,7 +185,7 @@ Not gaps exactly — decisions with a consequence somebody should be able to exp
 
 | Risk | Likelihood | Impact | Mitigation today | Gap |
 |---|---|---|---|---|
-| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 634 tests exist and are fast | They do not run in CI. Backlog #3 |
+| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 663 tests exist and are fast | They do not run in CI. Backlog #3 |
 | **A migration breaks every centre at once** | Low | **High** | One project is one blast radius; pgTAP + local reset | No staging environment. Backlog #11 |
 | **`create or replace function` drops an earlier amendment** | Medium | High | Happened once, caught by the suite | Nothing prevents it. [04 §9.2](04-data-security-and-platform.md) |
 | **A `security_invoker` view reasons about absence and lies** | Medium | Medium | Hit three times, each fixed with a definer helper and a tombstone test | No lint. [04 §9.1](04-data-security-and-platform.md) |

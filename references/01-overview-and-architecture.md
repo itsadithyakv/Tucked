@@ -41,7 +41,7 @@ Competitors (Brightwheel, Procare, Lillio, Playground, Storypark) compete on *en
 Tucked inverts both:
 
 - **Quiet by default.** One story per child per day. A hard two-channel split — **Now** (interrupts, requires acknowledgement) and **Later** (never interrupts, batched) — with the routing table in code and unit-tested, so "what is urgent" is a product decision that can be shown to a supervisor, not an accident of implementation.
-- **Compliance enforced in the database.** Not in a form validator, not in a client, not in a code review checklist — in Postgres constraints, triggers, RLS policies, and `SECURITY DEFINER` RPCs, proven by 634 pgTAP tests. A client bug cannot produce an invalid regulated record because the client is not what decides.
+- **Compliance enforced in the database.** Not in a form validator, not in a client, not in a code review checklist — in Postgres constraints, triggers, RLS policies, and `SECURITY DEFINER` RPCs, proven by 663 pgTAP tests. A client bug cannot produce an invalid regulated record because the client is not what decides.
 
 ### Who uses it
 
@@ -151,7 +151,7 @@ packages/
                    StyleSheet and a CSS face for the web. 51 tests.
 supabase/          38 migrations, RLS policies, SQL functions, the notify
                    Edge Function, pg_cron schedules, the seed generator,
-                   28 pgTAP suites (634 tests).
+                   29 pgTAP suites (663 tests).
 docs/              compliance-map.md, compliance-test-report.md,
                    decisions.md, demo-script.md, plans/
 references/        These six documents.
@@ -262,7 +262,7 @@ The per-person household permission model exists because of a specific competito
 ### Where this is weak
 
 - **There is no staging environment.** Every migration goes from a laptop to production. The upgrade trigger is named in §8 ("a destructive-migration near-miss, or a second engineer") but the risk is live today.
-- **pgTAP does not run in CI.** `pnpm check` covers lint, typecheck and the JS/TS test suites; the 634 database tests are run by hand with `pnpm exec supabase test db`. This is the single biggest gap in the quality story — the most valuable tests in the repo are the ones CI does not run.
+- **pgTAP does not run in CI.** `pnpm check` covers lint, typecheck and the JS/TS test suites; the 663 database tests are run by hand with `pnpm exec supabase test db`. This is the single biggest gap in the quality story — the most valuable tests in the repo are the ones CI does not run.
 - **No migration rollback discipline.** Migrations are forward-only in practice. "Every migration reversible" is an aspiration in the original architecture note, not something the tree demonstrates.
 - **`create or replace function` across migrations is a live trap.** Migration 0038 rebuilt `app.care_log_rules()` from the 0006 text and silently dropped an amendment made in 0022, breaking the retention sweep. The suite caught it. Nothing prevents the next occurrence. See [04 §9](04-data-security-and-platform.md).
 

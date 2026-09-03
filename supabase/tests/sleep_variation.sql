@@ -91,9 +91,14 @@ select throws_like(
   's33_1_front_without_a_direction_is_refused'
 );
 
--- over twelve months, the rule does not apply and the log carries no position
+-- over twelve months, the rule does not apply and the log carries no position.
+-- Anchored to 08:00 centre-local rather than now(): this child's measured
+-- noon-to-14:30 nap is asserted at the bottom of the file, and a now() nap
+-- lands BETWEEN those two whenever the suite runs shortly after local noon —
+-- which made the long-rest test read 149 minutes instead of 150, once a day,
+-- for exactly as long as it took somebody to run the suite at lunchtime.
 select lives_ok(
-  $$select public.record_care_log('33000000-0000-4000-8000-000000000001','63000000-0000-4000-8000-000000000002','36300000-0000-4000-8000-000000000002','nap_start', now(), '{}', '43000000-0000-4000-8000-000000000001', '4242')$$,
+  $$select public.record_care_log('33000000-0000-4000-8000-000000000001','63000000-0000-4000-8000-000000000002','36300000-0000-4000-8000-000000000002','nap_start', (((now() at time zone 'America/Toronto')::date + time '08:00') at time zone 'America/Toronto'), '{}', '43000000-0000-4000-8000-000000000001', '4242')$$,
   's33_1_over_12_months_needs_no_recorded_position'
 );
 

@@ -51,7 +51,7 @@ So: going outside is a `transition_out` headcount plus an `outdoor` period. Movi
 
 ### What Tucked does
 
-Every attendance write goes through `record_attendance(p_centre, p_child, p_room, p_type, p_actual_time, p_recorder, p_pin, …)` — a `SECURITY DEFINER` RPC. There are **no client insert policies** on `attendance_event`. The PIN resolves *who* is recording, so a shared room tablet still produces individually attributable records.
+Every attendance write goes through `record_attendance(p_centre, p_child, p_event_type, p_room, p_actual_time, p_recorder, p_pin, …)` — a `SECURITY DEFINER` RPC. (Note the order: the event type comes before the room.) There are **no client insert policies** on `attendance_event`. The PIN resolves *who* is recording, so a shared room tablet still produces individually attributable records.
 
 Rows are **append-only**. A mistake is fixed by inserting a correction row that points at the original with a reason; the original stays. Every read that reasons about the register ignores an event that has a correction pointing at it.
 
@@ -674,7 +674,7 @@ Family adults can see the **workforce** of their centre by name — a parent mus
 This is the weakest module in the product relative to how central it is to the pitch. Three of the four items below are **written, not wired**.
 
 - **The educator's note has no surface.** `save_story_note` is the RPC and nothing on either app calls it, so in practice every story is the composed draft with no human voice on top. The publishing itself is fixed; the note is not.
-- **Publishing is unverified against a live database.** Migration 0039 and its 28 pgTAP tests were written while Docker was down on the development machine; `pnpm exec supabase test db` has not been run against them. Treat the module as written-and-reviewed, not proven, until it has.
+- **`long_rest_finding` and the story's own nap pairing both use `lead()`** over the day's logs and assume naps do not interleave. A child with two `nap_start` rows before one `nap_end` produces a pair measured from the *second* start. This was a live flake in the sleep suite for a while: an unrelated `now()`-anchored nap landed between a fixture's noon and 14:30 pair, and the long-rest test read 149 minutes instead of 150 — but only when the suite ran shortly after local noon.
 - **The opt-up preference has no storage.** `routeNotification` takes a `prefs` argument with a `realtimeOptIn` set, and it is unit-tested, but **no table holds it and nothing passes it**. Every family therefore gets the default: quiet. The default is the right one, which is why this has stayed invisible.
 - **Quiet hours are a property of the Now channel, not a per-family window.** Now bypasses quiet hours by design; there is no way for a family to say "nothing before 7 unless it is urgent", because there is no per-family window at all.
 - **Messages have no attachments.**

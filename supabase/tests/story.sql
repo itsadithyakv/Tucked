@@ -11,7 +11,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(28);
+select plan(29);
 
 -- ── fixture ─────────────────────────────────────────────────────────────────
 insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at)
@@ -65,34 +65,40 @@ values
   ('38000000-0000-4000-8000-000000000001', '68000000-0000-4000-8000-000000000001', '3a000000-0000-4000-8000-000000000001', 'photo',      pg_temp.local_at('14:20'), '1970-01-01', '{"storage_path":"a.jpg","captured_at":"x"}', '48000000-0000-4000-8000-000000000001'),
   ('38000000-0000-4000-8000-000000000001', '68000000-0000-4000-8000-000000000001', '3a000000-0000-4000-8000-000000000001', 'photo',      pg_temp.local_at('14:21'), '1970-01-01', '{"storage_path":"b.jpg","captured_at":"x"}', '48000000-0000-4000-8000-000000000001');
 
-select like(
+select alike(
   app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
   '%Maya ate most of lunch.%',
   'story_reads_like_a_letter'
 );
 
-select like(
+select alike(
   app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
   '%12:40 p.m. to 2:10 p.m.%',
   'story_uses_12_hour_times_a_family_reads'
 );
 
-select like(
+select alike(
   app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
   '%2 new photos%',
   'story_counts_the_photos'
 );
 
-select unlike(
+select unalike(
   app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
   '%!%',
   'story_voice_never_exclaims'
 );
 
-select like(
+select alike(
   app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
   'Today Maya enjoyed Maya loved the leaf pile.%',
   'story_opens_with_the_day_rather_than_a_meal'
+);
+
+select unalike(
+  app.story_compose('68000000-0000-4000-8000-000000000001', (now() at time zone 'America/Toronto')::date),
+  '%..%',
+  'story_never_double_stops_after_a_time_because_a_m_already_ends_in_one'
 );
 
 select is(
@@ -130,7 +136,7 @@ select set_config('request.jwt.claims', '{"sub":"18000000-0000-4000-8000-0000000
 set local role authenticated;
 
 select lives_ok(
-  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000001','3a000000-0000-4000-8000-000000000001','arrive', pg_temp.local_at('08:00'), '48000000-0000-4000-8000-000000000001','4242')$$,
+  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000001','arrive','3a000000-0000-4000-8000-000000000001', pg_temp.local_at('08:00'), '48000000-0000-4000-8000-000000000001','4242')$$,
   'a_child_arrives'
 );
 
@@ -141,7 +147,7 @@ select is(
 );
 
 select lives_ok(
-  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000001','3a000000-0000-4000-8000-000000000001','depart', pg_temp.local_at('16:30'), '48000000-0000-4000-8000-000000000001','4242')$$,
+  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000001','depart','3a000000-0000-4000-8000-000000000001', pg_temp.local_at('16:30'), '48000000-0000-4000-8000-000000000001','4242')$$,
   'the_child_goes_home'
 );
 
@@ -151,12 +157,17 @@ select isnt(
   'and_the_story_publishes_at_pick_up_which_is_what_the_screen_promises'
 );
 
-select like(
+select alike(
   (select draft_text from public.story where child_id = '68000000-0000-4000-8000-000000000001'),
   '%Maya ate most of lunch.%',
   'the_published_draft_is_the_composed_day'
 );
 
+-- Counted as postgres on purpose. The fan-out is a server-side fact, and no
+-- client role is meant to see it: notification_select shows a row only to its
+-- recipient or to centre leadership, so the RECE who signed the child out
+-- cannot count the parent's notifications and should not be able to.
+reset role;
 select is(
   (select count(*)::integer from public.notification
    where event_type = 'story' and channel = 'later'
@@ -164,6 +175,7 @@ select is(
   1,
   'one_later_notification_per_viewing_adult'
 );
+set local role authenticated;
 
 -- ── the educator's words sit on top ─────────────────────────────────────────
 select lives_ok(
@@ -178,12 +190,14 @@ select is(
   'the_note_is_kept'
 );
 
+reset role;
 select is(
   (select count(*)::integer from public.notification where event_type = 'story'
      and child_id = '68000000-0000-4000-8000-000000000001'),
   1,
   'and_adding_it_does_not_push_a_second_time_that_day'
 );
+set local role authenticated;
 
 -- a recomposition must never wipe the human's words
 select lives_ok(
@@ -221,12 +235,12 @@ select pg_temp.break_the_composer();
 set local role authenticated;
 
 select lives_ok(
-  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000002','3a000000-0000-4000-8000-000000000001','arrive', pg_temp.local_at('08:05'), '48000000-0000-4000-8000-000000000001','4242')$$,
+  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000002','arrive','3a000000-0000-4000-8000-000000000001', pg_temp.local_at('08:05'), '48000000-0000-4000-8000-000000000001','4242')$$,
   'a_second_child_arrives'
 );
 
 select lives_ok(
-  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000002','3a000000-0000-4000-8000-000000000001','depart', pg_temp.local_at('16:45'), '48000000-0000-4000-8000-000000000001','4242')$$,
+  $$select public.record_attendance('38000000-0000-4000-8000-000000000001','68000000-0000-4000-8000-000000000002','depart','3a000000-0000-4000-8000-000000000001', pg_temp.local_at('16:45'), '48000000-0000-4000-8000-000000000001','4242')$$,
   'a_broken_composer_never_blocks_a_child_going_home'
 );
 
@@ -238,6 +252,15 @@ select is(
 
 -- ── the nightly floor ───────────────────────────────────────────────────────
 reset role;
+-- The sweep is the AFTER-CLOSING floor, so it deliberately does nothing while
+-- a centre is still open. Move closing into the past to exercise it — a test
+-- that only passed after 6 p.m. would be a worse test than a slow one.
+-- opens_at < closes_at is a constraint (no overnight care in v1), so both move.
+-- 00:01–00:02 is the narrowest window that has already passed at any hour a
+-- person is realistically running this suite.
+update public.centre set opens_at = '00:01', closes_at = '00:02'
+where id = '38000000-0000-4000-8000-000000000001';
+
 -- put the real composer back, then let the sweep catch what the trigger lost
 create or replace function app.story_compose(p_child uuid, p_date date)
 returns text language sql stable security definer set search_path = public as $$

@@ -147,10 +147,14 @@ begin
            case when naps.next_type = 'nap_end' then naps.next_at end as ended
     from naps where naps.log_type = 'nap_start'
   loop
+    -- No full stop after a time: app.twelve_hour already ends in one, because
+    -- "a.m." and "p.m." do. The TypeScript this was ported from appended one
+    -- anyway and every family would have read "settled for a rest at 10:58
+    -- a.m..", once a day, forever.
     parts := array_append(parts,
       case when n.ended is not null
-        then 'Rest time went ' || app.twelve_hour(n.started, tz) || ' to ' || app.twelve_hour(n.ended, tz) || '.'
-        else name || ' settled for a rest at ' || app.twelve_hour(n.started, tz) || '.'
+        then 'Rest time went ' || app.twelve_hour(n.started, tz) || ' to ' || app.twelve_hour(n.ended, tz)
+        else name || ' settled for a rest at ' || app.twelve_hour(n.started, tz)
       end);
   end loop;
 

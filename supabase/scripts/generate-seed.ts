@@ -690,14 +690,15 @@ lines.push(
   `values ('${c.id}', 'Pyjama day on Friday', 'Friday is pyjama day across all rooms — cosy clothes welcome. Outdoor play still happens, so please send weather-appropriate layers too.', '${supervisor.id}');`,
 );
 
-lines.push('', '-- stories for the demo family, and one unacknowledged Now alert');
+lines.push('', '-- stories for the demo family, composed the way a real day composes one');
 for (const id of demoChildIds) {
-  const first = f.children.find((ch) => ch.id === id)!.fullName.split(' ')[0];
   lines.push(
-    `insert into public.story (centre_id, child_id, story_date, draft_text, educator_note, published_at, published_by)`,
-    `values ('${c.id}', '${id}', current_date, 'We spent time outside today — the leaf pile was a hit. ${first} ate most of lunch and settled well for rest.', 'Lovely day. Ask about the leaf fort.', now(), '${educator.id}');`,
-    `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, created_by)`,
-    `values ('${c.id}', '${id}', '${demoParent.id}', 'later', 'story', 'Today''s story', 'The day''s story is ready.', '${educator.id}');`,
+    // Not a hand-written draft: app.publish_story_row composes from the day's
+    // own rows, sets the educator's note, publishes, and fans out the single
+    // Later notification. Idempotent, so a departure that already published
+    // this child's story is simply updated. The demo therefore shows exactly
+    // what a family will read, and the seed cannot drift from the composer.
+    `select app.publish_story_row('${id}', current_date, '${educator.id}', 'Lovely day. Ask about the leaf fort.', true);`,
   );
 }
 // (The accident's Now alerts are created by the 0015 database trigger.)
