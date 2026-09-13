@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { space } from '@tucked/ui-tokens';
+import { localDateISO, localMinutes, safeArrivalDue } from '@tucked/domain';
+import { colour, space } from '@tucked/ui-tokens';
 import { supabase } from '@/lib/supabase';
-import { loadRoomDay, presentByRoom } from '@/lib/roomData';
+import { loadRoomDay, noticesForSafeArrival, presentByRoom } from '@/lib/roomData';
 import type { RoomDay } from '@/lib/roomData';
 import { Body, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
 
@@ -30,8 +31,13 @@ interface OpenOccurrence {
   ccls_filed_at: string | null;
 }
 
-function fmt12(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
+function fmt12(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true, timeZone });
+}
+
+function minutesOf(hhmmss: string): number {
+  const [h, m] = hhmmss.split(':');
+  return Number(h) * 60 + Number(m);
 }
 
 function cclsClock(o: OpenOccurrence): { text: string; late: boolean } {
@@ -54,16 +60,20 @@ export default function Overview() {
   const [occurrences, setOccurrences] = useState<OpenOccurrence[]>([]);
 
   const refresh = useCallback(() => {
-    loadRoomDay().then(setDay);
-    const today = new Date().toISOString().slice(0, 10);
-    supabase
-      .from('accident_report')
-      .select(
-        'id, occurred_at, location, description, injury, severity, first_aid, head_injury, concussion_watch_note, parent_ack_at, child:child_id(full_name), completed_by_person:completed_by(full_name), ack_person:parent_ack_person_id(full_name)',
-      )
-      .eq('occurred_date', today)
-      .order('occurred_at', { ascending: false })
-      .then(({ data }) => setReports((data as never) ?? []));
+    loadRoomDay().then((d) => {
+      setDay(d);
+      if (!d) return;
+      // today's reports are the CENTRE's today — this query needs the centre
+      // loaded first, which is why it moved inside
+      supabase
+        .from('accident_report')
+        .select(
+          'id, occurred_at, location, description, injury, severity, first_aid, head_injury, concussion_watch_note, parent_ack_at, child:child_id(full_name), completed_by_person:completed_by(full_name), ack_person:parent_ack_person_id(full_name)',
+        )
+        .eq('occurred_date', localDateISO(d.centre.timezone))
+        .order('occurred_at', { ascending: false })
+        .then(({ data }) => setReports((data as never) ?? []));
+    });
     supabase
       .from('daily_written_record')
       .select('id', { count: 'exact', head: true })
@@ -85,12 +95,28 @@ export default function Overview() {
   }, []);
   useFocusEffect(refresh);
 
+  const tz = day?.centre.timezone;
   const presentTotal = day
     ? [...presentByRoom(day.attendance).values()].reduce((n, s) => n + s.size, 0)
     : 0;
-  const arrived = new Set(day?.attendance.filter((a) => a.event_type === 'arrive').map((a) => a.child_id));
-  const absent = new Set(day?.attendance.filter((a) => a.event_type === 'absent').map((a) => a.child_id));
-  const unaccounted = (day?.children ?? []).filter((c) => !arrived.has(c.id) && !absent.has(c.id)).length;
+  const arrived = (day?.attendance ?? []).filter((a) => a.event_type === 'arrive').map((a) => a.child_id);
+  const absent = (day?.attendance ?? []).filter((a) => a.event_type === 'absent').map((a) => a.child_id);
+  const notYetHere = (day?.children ?? []).filter((c) => !arrived.includes(c.id) && !absent.includes(c.id));
+  const afterCutoff = day ? localMinutes(day.centre.timezone) >= minutesOf(day.centre.safe_arrival_cutoff) : false;
+  // The SAME rule the chase list on Rooms uses, so this number and that list
+  // can never disagree. It used to count every child not yet in from the
+  // moment the doors opened, and showed a sand warning at 7:05 a.m.
+  const unaccounted = day
+    ? safeArrivalDue({
+        expectedChildIds: day.children.map((c) => c.id),
+        arrivedChildIds: arrived,
+        markedAbsentChildIds: absent,
+        alreadyPromptedChildIds: day.safeChecks.filter((s) => s.resolved_at).map((s) => s.child_id),
+        notices: noticesForSafeArrival(day),
+        nowMinutes: localMinutes(day.centre.timezone),
+        cutoffMinutes: minutesOf(day.centre.safe_arrival_cutoff),
+      }).length
+    : 0;
   const staffIn = new Set(
     (day?.shifts ?? []).filter((s) => s.counted_in_ratio && !s.out_at).map((s) => s.person_id),
   ).size;
@@ -113,17 +139,24 @@ export default function Overview() {
             </Card>
           </View>
           <View style={styles.tile}>
-            <Card wash={unaccounted > 0 ? 'sand' : 'mint'}>
-              <Title>{String(unaccounted)}</Title>
-              <Caption>not accounted for</Caption>
-            </Card>
+            {afterCutoff ? (
+              <Card wash={unaccounted > 0 ? 'sand' : 'mint'}>
+                <Title>{String(unaccounted)}</Title>
+                <Caption>not accounted for</Caption>
+              </Card>
+            ) : (
+              <Card wash="mist">
+                <Title>{String(notYetHere.length)}</Title>
+                <Caption>still to arrive</Caption>
+              </Card>
+            )}
           </View>
         </View>
 
         {occurrences.map((o) => {
           const c = cclsClock(o);
           return (
-            <Card key={o.id} wash={c.late ? undefined : 'sand'} color={c.late ? '#F9D9D3' : undefined}>
+            <Card key={o.id} wash={c.late ? undefined : 'sand'} color={c.late ? colour.nowWash : undefined}>
               <View style={styles.rowBetween}>
                 <Body>{`Serious occurrence — ${o.category.replace(/_/g, ' ')}`}</Body>
                 <Pill kind={c.late ? 'now' : 'due'}>{o.ccls_filed_at ? 'Open' : c.late ? 'Now' : 'Due'}</Pill>
@@ -164,13 +197,13 @@ export default function Overview() {
                 <Heading>{r.child?.full_name}</Heading>
                 {r.head_injury ? <Pill kind="now">Head injury</Pill> : null}
               </View>
-              <Caption>{`${fmt12(r.occurred_at)} · ${r.location} · ${r.severity.replace('_', ' ')}`}</Caption>
+              <Caption>{`${fmt12(r.occurred_at, tz)} · ${r.location} · ${r.severity.replace('_', ' ')}`}</Caption>
               <Body>{r.description}</Body>
               <Body muted>{`Injury: ${r.injury}. First aid: ${r.first_aid}.`}</Body>
               {r.concussion_watch_note ? <Body muted>{`Watch: ${r.concussion_watch_note}`}</Body> : null}
               <Caption>{`Completed by ${r.completed_by_person?.full_name ?? '—'}`}</Caption>
               {r.parent_ack_at ? (
-                <Pill kind="ok">{`Acknowledged by ${r.ack_person?.full_name ?? 'family'} at ${fmt12(r.parent_ack_at)}`}</Pill>
+                <Pill kind="ok">{`Acknowledged by ${r.ack_person?.full_name ?? 'family'} at ${fmt12(r.parent_ack_at, tz)}`}</Pill>
               ) : (
                 <Pill kind="due">Awaiting family acknowledgement</Pill>
               )}

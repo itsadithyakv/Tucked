@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { localDateISO } from '@tucked/domain';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { useFamily } from '@/lib/childTheme';
 import { supabase } from '@/lib/supabase';
@@ -41,12 +42,14 @@ function fmt12(iso: string): string {
 export default function DayLog() {
   const { selected } = useFamily();
   const childId = selected?.id ?? null;
+  const tz = selected?.timeZone ?? null;
   const [logs, setLogs] = useState<LogRow[]>([]);
   const [diapersLeft, setDiapersLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!childId) return;
-    const today = new Date().toISOString().slice(0, 10);
+    if (!childId || !tz) return;
+    // the centre's day — the UTC date is tomorrow from 8 p.m. in Toronto
+    const today = localDateISO(tz);
     supabase
       .from('care_log')
       .select('id, log_type, logged_at, payload')
@@ -66,7 +69,7 @@ export default function DayLog() {
         const v = (data?.[0]?.payload as { supplies_remaining?: number } | undefined)?.supplies_remaining;
         setDiapersLeft(typeof v === 'number' ? v : null);
       });
-  }, [childId]);
+  }, [childId, tz]);
 
   return (
     <Screen>

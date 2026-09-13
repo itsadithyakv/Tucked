@@ -5,6 +5,7 @@
  * follow-ups, live per-room presence. */
 
 import { useEffect, useState } from 'react';
+import { addDaysISO, localDateISO, localWeekStartISO } from '@tucked/domain';
 import Link from 'next/link';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, fmtTime, useConsole } from '@/lib/console';
@@ -71,7 +72,7 @@ export default function ExceptionsHome() {
 
   useEffect(() => {
     const sb = getSupabase();
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDateISO(centre.timezone);
 
     sb.from('daily_written_record')
       .select('id', { count: 'exact', head: true })
@@ -104,12 +105,8 @@ export default function ExceptionsHome() {
 
     // s. 42: the menu must cover the current AND the following week
     (async () => {
-      const monday = (weeksAhead: number) => {
-        const d = new Date();
-        const u = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        u.setUTCDate(u.getUTCDate() - ((u.getUTCDay() || 7) - 1) + weeksAhead * 7);
-        return u.toISOString().slice(0, 10);
-      };
+      const monday = (weeksAhead: number) =>
+        addDaysISO(localWeekStartISO(centre.timezone), weeksAhead * 7);
       const { data } = await sb
         .from('menu_week')
         .select('week_start, status')

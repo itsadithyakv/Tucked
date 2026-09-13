@@ -32,6 +32,9 @@ export interface ThemedChild {
   fullName: string;
   firstName: string;
   roomName: string | null;
+  /** The child's CENTRE timezone. "Today" for this child is the centre's day,
+   *  because that is the day the database files every record under. */
+  timeZone: string;
   theme: ChildTheme;
 }
 
@@ -82,9 +85,9 @@ export function FamilyProvider({ children: node }: { children: ReactNode }) {
       }
       const { data } = await supabase
         .from('child_household')
-        .select('child:child_id(id, full_name, room:current_room_id(name))')
+        .select('child:child_id(id, full_name, room:current_room_id(name), centre:centre_id(timezone))')
         .in('household_id', householdIds);
-      const rows = ((data as never as { child: { id: string; full_name: string; room: { name: string } | null } | null }[]) ?? [])
+      const rows = ((data as never as { child: { id: string; full_name: string; room: { name: string } | null; centre: { timezone: string } | null } | null }[]) ?? [])
         .map((r) => r.child)
         .filter((c): c is NonNullable<typeof c> => c !== null);
       const unique = [...new Map(rows.map((c) => [c.id, c])).values()].sort((a, b) =>
@@ -96,6 +99,7 @@ export function FamilyProvider({ children: node }: { children: ReactNode }) {
           fullName: r.full_name,
           firstName: r.full_name.split(' ')[0]!,
           roomName: r.room?.name ?? null,
+          timeZone: r.centre?.timezone ?? 'America/Toronto',
           theme: CHILD_THEMES[i % CHILD_THEMES.length]!,
         })),
       );

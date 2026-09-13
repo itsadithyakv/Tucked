@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { router, useFocusEffect } from 'expo-router';
-import { enCA } from '@tucked/domain';
+import { useFocusEffect } from 'expo-router';
+import { enCA, localDateISO, localMinutes } from '@tucked/domain';
 import { colour, radius, space, type } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { useFamily } from '@/lib/childTheme';
@@ -58,15 +58,61 @@ interface PlanDetail {
   child: { full_name: string } | null;
 }
 
-function fmt12(iso: string): string {
-  return new Date(iso).toLocaleTimeString('en-CA', { hour: 'numeric', minute: '2-digit', hour12: true });
+interface Notice {
+  id: string;
+  child_id: string;
+  notice_date: string;
+  kind: 'absent' | 'late';
+  expected_at: string | null;
+  reason: string | null;
 }
+
+interface Exclusion {
+  id: string;
+  child_id: string;
+  exclusion_reason: string;
+  return_criteria: string;
+  may_return_at: string | null;
+}
+
+/** A time in the centre's clock, the way a family reads it. */
+function fmt12(iso: string, timeZone?: string): string {
+  return new Date(iso).toLocaleTimeString('en-CA', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+    timeZone,
+  });
+}
+
+/** "10:15:00" → "10:15 a.m." */
+function clock12(hhmmss: string): string {
+  const [h, m] = hhmmss.split(':').map(Number) as [number, number];
+  return `${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'p.m.' : 'a.m.'}`;
+}
+
+/** A calendar date for a heading: "Tuesday 15 September". */
+function dayName(iso: string): string {
+  return new Date(`${iso}T12:00:00Z`).toLocaleDateString('en-CA', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  });
+}
+
+const ABSENT_REASONS = ['Unwell', 'Family plans', 'No reason needed'] as const;
+const LATE_BY = [
+  { label: 'About 15 minutes', minutes: 15 },
+  { label: 'About 30 minutes', minutes: 30 },
+  { label: 'About an hour', minutes: 60 },
+] as const;
 
 /** The current decision first: each child's status, today's story, loud
  * alerts only when they matter — and the centre's quiet announcements. */
 export default function FamilyHome() {
   const { profile } = useAuth();
-  const { selected, ready } = useFamily();
+  const { selected, ready, children } = useFamily();
   const [alerts, setAlerts] = useState<NowAlert[]>([]);
   const [stories, setStories] = useState<Map<string, StoryRow>>(new Map());
   const [status, setStatus] = useState<Map<string, string>>(new Map());
@@ -74,10 +120,23 @@ export default function FamilyHome() {
   const [reportDetails, setReportDetails] = useState<Map<string, ReportDetail>>(new Map());
   const [planDetails, setPlanDetails] = useState<Map<string, PlanDetail>>(new Map());
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [exclusions, setExclusions] = useState<Exclusion[]>([]);
+  const [noticeMode, setNoticeMode] = useState<null | 'absent' | 'late'>(null);
+  const [noticeBusy, setNoticeBusy] = useState(false);
+  const [noticeError, setNoticeError] = useState<string | null>(null);
+
+  const tz = selected?.timeZone ?? null;
+  // a stable string, so the callback below does not change identity on every render
+  const childKey = children.map((c) => c.id).join(',');
 
   const refresh = useCallback(() => {
-    if (!profile) return;
-    const today = new Date().toISOString().slice(0, 10);
+    if (!profile || !tz || childKey === '') return;
+    const childIds = childKey.split(',');
+    // The CENTRE's day, not UTC's: from 8 p.m. in Toronto the UTC date is
+    // tomorrow, which is exactly when a family sits down to read the story.
+    const today = localDateISO(tz);
+
     supabase
       .from('notification')
       .select('id, title, body, event_type, ref_id, created_at')
@@ -115,10 +174,16 @@ export default function FamilyHome() {
             );
         }
       });
+
+    // Every child-shaped query below is scoped to THIS family's children. RLS
+    // is not the filter on a family screen: a parent who also works at the
+    // centre can see every child's day through their staff role, and none of
+    // it belongs on the screen they open as a parent.
     supabase
       .from('story')
       .select('child_id, draft_text, educator_note, published_at')
       .eq('story_date', today)
+      .in('child_id', childIds)
       .then(({ data }) => setStories(new Map(((data as StoryRow[]) ?? []).map((s) => [s.child_id, s]))));
     supabase
       .from('announcement')
@@ -130,17 +195,34 @@ export default function FamilyHome() {
       .from('attendance_event')
       .select('child_id, event_type, actual_time')
       .eq('attendance_date', today)
+      .in('child_id', childIds)
       .order('actual_time')
       .then(({ data }) => {
         const map = new Map<string, string>();
         for (const e of (data as { child_id: string; event_type: string; actual_time: string }[]) ?? []) {
-          if (e.event_type === 'arrive') map.set(e.child_id, `arrived ${fmt12(e.actual_time)}`);
-          else if (e.event_type === 'depart') map.set(e.child_id, `picked up at ${fmt12(e.actual_time)}`);
+          if (e.event_type === 'arrive') map.set(e.child_id, `arrived ${fmt12(e.actual_time, tz)}`);
+          else if (e.event_type === 'depart') map.set(e.child_id, `picked up at ${fmt12(e.actual_time, tz)}`);
           else if (e.event_type === 'absent') map.set(e.child_id, 'marked absent today');
         }
         setStatus(map);
       });
-  }, [profile]);
+    supabase
+      .from('absence_notice')
+      .select('id, child_id, notice_date, kind, expected_at, reason')
+      .in('child_id', childIds)
+      .gte('notice_date', today)
+      .is('withdrawn_at', null)
+      .order('notice_date')
+      .then(({ data }) => setNotices((data as Notice[]) ?? []));
+    // s. 36: moved here from More. "When can she come back?" is the one
+    // question a parent of a sick child has, and it was three screens away.
+    supabase
+      .from('health_exclusion')
+      .select('id, child_id, exclusion_reason, return_criteria, may_return_at')
+      .in('child_id', childIds)
+      .is('returned_at', null)
+      .then(({ data }) => setExclusions((data as Exclusion[]) ?? []));
+  }, [profile, tz, childKey]);
 
   useFocusEffect(refresh);
 
@@ -155,6 +237,37 @@ export default function FamilyHome() {
       await supabase.rpc('acknowledge_notification', { p_notification: alert.id });
     }
     setBusyAlert(null);
+    refresh();
+  }
+
+  /** s. 50: tell the room before anybody has to phone. */
+  async function giveNotice(kind: 'absent' | 'late', opts: { reason?: string; inMinutes?: number }) {
+    if (!selected || !tz) return;
+    setNoticeBusy(true);
+    setNoticeError(null);
+    let expected: string | null = null;
+    if (kind === 'late') {
+      // from the CENTRE's clock: "about 30 minutes" means 30 minutes from now there
+      const at = Math.min(localMinutes(tz) + (opts.inMinutes ?? 30), 23 * 60 + 59);
+      expected = `${String(Math.floor(at / 60)).padStart(2, '0')}:${String(at % 60).padStart(2, '0')}`;
+    }
+    const { error } = await supabase.rpc('report_absence', {
+      p_child: selected.id,
+      p_date: localDateISO(tz),
+      p_kind: kind,
+      p_expected_at: expected,
+      p_reason: opts.reason && opts.reason !== 'No reason needed' ? opts.reason : null,
+    });
+    setNoticeBusy(false);
+    setNoticeMode(null);
+    if (error) setNoticeError(error.message);
+    refresh();
+  }
+
+  async function takeBack(id: string) {
+    setNoticeError(null);
+    const { error } = await supabase.rpc('withdraw_absence_notice', { p_notice: id });
+    if (error) setNoticeError(error.message);
     refresh();
   }
 
@@ -196,7 +309,7 @@ export default function FamilyHome() {
               ) : (
                 <Body>{alert.body}</Body>
               )}
-              <Caption>{`Sent ${fmt12(alert.created_at)}`}</Caption>
+              <Caption>{`Sent ${fmt12(alert.created_at, tz ?? undefined)}`}</Caption>
               <Button
                 label={
                   alert.event_type === 'accident_report'
@@ -218,10 +331,15 @@ export default function FamilyHome() {
           </Card>
         ) : null}
 
-        {selected
+        {selected && tz
           ? (() => {
+              const today = localDateISO(tz);
               const story = stories.get(selected.id);
               const childStatus = status.get(selected.id);
+              const exclusion = exclusions.find((e) => e.child_id === selected.id);
+              const notice = notices.find((n) => n.child_id === selected.id && n.notice_date === today);
+              const upcoming = notices.filter((n) => n.child_id === selected.id && n.notice_date > today);
+              const notHereYet = !childStatus && !exclusion && !notice;
               return (
                 <Card color={selected.theme.wash}>
                   <View style={styles.childRow}>
@@ -235,6 +353,86 @@ export default function FamilyHome() {
                       </Text>
                     </View>
                   </View>
+
+                  {exclusion ? (
+                    <View style={styles.story}>
+                      <View style={styles.rowBetween}>
+                        <Heading>{`${selected.firstName} is home unwell`}</Heading>
+                        <Pill kind="due">Away</Pill>
+                      </View>
+                      <Body>{exclusion.exclusion_reason}</Body>
+                      <Body muted>{`Before coming back: ${exclusion.return_criteria}`}</Body>
+                      {exclusion.may_return_at ? (
+                        <Caption>
+                          {`Earliest return: ${new Date(exclusion.may_return_at).toLocaleString('en-CA', { weekday: 'long', hour: 'numeric', minute: '2-digit', hour12: true, timeZone: tz })}. If a doctor says sooner, tell the centre and bring the note.`}
+                        </Caption>
+                      ) : null}
+                    </View>
+                  ) : null}
+
+                  {notice ? (
+                    <View style={styles.story}>
+                      <Body>
+                        {notice.kind === 'absent'
+                          ? `You told the centre ${selected.firstName} is not coming today${notice.reason ? ` — ${notice.reason.toLowerCase()}` : ''}.`
+                          : `You told the centre ${selected.firstName} is running late — about ${clock12(notice.expected_at ?? '00:00')}.`}
+                      </Body>
+                      <Caption>The room can see this.</Caption>
+                      <Button label="Take it back" kind="quiet" onPress={() => void takeBack(notice.id)} />
+                    </View>
+                  ) : null}
+
+                  {notHereYet ? (
+                    <View style={styles.story}>
+                      {noticeMode === null ? (
+                        <>
+                          <Caption>{`Not bringing ${selected.firstName} in, or on your way late? Tell the room here instead of waiting for a call.`}</Caption>
+                          <View style={styles.rowWrap}>
+                            <Button label="Not coming today" kind="quiet" onPress={() => setNoticeMode('absent')} />
+                            <Button label="Running late" kind="quiet" onPress={() => setNoticeMode('late')} />
+                          </View>
+                        </>
+                      ) : noticeMode === 'absent' ? (
+                        <>
+                          <Caption>A reason is optional — the centre does not need a diagnosis.</Caption>
+                          {ABSENT_REASONS.map((r) => (
+                            <Button
+                              key={r}
+                              label={r}
+                              kind="quiet"
+                              busy={noticeBusy}
+                              onPress={() => void giveNotice('absent', { reason: r })}
+                            />
+                          ))}
+                          <Button label="Cancel" kind="quiet" onPress={() => setNoticeMode(null)} />
+                        </>
+                      ) : (
+                        <>
+                          <Caption>Roughly when will you arrive?</Caption>
+                          {LATE_BY.map((l) => (
+                            <Button
+                              key={l.minutes}
+                              label={l.label}
+                              kind="quiet"
+                              busy={noticeBusy}
+                              onPress={() => void giveNotice('late', { inMinutes: l.minutes })}
+                            />
+                          ))}
+                          <Button label="Cancel" kind="quiet" onPress={() => setNoticeMode(null)} />
+                        </>
+                      )}
+                    </View>
+                  ) : null}
+
+                  {noticeError ? <Caption>{noticeError}</Caption> : null}
+
+                  {upcoming.map((n) => (
+                    <View key={n.id} style={styles.rowBetween}>
+                      <Caption>{`Not coming ${dayName(n.notice_date)}${n.reason ? ` — ${n.reason.toLowerCase()}` : ''}`}</Caption>
+                      <Button label="Take back" kind="quiet" onPress={() => void takeBack(n.id)} />
+                    </View>
+                  ))}
+
                   {story ? (
                     <View style={styles.story}>
                       <Text style={[styles.storyOverline, { color: selected.theme.deep }]}>
@@ -242,9 +440,9 @@ export default function FamilyHome() {
                       </Text>
                       {story.educator_note ? <Body>{story.educator_note}</Body> : null}
                       <Body muted>{story.draft_text}</Body>
-                      <Caption>{`Published ${fmt12(story.published_at)}`}</Caption>
+                      <Caption>{`Published ${fmt12(story.published_at, tz)}`}</Caption>
                     </View>
-                  ) : (
+                  ) : notice?.kind === 'absent' || exclusion ? null : (
                     <View style={styles.story}>
                       <Caption>The day&apos;s story arrives at pick-up time.</Caption>
                     </View>
@@ -261,17 +459,11 @@ export default function FamilyHome() {
               <Card key={a.id} wash="mist">
                 <Heading>{a.title}</Heading>
                 <Body muted>{a.body}</Body>
-                <Caption>{fmt12(a.published_at)}</Caption>
+                <Caption>{fmt12(a.published_at, tz ?? undefined)}</Caption>
               </Card>
             ))}
           </>
         ) : null}
-
-        <Button
-          label="See the full day log"
-          kind="quiet"
-          onPress={() => router.push('/log')}
-        />
       </ScrollView>
     </Screen>
   );
@@ -303,6 +495,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: space.sm,
   },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: space.sm,
+  },
+  rowWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.sm },
   childRow: { flexDirection: 'row', alignItems: 'center', gap: space.md },
   themedCaption: { ...type.caption } as const,
   story: {

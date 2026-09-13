@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { activeWindow, sleepCheckRequired, staffRequiredEffective } from '@tucked/domain';
+import { activeWindow, localDateISO, sleepCheckRequired, staffRequiredEffective } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
@@ -157,19 +157,25 @@ function Board() {
   const [accWatch, setAccWatch] = useState('');
 
   const refresh = useCallback(() => {
-    loadRoomDay().then(setDay);
+    loadRoomDay().then((d) => {
+      setDay(d);
+      if (!d) return;
+      // the room's outdoor periods for the CENTRE's today, which needs the
+      // centre loaded first — this query used to run beside loadRoomDay with
+      // the UTC date, and from 8 p.m. asked for tomorrow's
+      supabase
+        .from('outdoor_period')
+        .select('id, started_at, ended_at')
+        .eq('room_id', roomId)
+        .eq('outdoor_date', localDateISO(d.centre.timezone))
+        .then(({ data }) => setPeriods((data as never) ?? []));
+    });
     supabase
       .from('illness_policy')
       .select('symptom, label, return_criteria')
       .eq('active', true)
       .order('label')
       .then(({ data }) => setIllPolicy((data as never) ?? []));
-    supabase
-      .from('outdoor_period')
-      .select('id, started_at, ended_at')
-      .eq('room_id', roomId)
-      .eq('outdoor_date', new Date().toISOString().slice(0, 10))
-      .then(({ data }) => setPeriods((data as never) ?? []));
   }, [roomId]);
   useFocusEffect(refresh);
 
@@ -366,11 +372,11 @@ function Board() {
         .from('story')
         .select('educator_note')
         .eq('child_id', childId)
-        .eq('story_date', new Date().toISOString().slice(0, 10))
+        .eq('story_date', localDateISO(day!.centre.timezone))
         .maybeSingle(),
       supabase.rpc('story_preview', {
         p_child: childId,
-        p_date: new Date().toISOString().slice(0, 10),
+        p_date: localDateISO(day!.centre.timezone),
       }),
     ]);
     setStoryNote((existing as { educator_note: string | null } | null)?.educator_note ?? '');
@@ -381,7 +387,7 @@ function Board() {
     return act(childId, (recorder) =>
       runCommand('save_story_note', {
         p_child: childId,
-        p_date: new Date().toISOString().slice(0, 10),
+        p_date: localDateISO(day!.centre.timezone),
         p_note: note,
         p_recorder: recorder.personId,
         p_pin: recorder.pin,

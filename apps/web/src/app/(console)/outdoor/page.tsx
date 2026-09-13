@@ -9,6 +9,7 @@
  * in only on a physician's or a parent's written instruction. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -98,7 +99,7 @@ function duration(mins: number): string {
 
 export default function OutdoorPage() {
   const { centre, personId } = useConsole();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO(centre.timezone);
   const [date, setDate] = useState(today);
   const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
   const [requirements, setRequirements] = useState<Requirement[]>([]);

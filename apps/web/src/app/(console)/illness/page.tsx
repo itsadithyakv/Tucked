@@ -9,6 +9,7 @@
  * criteria were met; that refusal lives in the database, not in this page. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -134,7 +135,7 @@ export default function IllnessPage() {
 
   const open = exclusions.filter((e) => e.is_open);
   const past = exclusions.filter((e) => !e.is_open);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateISO(centre.timezone);
 
   async function clear(e: Exclusion) {
     const draft = clearing[e.id] ?? { note: '', early: '' };

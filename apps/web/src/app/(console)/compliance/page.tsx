@@ -6,6 +6,7 @@
  * someone records what was fixed. */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { addDaysISO, localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -61,9 +62,8 @@ interface Issue {
   resolver: { full_name: string } | null;
 }
 
-function dueState(t: Task): { label: string; cls: string } {
-  const today = new Date().toISOString().slice(0, 10);
-  const soon = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
+function dueState(t: Task, today: string): { label: string; cls: string } {
+  const soon = addDaysISO(today, 7);
   if (t.next_due_on < today) return { label: `Overdue since ${fmtDate(t.next_due_on)}`, cls: 'now' };
   if (t.next_due_on <= soon) return { label: `Due ${fmtDate(t.next_due_on)}`, cls: 'due' };
   return { label: `Next ${fmtDate(t.next_due_on)}`, cls: 'ok' };
@@ -125,7 +125,7 @@ export default function CompliancePage() {
   }
 
   const activeTasks = tasks.filter((t) => t.active);
-  const overdue = activeTasks.filter((t) => t.next_due_on < new Date().toISOString().slice(0, 10));
+  const overdue = activeTasks.filter((t) => t.next_due_on < localDateISO(centre.timezone));
   const openIssues = issues.filter((i) => !i.resolved_at);
   const taskById = new Map(tasks.map((t) => [t.id, t]));
 
@@ -153,7 +153,7 @@ export default function CompliancePage() {
           </thead>
           <tbody>
             {tasks.map((t) => {
-              const state = dueState(t);
+              const state = dueState(t, localDateISO(centre.timezone));
               return (
                 <tr key={t.id}>
                   <td className="wrap">

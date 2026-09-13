@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { safeArrivalDue, staffRequiredEffective, activeWindow } from '@tucked/domain';
+import { activeWindow, localDateISO, localMinutes, safeArrivalDue, staffRequiredEffective } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { runCommand } from '@/lib/queue';
 import { RecorderProvider, useRecorder } from '@/lib/recorder';
-import { loadRoomDay, presentByRoom, refreshEvacuationCache } from '@/lib/roomData';
+import { loadRoomDay, noticesForSafeArrival, presentByRoom, refreshEvacuationCache } from '@/lib/roomData';
 import type { RoomDay } from '@/lib/roomData';
 import { loadQueue, queueState, startQueuePump, subscribeQueue } from '@/lib/queue';
 import {
@@ -66,13 +66,14 @@ function Rooms() {
 
   const chaseList = (() => {
     if (!day) return [];
-    const local = new Date().toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
     const due = safeArrivalDue({
       expectedChildIds: day.children.map((c) => c.id),
       arrivedChildIds: day.attendance.filter((a) => a.event_type === 'arrive').map((a) => a.child_id),
       markedAbsentChildIds: day.attendance.filter((a) => a.event_type === 'absent').map((a) => a.child_id),
       alreadyPromptedChildIds: day.safeChecks.map((s) => s.child_id),
-      nowMinutes: minutesOfDay(local),
+      // what families told us, weighed by the rule in packages/domain
+      notices: noticesForSafeArrival(day),
+      nowMinutes: localMinutes(day.centre.timezone),
       cutoffMinutes: minutesOfDay(day.centre.safe_arrival_cutoff),
     });
     const names = new Map(day.children.map((c) => [c.id, c.full_name]));
@@ -83,8 +84,7 @@ function Rooms() {
     if (!day) return null;
     const count = present.get(roomId)?.size ?? 0;
     const counted = day.shifts.filter((s) => s.room_id === roomId && s.counted_in_ratio && !s.out_at).length;
-    const local = new Date().toLocaleTimeString('en-CA', { hour12: false, timeZone: day.centre.timezone });
-    const nowMin = minutesOfDay(local);
+    const nowMin = localMinutes(day.centre.timezone);
     const openMin = minutesOfDay(day.centre.opens_at);
     const closeMin = minutesOfDay(day.centre.closes_at);
     const hours = (closeMin - openMin) / 60;
@@ -103,7 +103,7 @@ function Rooms() {
     setChaseFor(null);
     const recorder = await getRecorder();
     if (!recorder) return;
-    const today = new Date().toLocaleDateString('en-CA', { timeZone: day.centre.timezone });
+    const today = localDateISO(day.centre.timezone);
     const result = await runCommand('record_safe_arrival_outcome', {
       p_centre: day.centre.id,
       p_child: target.childId,
@@ -158,6 +158,25 @@ function Rooms() {
               }}
             />
           ))}
+        </Card>
+      ) : null}
+
+      {day && day.notices.length > 0 ? (
+        <Card wash="mist">
+          <Heading>What families told us today</Heading>
+          {day.notices.map((n) => {
+            const name = day.children.find((c) => c.id === n.child_id)?.full_name.split(' ')[0] ?? 'A child';
+            return (
+              <Body key={n.child_id} muted>
+                {n.kind === 'absent'
+                  ? `${name} — not coming today${n.reason ? ` (${n.reason.toLowerCase()})` : ''}`
+                  : `${name} — running late, expected about ${n.expected_at?.slice(0, 5) ?? '?'}`}
+              </Body>
+            );
+          })}
+          <Caption>
+            From the family app. A notice is not attendance — record the absence in the register as usual.
+          </Caption>
         </Card>
       ) : null}
 

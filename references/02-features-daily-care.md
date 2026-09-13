@@ -110,10 +110,48 @@ A policy that ensures a child who is expected and does not arrive is followed up
 | Release to somebody not on the list | Permitted at schema level and recorded — the regulation requires a *policy*, and a real centre sometimes releases to a person authorised verbally. The record names them, which is the compliance-relevant part |
 | Expected child has not arrived | The room board surfaces it; following up is recorded through `record_safe_arrival_outcome` |
 
+### Parent notices — "not today" and "running late"
+
+Playground, Brightwheel and Procare all let a parent say this from the app. Until migration 0040 Tucked made an educator phone every family at the safe-arrival cutoff instead — at work, mid-meeting — to learn what the family had known since 6 a.m.
+
+`absence_notice` records what a family adult said: **absent** (with an optional short reason — a family owes the centre no diagnosis) or **late**, with roughly when they expect to arrive. The family Home offers it as buttons, not a form: "Not coming today" then *Unwell / Family plans / No reason needed*, or "Running late" then *about 15 minutes / 30 / an hour*, measured on the centre's clock.
+
+**A notice is not attendance.** The s. 72(3) register stays staff-recorded and PIN-signed; `s72_3_a_notice_never_writes_to_the_legal_register` holds that. A notice is the *explanation* s. 50 asks a centre to go and get. Quiet by default: it pushes to nobody and appears on the Rooms board.
+
+**How much a notice explains** is `stillNeedsAChase` in `packages/domain/src/safeArrival.ts`, run on the room device offline. The Rooms chase list and the Overview tile both reach it through one adapter (`noticesForSafeArrival`), so they can never disagree:
+
+| Notice | Chased after the cutoff? |
+|---|---|
+| "Not coming today" | **Never** — the question is answered |
+| "Running late", before the time given + `LATE_NOTICE_GRACE_MINUTES` (15) | No |
+| "Running late", at or after the time given + 15 minutes | **Yes** — a broken promise is a new question, not an explanation |
+| "Running late" with no time | Yes — it explains nothing |
+| No notice | Yes, as before notices existed |
+
+The promise runs from the **family's** time, never from the cutoff: a parent who said 9:15 is 25 minutes past it at 9:40, whatever time the centre starts phoning. Nobody is chased before the cutoff regardless.
+
+| Situation | What happens |
+|---|---|
+| A family adult says "not coming", today or a later day | Recorded; shown on the Rooms board |
+| "Running late" for a later day | `running late is about today — for another day, say they are not coming` |
+| "Running late" with no time | `say roughly when you expect to arrive` |
+| A notice for a day that has passed | `a notice is about today or a day ahead, not a day that has passed` |
+| The child is already signed in | `{Name} is already signed in today — tell the room directly` |
+| Another family, or a revoked household adult | `only a family adult of this child can tell the centre` — and RLS hides that a notice exists at all |
+| A reason over 280 characters | Refused by a constraint |
+| A second notice the same day ("late", then "not coming") | Replaces the first; the first is withdrawn, never deleted |
+| The family takes it back | `withdraw_absence_notice` — the child is expected again |
+| Editing a notice, even past RLS | `a notice is never edited; give a new one and it replaces this` |
+
+20 pgTAP tests (`absence_notice.sql`) and 9 domain tests (`safeArrivalNotices.test.ts`). Verified live as the demo parent and educator through PostgREST with RLS on.
+
 ### Where this is weak
 
 - **The "not on the list" case is a judgment call the schema does not make.** That is deliberate — but a centre that expects Tucked to *stop* an unauthorised pickup will be disappointed. Only an explicit restriction stops anything.
-- **There is no automatic escalation** when an expected child does not arrive. The information is present; the chase is human.
+- **A notice does not record the absence in the register.** That is correct — the register is staff-recorded — but it is double entry: the room reads "not coming today" and still has to mark the child absent. A one-tap "record absent from this notice" on the Rooms board is the obvious next step.
+- **The 15-minute grace is a constant, not the centre's policy.** s. 50 asks each centre for its own safe-arrival policy and the cutoff is already a per-centre setting; the grace window probably should be too.
+- **Nothing escalates past the chase list.** A child still unaccounted for after a call attempt has no further automatic step. The information is present; the escalation is human.
+- **The family notice buttons have not been tapped on a device** — the same Expo web limitation as the room sheets ([06](06-gaps-risks-and-roadmap.md) backlog #1).
 
 ---
 

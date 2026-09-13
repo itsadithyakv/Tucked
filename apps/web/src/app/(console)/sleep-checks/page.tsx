@@ -11,6 +11,7 @@
  * inspector does. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { downloadCsv, fmtDate, fmtTime, useConsole } from '@/lib/console';
 
@@ -54,7 +55,7 @@ interface Direction {
 
 export default function SleepChecksPage() {
   const { centre, personId } = useConsole();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => localDateISO(centre.timezone));
   const [rows, setRows] = useState<CheckRow[]>([]);
   const [positionFindings, setPositionFindings] = useState<PositionFinding[]>([]);
   const [longRests, setLongRests] = useState<LongRest[]>([]);

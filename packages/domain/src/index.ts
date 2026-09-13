@@ -8,3 +8,4 @@ export * from './i18n';
 export * from './fixtures/mapleLeaf';
 export * from './careLogSchemas';
 export * from './safeArrival';
+export * from './localDate';

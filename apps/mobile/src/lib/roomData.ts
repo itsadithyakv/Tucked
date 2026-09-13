@@ -5,7 +5,8 @@
  */
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { AgeGroupId } from '@tucked/domain';
+import { localDateISO } from '@tucked/domain';
+import type { AbsenceNotice, AgeGroupId } from '@tucked/domain';
 import { supabase } from './supabase';
 
 const EVAC_KEY = 'tucked.cache.evacuation.v1';
@@ -60,6 +61,14 @@ export interface SafeArrivalRow {
   resolved_at: string | null;
 }
 
+/** A family's "not today" or "running late" (absence_notice). */
+export interface AbsenceNoticeRow {
+  child_id: string;
+  kind: 'absent' | 'late';
+  expected_at: string | null;
+  reason: string | null;
+}
+
 export interface RoomDay {
   centre: CentreInfo;
   rooms: RoomInfo[];
@@ -68,18 +77,22 @@ export interface RoomDay {
   shifts: ShiftRow[];
   sleepLogs: CareLogRow[];
   safeChecks: SafeArrivalRow[];
+  notices: AbsenceNoticeRow[];
   staff: { personId: string; fullName: string; role: string }[];
 }
 
 export async function loadRoomDay(): Promise<RoomDay | null> {
-  const today = new Date().toISOString().slice(0, 10);
   const { data: centre } = await supabase
     .from('centre')
     .select('id, name, timezone, opens_at, closes_at, sleep_check_interval_minutes, safe_arrival_cutoff')
     .limit(1)
     .maybeSingle();
   if (!centre) return null;
-  const [rooms, children, attendance, shifts, sleepLogs, safeChecks, staffRoles] = await Promise.all([
+  // The centre's day, computed only once the centre is known. This line used to
+  // sit ABOVE the query that fetches the timezone, and read the UTC date — so
+  // from 8 p.m. in Toronto the room board loaded tomorrow's empty register.
+  const today = localDateISO(centre.timezone);
+  const [rooms, children, attendance, shifts, sleepLogs, safeChecks, notices, staffRoles] = await Promise.all([
     supabase
       .from('room')
       .select('id, name, age_group:age_group_id(preset)')
@@ -115,6 +128,12 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
       .eq('centre_id', centre.id)
       .eq('check_date', today),
     supabase
+      .from('absence_notice')
+      .select('child_id, kind, expected_at, reason')
+      .eq('centre_id', centre.id)
+      .eq('notice_date', today)
+      .is('withdrawn_at', null),
+    supabase
       .from('person_role')
       .select('role, person:person_id(id, full_name)')
       .eq('centre_id', centre.id)
@@ -131,10 +150,23 @@ export async function loadRoomDay(): Promise<RoomDay | null> {
     shifts: (shifts.data as never as ShiftRow[]) ?? [],
     sleepLogs: (sleepLogs.data as CareLogRow[]) ?? [],
     safeChecks: (safeChecks.data as SafeArrivalRow[]) ?? [],
+    notices: (notices.data as AbsenceNoticeRow[]) ?? [],
     staff: ((staffRoles.data as never as { role: string; person: { id: string; full_name: string } | null }[]) ?? [])
       .filter((r) => r.person)
       .map((r) => ({ personId: r.person!.id, fullName: r.person!.full_name, role: r.role })),
   };
+}
+
+/** Today's notices in the shape the safe-arrival rule takes. One adapter, so
+ *  the chase list and the overview tile can never apply the rule differently. */
+export function noticesForSafeArrival(day: RoomDay): AbsenceNotice[] {
+  return day.notices.map((n) => ({
+    childId: n.child_id,
+    kind: n.kind,
+    expectedMinutes: n.expected_at
+      ? Number(n.expected_at.slice(0, 2)) * 60 + Number(n.expected_at.slice(3, 5))
+      : null,
+  }));
 }
 
 /** Present child ids per room, replayed from the day's events in order. */

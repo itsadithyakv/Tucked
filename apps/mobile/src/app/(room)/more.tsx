@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { router, useFocusEffect } from 'expo-router';
 import { View } from 'react-native';
-import { enCA } from '@tucked/domain';
+import { enCA, isoWeekdayOf, localDateISO, localWeekStartISO } from '@tucked/domain';
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { RecorderProvider, useRecorder } from '@/lib/recorder';
@@ -37,9 +37,6 @@ const MEAL_LABELS: Record<string, string> = {
   snack_pm: 'Afternoon snack',
 };
 
-function isoDow(d: Date): number {
-  return d.getDay() === 0 ? 7 : d.getDay();
-}
 
 /** s. 42: today's posted menu, with the substitution recorded AT THE TIME —
  * on the device that is standing in the kitchen when the delivery fails. */
@@ -56,24 +53,29 @@ function TodaysMenu() {
   const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
-    const today = new Date();
-    const monday = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-    monday.setUTCDate(monday.getUTCDate() - (isoDow(today) - 1));
-    supabase
-      .from('menu_item')
-      .select('meal, description, centre_id, week:menu_week_id!inner(week_start)')
-      .eq('week.week_start', monday.toISOString().slice(0, 10))
-      .eq('day_of_week', isoDow(today))
-      .then(({ data }) => {
-        const rows = (data as never as (MenuRow & { centre_id: string })[]) ?? [];
-        setMenu(rows);
-        setCentreId(rows[0]?.centre_id ?? null);
-      });
-    supabase
-      .from('menu_substitution')
-      .select('meal, served, reason')
-      .eq('served_on', today.toISOString().slice(0, 10))
-      .then(({ data }) => setSubs((data as SubRow[]) ?? []));
+    void (async () => {
+      // The centre's calendar. The device date and the UTC date are both
+      // wrong from 8 p.m. in Toronto, and a Sunday evening put the whole
+      // menu a week ahead.
+      const { data: centre } = await supabase.from('centre').select('timezone').limit(1).maybeSingle();
+      if (!centre) return;
+      const today = localDateISO(centre.timezone);
+      supabase
+        .from('menu_item')
+        .select('meal, description, centre_id, week:menu_week_id!inner(week_start)')
+        .eq('week.week_start', localWeekStartISO(centre.timezone))
+        .eq('day_of_week', isoWeekdayOf(today))
+        .then(({ data }) => {
+          const rows = (data as never as (MenuRow & { centre_id: string })[]) ?? [];
+          setMenu(rows);
+          setCentreId(rows[0]?.centre_id ?? null);
+        });
+      supabase
+        .from('menu_substitution')
+        .select('meal, served, reason')
+        .eq('served_on', today)
+        .then(({ data }) => setSubs((data as SubRow[]) ?? []));
+    })();
   }, []);
   useFocusEffect(refresh);
 
@@ -160,16 +162,22 @@ function ComplianceChecks() {
   const [open, setOpen] = useState<DueTask | null>(null);
   const [note, setNote] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
+  const [today, setToday] = useState('');
 
   const refresh = useCallback(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    supabase
-      .from('compliance_task')
-      .select('id, title, regulation, next_due_on')
-      .eq('active', true)
-      .lte('next_due_on', today)
-      .order('next_due_on')
-      .then(({ data }) => setDue((data as DueTask[]) ?? []));
+    void (async () => {
+      const { data: centre } = await supabase.from('centre').select('timezone').limit(1).maybeSingle();
+      if (!centre) return;
+      const localToday = localDateISO(centre.timezone);
+      setToday(localToday);
+      supabase
+        .from('compliance_task')
+        .select('id, title, regulation, next_due_on')
+        .eq('active', true)
+        .lte('next_due_on', localToday)
+        .order('next_due_on')
+        .then(({ data }) => setDue((data as DueTask[]) ?? []));
+    })();
   }, []);
   useFocusEffect(refresh);
 
@@ -195,7 +203,6 @@ function ComplianceChecks() {
     refresh();
   }
 
-  const today = new Date().toISOString().slice(0, 10);
 
   return (
     <Card wash={due.length > 0 ? 'sand' : 'mint'}>

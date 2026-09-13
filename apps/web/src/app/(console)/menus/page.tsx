@@ -6,6 +6,7 @@
  * diet. A posted week is frozen — the day's reality is a substitution. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { addDaysISO, localWeekStartISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -58,12 +59,11 @@ interface Instruction {
   parent: { full_name: string } | null;
 }
 
-/** The Monday on or before a date, as an ISO date string. */
-function mondayOf(base: Date, weeksAhead = 0): string {
-  const d = new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate()));
-  const dow = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() - (dow - 1) + weeksAhead * 7);
-  return d.toISOString().slice(0, 10);
+/** The Monday of the centre's week, some weeks ahead. Built from the
+ *  centre-local day: from a Sunday evening in Toronto the UTC-based version
+ *  called next week "this week". */
+function mondayOf(timeZone: string, weeksAhead = 0): string {
+  return addDaysISO(localWeekStartISO(timeZone), weeksAhead * 7);
 }
 
 function cellKey(dow: number, meal: string) {
@@ -72,8 +72,8 @@ function cellKey(dow: number, meal: string) {
 
 export default function MenusPage() {
   const { centre, personId } = useConsole();
-  const thisMonday = mondayOf(new Date());
-  const nextMonday = mondayOf(new Date(), 1);
+  const thisMonday = mondayOf(centre.timezone);
+  const nextMonday = mondayOf(centre.timezone, 1);
 
   const [weekStart, setWeekStart] = useState(thisMonday);
   const [weeks, setWeeks] = useState<Week[]>([]);

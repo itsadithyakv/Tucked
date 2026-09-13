@@ -59,9 +59,9 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 
 | # | Work | Why it is first |
 |---|---|---|
-| 1 | **Click through the room screen on a device.** Three new sheets landed there — the story note, the nap position, the sleep check — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
+| 1 | **Click through the room screen and the family Home on a device.** New interactions landed on both — the story note, the nap position and the sleep check in the room; "not coming today" / "running late" and the moved illness card on Home — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
-| 3 | **Run pgTAP in CI** | The 663 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
+| 3 | **Run pgTAP in CI** | The 683 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
 
 ### Tier 2 — would embarrass in an inspection or a demo
@@ -82,11 +82,14 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | 11 | **A staging Supabase project** — trigger is a destructive-migration near-miss or a second engineer |
 | 12 | **Dark mode in the Expo app** — needs a theme context threaded through the component library |
 | 13 | **PIPEDA access/deletion workflow** with a 30-day SLA tracker and a consent-withdrawal cascade |
-| 14 | **Break `room/[id].tsx` apart** — 1,075 lines doing sign-in, care logs, the nap board, bulk logging and medication |
+| 14 | **Break `room/[id].tsx` apart** — ~1,300 lines doing sign-in, care logs, the nap board, bulk logging and medication |
 | 15 | **Put the permitted sleep positions in the offline cache.** The nap board now reads `sleep_placement_options` live and falls back to back-only with no connection — safe, but a child with a side-lying direction cannot be laid on their side offline |
 | 16 | **PIN rate limiting** — 10,000 possibilities and nothing throttles |
 | 17 | **A mechanical check that `careLogSchemas.ts` and `app.validate_care_log_payload` agree** |
 | 18 | **A "did last night's sweeps run" signal** — three crons, no reporting, silent failure |
+| 19 | **"Record absent from this notice"** on the Rooms board — today a family's notice and the register's absence are entered twice |
+| 20 | **The late-notice grace window as a centre setting** beside `safe_arrival_cutoff` — s. 50 makes safe arrival the centre's own policy |
+| 21 | **A lint rule banning `toISOString().slice(0, 10)` in `apps/`** — 24 UTC-date bugs were removed by grep; nothing stops the 25th |
 
 ---
 
@@ -110,7 +113,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | Gap | Notes |
 |---|---|
 | **Staff scheduling and time clock** | `staff_shift` records who was in ratio and when, which is what the ratio engine needs. Rostering, shift swaps and a punch clock are not built |
-| **Learning stories with HDLH tagging** | One story per child per day is built (though unpublished — §3.3). Tagging against *How Does Learning Happen?* and any portfolio view over time are not |
+| **Learning stories with HDLH tagging** | One story per child per day is built and publishes at pick-up. Tagging against *How Does Learning Happen?* and any portfolio view over time are not |
 | **Home child care agency mode** | Agency → home visitor → provider → family, per-home records, visitor checklists |
 | **Multi-site licensee view** | One centre per console session. `licensee` exists and owns centres; nothing aggregates |
 | **Manitoba and Quebec rule packs** | `jurisdiction` seeds both as `planned`/inactive and `admin_create_centre` refuses until a pack is `implemented` (pgTAP-proven). Every rule pack that would need rows already exists as data — handbook sections, outdoor minutes, staff requirements, CWELCC parameters, policy specs, document kinds, statutory holidays — so **a province is largely rows plus a requirements document.** Quebec additionally needs French-first UI and Law 25 workflows |
@@ -178,6 +181,7 @@ Not gaps exactly — decisions with a consequence somebody should be able to exp
 - **A push is "delivered" when Expo's receipt says so** — as far as any sender can see. Tucked reads tickets *and* receipts, sets `delivered_at` from the first ok receipt, and surfaces `push_never_arrived` when every device's receipt failed. **What no receipt can tell you is whether a human looked at the phone**; for that, a Now alert still asks to be acknowledged in the app, and the console shows what is unacknowledged.
 - **Release to somebody not on the authorised list is permitted and recorded.** Only an explicit `pickup_restriction` blocks anything. A centre expecting Tucked to *stop* an unauthorised pickup will be disappointed.
 - **Attestation is a button, not comprehension.** It matches what s. 46 asks for; nobody should mistake it for training.
+- **A parent notice is trusted for a fixed 15 minutes past the time given.** "Not coming today" takes a child off the safe-arrival chase list entirely; "running late" does until the promised time plus `LATE_NOTICE_GRACE_MINUTES`, then puts them back. The window is a constant in `packages/domain`, not the centre's own policy, and a family can give a notice that is simply wrong — the notice explains an absence, it does not prove one.
 
 ---
 
@@ -185,7 +189,7 @@ Not gaps exactly — decisions with a consequence somebody should be able to exp
 
 | Risk | Likelihood | Impact | Mitigation today | Gap |
 |---|---|---|---|---|
-| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 663 tests exist and are fast | They do not run in CI. Backlog #3 |
+| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 683 tests exist and are fast | They do not run in CI. Backlog #3 |
 | **A migration breaks every centre at once** | Low | **High** | One project is one blast radius; pgTAP + local reset | No staging environment. Backlog #11 |
 | **`create or replace function` drops an earlier amendment** | Medium | High | Happened once, caught by the suite | Nothing prevents it. [04 §9.2](04-data-security-and-platform.md) |
 | **A `security_invoker` view reasons about absence and lies** | Medium | Medium | Hit three times, each fixed with a definer helper and a tombstone test | No lint. [04 §9.1](04-data-security-and-platform.md) |

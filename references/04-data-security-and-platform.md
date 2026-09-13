@@ -427,9 +427,9 @@ Until both exist the dispatcher returns **`not configured`** — nothing is sile
 
 | Suite | Count | Runs in CI? |
 |---|---|---|
-| **pgTAP** (`supabase/tests/`, 29 files) | **663** | ❌ **No** |
-| Domain (`packages/domain/test/`) | 75 | ✅ |
-| Design tokens (`packages/ui-tokens/test/`) | 51 | ✅ |
+| **pgTAP** (`supabase/tests/`, 30 files) | **683** | ❌ **No** |
+| Domain (`packages/domain/test/`) | 90 | ✅ |
+| Design tokens (`packages/ui-tokens/test/`) | 60 | ✅ |
 | Mobile offline queue (`apps/mobile/test/`) | 15 | ✅ |
 
 `pnpm check` runs lint + typecheck + the JS/TS suites across 11 Turborepo tasks. The database suite is run by hand:
@@ -460,7 +460,8 @@ A ratio written in a document is a claim; a ratio in a test is a rule.
 
 ### Where this is weak
 
-- **The 663 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
+- **The 683 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
 - **No coverage gate is enforced** despite the architecture note asking for ≥ 90 % on the rule engine.
 - **The seed is a test surface nobody counts.** It caught a real bug — a `db reset` refused to load when the new sleep rule met a demo nap with no position — but that is luck, not design.
 - **No end-to-end test of either app.** The 15 mobile tests cover the offline queue only; every screen is verified by hand in a browser.
+- **Nothing mechanically stops a UTC date coming back.** 24 client call sites computed "today" as `toISOString().slice(0, 10)` — the UTC date, which is tomorrow from 8 p.m. in Toronto — and every `date` column is filed under the centre's day. They were found by an audit grep, not by a test, and they are gone now in favour of `localDateISO` (9 tests). A lint rule banning the pattern would make that permanent.

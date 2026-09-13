@@ -215,6 +215,7 @@ A **child** belongs to one or more **households** (`child_household`) — separa
 ### Where this is weak
 
 - **No household merge or split.** A family restructuring is manual row surgery.
+- **RLS is not the filter on a family screen, and that rule was broken twice.** A parent who also works at the centre can read every child through their staff role. The child picker scoped correctly from the start; the family More tab did not, and until 2026-09-13 showed such a parent every excluded child in the centre as "home unwell" and every child's enrolment record. Every child-shaped query on a family screen now filters to `useFamily().children`, and household-shaped ones (`household_balance`, `cra_receipt`) to the person's own households — never with `.maybeSingle()`, which errored for a separated parent in two households and silently hid their fees card. Nothing mechanical enforces this; it is a code-review rule.
 - **`can_bill` is modelled and barely used** — the fee module addresses receipts to a household, not to a billing contact.
 - **A person is global, a role is centre-scoped** (one login per human). Correct, but it means an email typo at onboarding creates a duplicate human with no merge path.
 

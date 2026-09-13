@@ -75,10 +75,10 @@ Four tabs:
 
 | Tab | What it does |
 |---|---|
-| **Home** | Today's story for the selected child, any **Now** alert awaiting acknowledgement, announcements, and the child switcher for families with more than one child |
+| **Home** | For the selected child: status, **home unwell and when they can come back** (moved here from More), "not coming today" / "running late" before they arrive, today's story; any **Now** alert awaiting acknowledgement; announcements; the child switcher |
 | **Log** | The day's care log — meals, naps, nappies, outdoor — read-only, calm, 12-hour times |
 | **Messages** | Threads with the centre |
-| **More** | Enrolment items, consents, the handbook, the child's record, sign-out |
+| **More** | Today's menu, fees and CRA receipts (across every household the adult belongs to), waiting-list place, the handbook, enrolment records, accident reports, sign-out |
 
 Supporting screens: `enrolment/[childId]`, `handbook`, `messages/[id]`, `reports`, `sign-in`.
 
@@ -86,7 +86,7 @@ Supporting screens: `enrolment/[childId]`, `handbook`, `messages/[id]`, `reports
 
 ### Where this is weak
 
-- **The daily story never appears**, because nothing calls `publish_story` ([02 §14](02-features-daily-care.md)). The Home tab reads a table that stays empty. This is the most serious functional gap in the product.
+- **None of the family screens has been tapped on a device.** They typecheck and their queries and RPCs are proven against a live database, but Expo web will not accept automated taps.
 - **No photo upload and no photo feed**, so the "dated lifetime archive" promise has no surface.
 - **Light-only.** The web console has dark mode; the Expo app does not, because its tokens are a TypeScript object and React Native has no CSS custom properties. It needs a theme context threaded through the component library, not a token swap.
 - **No web fallback** for a family without a smartphone.
@@ -99,20 +99,26 @@ PIN-locked, device-bound to a centre, offline-first. Five tabs:
 
 | Tab | What it does |
 |---|---|
-| **Overview** | The room's day at a glance: who is present, ratio state, what is due |
-| **Rooms** | Every room in the centre with live counts |
+| **Overview** | The room's day at a glance: who is present, staff in ratio, and — before the safe-arrival cutoff — who is still to arrive, after it who is not accounted for (the same rule as the Rooms chase list); open serious occurrences, today's accident reports |
+| **Rooms** | Every room with live counts and ratio; the **safe-arrival chase list** after the cutoff; **what families told us today** (absence notices) |
 | **Staffing** | Who is on shift and who counts toward ratio |
 | **Evacuation** | **The screen the architecture exists for.** One tap from anywhere. Renders entirely from the device cache — every child, present/absent, room, allergies, medication, an emergency contact. **No sign-in wall, no network, ever.** Tap each child as you count them; anyone uncounted is visible by name; one button records the muster as a PIN-signed headcount |
 | **More** | Settings, sign-out, device session |
 
-`room/[id].tsx` is the room detail screen and by far the largest file in the app (1,075 lines): the sign-in board, the care-log grid, the nap board, bulk logging, and the medication list.
+`room/[id].tsx` is the room detail screen and by far the largest file in the app (~1,300 lines): the sign-in board, the care-log grid, the nap board, bulk logging, and the medication list.
 
 ### Where this is weak
 
-- **`room/[id].tsx` is 1,075 lines** and does too much. It is the highest-risk file in the repository for a regression nobody notices.
-- **The nap board does not call `sleep_placement_options`.** The function exists and is tested; the board offers positions generically and relies on the database refusal, so an educator learns the rule by being told no ([02 §6](02-features-daily-care.md)).
+- **`room/[id].tsx` is ~1,300 lines** and does too much. It is the highest-risk file in the repository for a regression nobody notices.
+- **The nap board's offline fallback is back-only.** It reads `sleep_placement_options` live, so a child with a physician's side-lying direction cannot be laid on their side without a connection ([02 §6](02-features-daily-care.md)).
 - **The evacuation cache is per-device** and there is no priming step, no staleness indicator, and no warning when it is empty.
 - **`debug.tsx` still references Gilroy**, the retired typeface.
+
+### The centre's day, everywhere
+
+Every `date` column in the schema — `attendance_date`, `log_date`, `story_date`, `notice_date` — is filed under the **centre-local** day, derived in SQL with `at time zone centre.timezone`. A client asking for "today" has to ask for the same day, so both apps use `packages/domain/src/localDate.ts` (`localDateISO`, `localMinutes`, `localWeekStartISO`, `addDaysISO`, `isoWeekdayOf`), never `new Date().toISOString().slice(0, 10)`.
+
+Until 2026-09-13 that pattern was in 24 places. From 8 p.m. in Toronto (7 p.m. in winter) the UTC date is tomorrow, so the family Home asked for tomorrow's story and showed "The day's story arrives at pick-up time" at exactly the hour parents read it; the day log emptied; and a room educator's story note after 8 p.m. saved onto tomorrow's story. `loadRoomDay()` fetched the centre's timezone and computed today from UTC on the line above. Where the timezone comes from: the console's `useConsole().centre.timezone`, family mode's `useFamily().selected.timeZone`, and room mode's `loadRoomDay().centre.timezone`.
 
 ---
 

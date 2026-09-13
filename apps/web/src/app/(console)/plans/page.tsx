@@ -6,6 +6,7 @@
  * food-restriction list, printable per room and for the kitchen. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, useConsole } from '@/lib/console';
 
@@ -318,13 +319,14 @@ function PlanRow({
   personId: string;
   onChanged: () => void;
 }) {
+  const { centre } = useConsole();
   const [open, setOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [paperParent, setPaperParent] = useState('');
   const [members, setMembers] = useState<{ person_id: string; full_name: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  const reviewOverdue = p.status === 'active' && p.review_due_on !== null && p.review_due_on < new Date().toISOString().slice(0, 10);
+  const reviewOverdue = p.status === 'active' && p.review_due_on !== null && p.review_due_on < localDateISO(centre.timezone);
 
   useEffect(() => {
     if (!open || p.status !== 'draft') return;

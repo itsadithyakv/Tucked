@@ -5,6 +5,7 @@
  * NEW events carrying who/when/why — recorded here with the supervisor's PIN. */
 
 import { useCallback, useEffect, useState } from 'react';
+import { localDateISO } from '@tucked/domain';
 import { getSupabase } from '@/lib/supabase';
 import { downloadCsv, fmtTime, useConsole, zonedToUtc } from '@/lib/console';
 
@@ -23,7 +24,7 @@ interface Row {
 
 export default function AttendancePage() {
   const { centre, personId } = useConsole();
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => localDateISO(centre.timezone));
   const [rows, setRows] = useState<Row[]>([]);
   const [correcting, setCorrecting] = useState<Row | null>(null);
   const [newTime, setNewTime] = useState('');
