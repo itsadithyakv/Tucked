@@ -4,7 +4,7 @@
 
 **Read this before writing code.** It is faster to learn here that the airplane-mode runbook has never been run on hardware than to discover it in a pilot.
 
-*Last reviewed: 2026-09-03.*
+*Last reviewed: 2026-09-13.*
 
 ---
 
@@ -61,17 +61,17 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 |---|---|---|
 | 1 | **Click through the room screen and the family Home on a device.** New interactions landed on both — the story note, the nap position and the sleep check in the room; "not coming today" / "running late" and the moved illness card on Home — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
-| 3 | **Run pgTAP in CI** | The 683 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
+| 3 | **Run pgTAP in CI** | The 750 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
 
 ### Tier 2 — would embarrass in an inspection or a demo
 
 | # | Work | Why |
 |---|---|---|
-| 5 | **Document attachments on children's records (s. 72(1))** | A signed application exists as a *status*, not as the scan. The staff file closed exactly this gap in migration 0032; the child side is still open |
+| 5 | ~~**Document attachments on children's records (s. 72(1))**~~ | **Built (0042).** Family photos of signed forms from the app, staff PDFs from the console; replaced never overwritten; a new document re-opens verification |
 | 6 | **Child profile photo upload** | Gallery photos landed (0041) and the profile path's storage policy is written; no surface uploads one. Rooms show initials |
 | 7 | **Allergen cross-check against menus** | s. 43(3) allergies and the ss. 42–44 menu are separate. Nothing warns that Tuesday's lunch contains an allergen a child on the posted list reacts to. The highest-value safety feature not built |
-| 8 | **Annual review clock on individualised plans** | ss. 39/39.1/52 require at least annual review. There is no clock and no reminder |
+| 8 | **Recording an annual plan review** | ss. 39/39.1/52 require at least annual review. The clock exists and is flagged once overdue; a review that changes nothing still forces a new plan version and a fresh parent agreement, and nothing warns before the date |
 | 9 | **A "give the advisor everything" export bundle** | Exports are per-module and printing is the browser's. There is no single artefact for inspection day |
 
 ### Tier 3 — real, not urgent
@@ -105,7 +105,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | **Fee subsidy administration** | A subsidy payment can be *recorded*; the subsidy relationship — eligibility, the City's portion vs the family's, reconciliation — is not modelled | `fee_charge`/`fee_payment` extension |
 | **Employer duty to report RECE matters to the College** | Not modelled at all | New workflow |
 | **PIPEDA access and deletion requests** | RLS gives every family read access to their own child's record, which covers the spirit. There is no request-and-response record, no 30-day SLA tracker, and **no consent-withdrawal cascade** | New module |
-| **Annual review of individualised plans** | ss. 39/39.1/52 require it; no clock exists | `individualised_plan` |
+| **Recording an annual plan review** | ss. 39/39.1/52 require annual review. The clock exists (`review_due_on`, flagged when overdue); recording a review that changes nothing still forces a new version and a new parent agreement, and there is no due-soon warning | `individualised_plan` |
 | **Immunisation schedule modelling** | "Which schedule, to which visit" is free text; nothing knows a child is due | `immunisation_record` |
 
 ### 3.2 Platform and product — Not yet
@@ -144,7 +144,7 @@ These exist in the tree and do nothing today.
 
 | Area | What works | What does not |
 |---|---|---|
-| **Children's records (s. 72(1))** | All 11 items typed, parent completion, supervisor verification, and "missing" is never blank | **No document attachments** — the same gap the staff file closed, on the child side |
+| **Children's records (s. 72(1))** | All 11 items typed, parent completion, supervisor verification, "missing" is never blank, and documents on every item (0042) | Families can photograph a form but not upload a PDF from the phone. Rows recorded before 0042 carry the consent purpose "enrolment" |
 | **Offline (s. 82(2))** | An AsyncStorage command queue and a zero-network evacuation cache, with 15 automated tests covering ordering, persistence across a restart, offline timestamps, visible refusals and corrupt storage | **The runbook has never been run on a device** (§7). The evacuation cache is per-device with no priming step |
 | **Exports** | Attendance CSV, medication registers, printable allergy list, menu, handbook, staff file, CRA receipt, sleep register, the s. 72(6) MOH subset | No single advisor bundle, and no PDF generation — printing is the browser's |
 | **Break-glass (s. 82(2))** | Read-only 24-hour unlock, loud to leadership, self-expiring, fully audited | No physical-device fallback if the whole internet is down at the centre; the evacuation cache covers the life-safety case only |
@@ -190,7 +190,7 @@ Not gaps exactly — decisions with a consequence somebody should be able to exp
 
 | Risk | Likelihood | Impact | Mitigation today | Gap |
 |---|---|---|---|---|
-| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 683 tests exist and are fast | They do not run in CI. Backlog #3 |
+| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 750 tests exist and are fast | They do not run in CI. Backlog #3 |
 | **A migration breaks every centre at once** | Low | **High** | One project is one blast radius; pgTAP + local reset | No staging environment. Backlog #11 |
 | **`create or replace function` drops an earlier amendment** | Medium | High | Happened once, caught by the suite | Nothing prevents it. [04 §9.2](04-data-security-and-platform.md) |
 | **A `security_invoker` view reasons about absence and lies** | Medium | Medium | Hit three times, each fixed with a definer helper and a tombstone test | No lint. [04 §9.1](04-data-security-and-platform.md) |

@@ -2,12 +2,26 @@
 
 /** The child's record (s. 72(1)) in one inspectable view, with two exports:
  * the full record, and the s. 72(6) subset the medical officer of health may
- * inspect and copy — items 2, 3, 8 and 9 exactly, nothing more. */
+ * inspect and copy — items 2, 3, 8 and 9 exactly, nothing more.
+ *
+ * Each item carries its documents: the signed page, not just the word
+ * "provided". Attaching one re-opens that item's verification (0042). */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { getSupabase } from '@/lib/supabase';
 import { fmtDate, fmtTime, useConsole } from '@/lib/console';
+
+interface RecordDoc {
+  id: string;
+  item_type: string;
+  storage_path: string;
+  file_name: string;
+  uploaded_at: string;
+  uploaded_via: 'staff' | 'family';
+  superseded_at: string | null;
+  by: { full_name: string } | null;
+}
 
 interface Child {
   id: string;
@@ -64,8 +78,11 @@ function flat(content: Record<string, unknown>): string {
 
 export default function ChildRecordPage() {
   const params = useParams<{ id: string }>();
-  const { centre } = useConsole();
+  const { centre, personId } = useConsole();
   const [child, setChild] = useState<Child | null>(null);
+  const [docs, setDocs] = useState<RecordDoc[]>([]);
+  const [pin, setPin] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [consents, setConsents] = useState<Consent[]>([]);
   const [symptoms, setSymptoms] = useState<Symptom[]>([]);
@@ -77,6 +94,26 @@ export default function ChildRecordPage() {
     effective_on: string;
   } | null>(null);
   const [mohMode, setMohMode] = useState(false);
+
+  const loadDocs = useCallback(() => {
+    getSupabase()
+      .from('child_record_document')
+      .select('id, item_type, storage_path, file_name, uploaded_at, uploaded_via, superseded_at, by:uploaded_by(full_name)')
+      .eq('child_id', params.id)
+      .order('uploaded_at', { ascending: false })
+      .then(({ data }) => setDocs((data as never as RecordDoc[]) ?? []));
+  }, [params.id]);
+
+  useEffect(loadDocs, [loadDocs]);
+
+  async function openDocument(path: string) {
+    const { data, error } = await getSupabase().storage.from('evidence').createSignedUrl(path, 60);
+    if (error || !data) {
+      setNotice(error?.message ?? 'Could not open that file.');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+  }
 
   useEffect(() => {
     const sb = getSupabase();
@@ -138,7 +175,19 @@ export default function ChildRecordPage() {
         <button className="quiet" onClick={printMoh}>
           Medical officer copy (s. 72(6))
         </button>
+        <label className="inline">
+          Staff PIN (to attach)
+          <input
+            type="password"
+            inputMode="numeric"
+            maxLength={6}
+            autoComplete="off"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+          />
+        </label>
       </div>
+      {notice ? <p className="muted">{notice}</p> : null}
       <section className="card">
         <h2>Child</h2>
         <p className="muted">
@@ -155,6 +204,7 @@ export default function ChildRecordPage() {
               <th>Item</th>
               <th>Status</th>
               <th>Content</th>
+              <th>Documents</th>
               <th>Verified</th>
             </tr>
           </thead>
@@ -168,6 +218,45 @@ export default function ChildRecordPage() {
                   </span>
                 </td>
                 <td className="wrap muted">{item ? flat(item.content) : ''}</td>
+                <td className="wrap">
+                  {(() => {
+                    const mine = docs.filter((d) => d.item_type === key);
+                    const live = mine.filter((d) => !d.superseded_at);
+                    const replaced = mine.length - live.length;
+                    return (
+                      <>
+                        {live.map((d) => (
+                          <div key={d.id}>
+                            <button type="button" className="link" onClick={() => void openDocument(d.storage_path)}>
+                              {d.file_name}
+                            </button>
+                            <span className="caption">
+                              {' '}
+                              {d.uploaded_via === 'family' ? 'from the family' : d.by?.full_name ?? 'staff'}, {fmtDate(d.uploaded_at)}
+                            </span>
+                          </div>
+                        ))}
+                        {replaced > 0 ? (
+                          <span className="caption">{`${replaced} earlier cop${replaced === 1 ? 'y' : 'ies'} kept`}</span>
+                        ) : null}
+                        {mohMode ? null : (
+                          <AttachDocument
+                            centreId={centre.id}
+                            childId={child.id}
+                            itemType={key}
+                            replaces={live[0]?.id ?? null}
+                            recorderId={personId}
+                            pin={pin}
+                            onDone={(message) => {
+                              setNotice(message);
+                              loadDocs();
+                            }}
+                          />
+                        )}
+                      </>
+                    );
+                  })()}
+                </td>
                 <td className="caption">
                   {item?.verified_at ? `${item.verified_by_person?.full_name}, ${fmtDate(item.verified_at)}` : '—'}
                 </td>
@@ -243,6 +332,92 @@ export default function ChildRecordPage() {
           </tbody>
         </table>
       </section>
+    </>
+  );
+}
+
+/** Attach a PDF or an image to one item of the record. The bytes land in the
+ * child's own folder first; attach_record_document then refuses anything that
+ * did not arrive, and re-opens the item's verification. */
+function AttachDocument({
+  centreId,
+  childId,
+  itemType,
+  replaces,
+  recorderId,
+  pin,
+  onDone,
+}: {
+  centreId: string;
+  childId: string;
+  itemType: string;
+  replaces: string | null;
+  recorderId: string;
+  pin: string;
+  onDone: (message: string) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function upload(file: File) {
+    if (file.size > 20 * 1024 * 1024) {
+      onDone('That file is over 20 MB — scan it smaller, or split it.');
+      return;
+    }
+    if (pin.length < 4) {
+      onDone('Enter your staff PIN first — the record says who attached it.');
+      return;
+    }
+    setBusy(true);
+    const sb = getSupabase();
+    const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : 'pdf';
+    // a fresh name every time: a replacement must never collide with the copy it replaces
+    const path = `${centreId}/child/${childId}/${crypto.randomUUID()}.${ext}`;
+    const contentType = file.type || 'application/pdf';
+    const { error: upErr } = await sb.storage.from('evidence').upload(path, file, { upsert: false, contentType });
+    if (upErr) {
+      setBusy(false);
+      onDone(upErr.message);
+      return;
+    }
+    const { error } = await sb.rpc('attach_record_document', {
+      p_child: childId,
+      p_item: itemType,
+      p_storage_path: path,
+      p_file_name: file.name,
+      p_content_type: contentType,
+      p_size_bytes: file.size,
+      p_note: null,
+      p_replaces: replaces,
+      p_recorder: recorderId,
+      p_pin: pin,
+    });
+    setBusy(false);
+    onDone(
+      error
+        ? error.message
+        : `${file.name} attached${replaces ? ' — the earlier copy is kept' : ''}. This item needs verifying again.`,
+    );
+  }
+
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="application/pdf,image/jpeg,image/png"
+        style={{ display: 'none' }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void upload(file);
+          e.target.value = '';
+        }}
+      />
+      {/* Text-weight, not a clay button: eleven identical buttons down this
+          column outweighed the documents themselves. */}
+      <button type="button" className="link" disabled={busy} onClick={() => ref.current?.click()}>
+        {busy ? 'Uploading…' : replaces ? 'Replace' : 'Attach a document'}
+      </button>
     </>
   );
 }

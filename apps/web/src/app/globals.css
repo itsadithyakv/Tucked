@@ -521,6 +521,32 @@ td.wrap {
   box-shadow: var(--shadow-neu-inset);
 }
 
+/* A text-weight action inside a table cell — opening a document, say. Not a
+   clay control: no face, no foot, no lift. It does what a link does, so it
+   looks like one; the focus ring from button:focus-visible still applies.
+   blue-600 on surface is 5.5:1 in light and well above that in dark. */
+button.link {
+  background: none;
+  border: none;
+  box-shadow: none;
+  min-height: 0;
+  padding: 0;
+  font: var(--type-body);
+  color: var(--blue-600);
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+button.link:hover,
+button.link:active {
+  background: none;
+  box-shadow: none;
+  color: var(--blue-700);
+  transform: none;
+}
+
 /* ── pills — never colour alone; the word carries the meaning ──────────── */
 .pill {
   display: inline-block;

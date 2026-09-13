@@ -70,7 +70,9 @@ Two completion paths: a **parent** completes their own items through the enrolme
 
 ### Where this is weak
 
-- **No document attachments against a record item.** This is the same gap the staff file closed in migration 0032, still open on the child side. A signed application exists as a *status*, not as the scan of the signed page. This is the largest single gap in this module.
+- ~~**No document attachments against a record item.**~~ **Built (migration 0042).** Every item can carry documents — the signed page, not just the word "provided". A family photographs the form from the enrolment screen (re-encoded on the phone, so no location leaves it); staff attach a PDF or image from the console child page with their PIN. A document is **replaced, never overwritten** — earlier copies are kept and say what replaced them — and **any new document re-opens that item's verification**, because a supervisor verified what was on file and this is not what was on file. An adult who can only *view* a child's day cannot add to their legal record; only the centre or an adult who may consent can. At retention the files are deleted and the rows keep no name.
+- **Families can attach a photo, not a PDF, from the phone.** `expo-document-picker` is not installed, so a form a parent already has as a PDF has to be photographed or emailed to the centre.
+- **The consent `purpose` was the word "enrolment" for every consent the app ever recorded.** The enrolment screen passed `p_purpose: 'enrolment'` for photos, sunscreen and data sharing alike, so the record of what a family agreed to said nothing about what they were shown. It now records the label the family actually read. Rows written before this are still "enrolment" and cannot be recovered.
 - **Child profile photo upload does not exist.** Gallery photos landed in migration 0041, and the storage policy already governs `photos/{centre}/{child}/profile.jpg` (the child's own family, and only with `photo_internal`), but **no surface uploads a profile photo.** Rooms still fall back to initials.
 - **The symptoms log (item 9) is satisfied by the illness module** rather than being its own artefact, which is defensible but means the item's status is a manual assertion.
 
@@ -187,7 +189,7 @@ Room mode caches the allergy list for the offline evacuation screen.
 
 ### Where this is weak
 
-- **Annual review is not tracked.** The regulation says plans are reviewed at least annually; there is no review clock, no reminder and no "this plan is a year old" signal. The compliance calendar has an anaphylaxis *policy* review task, which is a different thing.
+- **A review cannot be recorded without a new plan.** The clock exists — `review_due_on` is set a year out when a parent agrees, and the console home and the Plans page both flag it once passed. (This document said until 2026-09-13 that there was no clock; that was wrong.) What is missing is the review itself: the only way to reset an overdue clock is a new plan version and a fresh parent agreement, even when nothing about the plan changed. There is also no *due soon* warning, only *overdue*.
 - **The posted list is a print view**, so a centre that reprints monthly has a stale sheet on the kitchen wall and Tucked cannot know.
 - **No allergen cross-check against menus** — see [02 §8](02-features-daily-care.md).
 

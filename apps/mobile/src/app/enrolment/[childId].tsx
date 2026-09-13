@@ -4,6 +4,7 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from 'expo-rou
 import { space } from '@tucked/ui-tokens';
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
+import { newPhotoId, pickPhoto } from '@/lib/photos';
 import { Body, Button, Caption, Card, Field, Heading, Pill, Screen, Sheet, Title } from '@/ui/components';
 
 /** The parent completes the s. 72(1) children's record from home — every item
@@ -29,6 +30,16 @@ const ITEMS: { type: string; label: string; hint?: string }[] = [
   { type: 'care_instructions', label: 'Diet, rest or physical activity instructions' },
 ];
 
+/** Items where a family usually has a piece of paper to show: a photo of the
+ * signed form goes onto the record itself, not just the answer "provided". */
+const DOCUMENT_ITEMS = new Set([
+  'application',
+  'identity',
+  'health_immunisation',
+  'medication_instructions',
+  'care_instructions',
+]);
+
 const CONSENTS: { type: string; label: string; required?: boolean }[] = [
   { type: 'care_required', label: 'Information needed to care for your child', required: true },
   { type: 'photo_internal', label: 'Photos shared with you in the app' },
@@ -44,6 +55,9 @@ export default function EnrolmentScreen() {
   const params = useLocalSearchParams<{ childId: string }>();
   const { session, loading } = useAuth();
   const [childName, setChildName] = useState('');
+  const [centreId, setCentreId] = useState<string | null>(null);
+  const [docCounts, setDocCounts] = useState<Map<string, number>>(new Map());
+  const [uploading, setUploading] = useState(false);
   const [items, setItems] = useState<Map<string, { status: string }>>(new Map());
   const [consents, setConsents] = useState<Map<string, string>>(new Map());
   const [editing, setEditing] = useState<{ type: string; label: string } | null>(null);
@@ -54,10 +68,25 @@ export default function EnrolmentScreen() {
   const refresh = useCallback(() => {
     supabase
       .from('child')
-      .select('full_name')
+      .select('full_name, centre_id')
       .eq('id', params.childId)
       .maybeSingle()
-      .then(({ data }) => setChildName(data?.full_name ?? ''));
+      .then(({ data }) => {
+        setChildName(data?.full_name ?? '');
+        setCentreId((data as { centre_id: string } | null)?.centre_id ?? null);
+      });
+    supabase
+      .from('child_record_document')
+      .select('item_type')
+      .eq('child_id', params.childId)
+      .is('superseded_at', null)
+      .then(({ data }) => {
+        const counts = new Map<string, number>();
+        for (const d of (data as { item_type: string }[]) ?? []) {
+          counts.set(d.item_type, (counts.get(d.item_type) ?? 0) + 1);
+        }
+        setDocCounts(counts);
+      });
     supabase
       .from('child_record_item')
       .select('item_type, status')
@@ -91,11 +120,50 @@ export default function EnrolmentScreen() {
     refresh();
   }
 
-  async function decide(consentType: string, status: 'granted' | 'declined') {
+  /** A photo of the signed form, re-encoded on the phone (no location leaves
+   * it) and filed on this item of the record. */
+  async function addFormPhoto() {
+    const target = editing;
+    if (!target || !centreId) return;
+    setUploading(true);
+    try {
+      const photo = await pickPhoto('camera');
+      if (!photo) return;
+      const path = `${centreId}/child/${params.childId}/${newPhotoId()}.jpg`;
+      const bytes = Uint8Array.from(atob(photo.base64), (c) => c.charCodeAt(0));
+      const { error: upErr } = await supabase.storage
+        .from('evidence')
+        .upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
+      if (upErr) {
+        setNotice(/network|fetch|timed out/i.test(upErr.message)
+          ? 'Adding a form needs a connection — try again when you are back online.'
+          : upErr.message);
+        return;
+      }
+      const { error } = await supabase.rpc('attach_record_document', {
+        p_child: params.childId,
+        p_item: target.type,
+        p_storage_path: path,
+        p_file_name: `${target.label}.jpg`,
+        p_content_type: 'image/jpeg',
+        p_size_bytes: photo.sizeBytes,
+      });
+      setNotice(error ? error.message : 'Photo of the form added to the record. The centre will check it.');
+      refresh();
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : 'The photo could not be added.');
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function decide(consentType: string, label: string, status: 'granted' | 'declined') {
     const { error } = await supabase.rpc('give_consent', {
       p_child: params.childId,
       p_type: consentType,
-      p_purpose: 'enrolment',
+      // what the family was actually asked — "enrolment" said nothing about
+      // what they agreed to, which is the whole of informed consent
+      p_purpose: label,
       p_status: status,
     });
     setNotice(error ? error.message : null);
@@ -137,6 +205,13 @@ export default function EnrolmentScreen() {
                 <View style={{ flex: 1 }}>
                   <Body>{item.label}</Body>
                   {item.hint ? <Caption>{item.hint}</Caption> : null}
+                  {docCounts.get(item.type) ? (
+                    <Caption>
+                      {docCounts.get(item.type) === 1
+                        ? 'A document is on file'
+                        : `${docCounts.get(item.type)} documents on file`}
+                    </Caption>
+                  ) : null}
                 </View>
                 <Pill kind={status === 'missing' ? 'due' : 'ok'}>
                   {status === 'missing' ? 'Needed' : status.replace(/_/g, ' ')}
@@ -176,14 +251,14 @@ export default function EnrolmentScreen() {
                   <Button
                     label="Yes"
                     kind={status === 'granted' ? 'primary' : 'quiet'}
-                    onPress={() => void decide(c.type, 'granted')}
+                    onPress={() => void decide(c.type, c.label, 'granted')}
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Button
                     label="No"
                     kind={status === 'declined' ? 'primary' : 'quiet'}
-                    onPress={() => void decide(c.type, 'declined')}
+                    onPress={() => void decide(c.type, c.label, 'declined')}
                   />
                 </View>
               </View>
@@ -205,6 +280,14 @@ export default function EnrolmentScreen() {
           />
         ) : null}
         <Field placeholder="Details (optional)" value={note} onChangeText={setNote} />
+        {editing && DOCUMENT_ITEMS.has(editing.type) ? (
+          <Button
+            label={uploading ? 'Adding…' : 'Add a photo of the signed form'}
+            kind="quiet"
+            busy={uploading}
+            onPress={() => void addFormPhoto()}
+          />
+        ) : null}
         <Button label="Provided" onPress={() => void saveItem('provided')} />
         <Button label="Not applicable" kind="quiet" onPress={() => void saveItem('not_applicable')} />
         <Button label="Prefer not to provide" kind="quiet" onPress={() => void saveItem('parent_declined')} />

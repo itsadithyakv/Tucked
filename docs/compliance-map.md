@@ -3,7 +3,7 @@
 *Regulation section → where it lives in the product. Every row must eventually name its table(s), function(s), screen(s) and at least one test that fails if the rule is broken (tests are named for their section, e.g. `s72_attendance_requires_actual_times`). Sections are O. Reg. 137/15 unless noted. What each rule actually does, in every case: [02-features-daily-care.md](../references/02-features-daily-care.md) and [03-features-records-and-obligations.md](../references/03-features-records-and-obligations.md).*
 
 Status: ⬜ planned · 🔶 in progress · ✅ built & tested. Phase = when it lands per the build plan.
-Full audit with test evidence: [compliance-test-report.md](compliance-test-report.md) (683 pgTAP + 90 domain + 60 design-token + 15 offline-queue tests as of 2026-09-13).
+Full audit with test evidence: [compliance-test-report.md](compliance-test-report.md) (750 pgTAP + 90 domain + 60 design-token + 15 offline-queue tests as of 2026-09-13).
 
 | Section | Requirement (short) | Tables / functions | Screens | Tests | Phase | Status |
 |---|---|---|---|---|---|---|

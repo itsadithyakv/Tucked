@@ -312,7 +312,11 @@ function UploadButton({
     setBusy(true);
     const sb = getSupabase();
     const ext = file.name.includes('.') ? file.name.split('.').pop() : 'pdf';
-    const path = `${centreId}/${personId}/${credentialId}.${ext}`;
+    // A fresh name every upload. This used to be `${credentialId}.${ext}` with
+    // upsert off, so attaching a RENEWED certificate to the same credential hit
+    // the first file's path and storage refused it as a duplicate — the
+    // replace-never-overwrite rule could not be exercised from the console.
+    const path = `${centreId}/${personId}/${credentialId}-${crypto.randomUUID()}.${ext}`;
     const { error: upErr } = await sb.storage
       .from('evidence')
       .upload(path, file, { upsert: false, contentType: file.type || 'application/pdf' });

@@ -202,7 +202,7 @@ Two private buckets. No public bucket exists.
 
 | Bucket | Path shape | Read access |
 |---|---|---|
-| `evidence` | `{centre}/{person}/…` for staff files; `{centre}/centre/…` for premises documents | The person themself, or centre leadership |
+| `evidence` | `{centre}/{person}/…` (staff files), `{centre}/centre/…` (premises), `{centre}/child/{child}/…` (children's record documents) | PDF, JPEG, PNG only, 20 MB (0042 — it had no limits before). Leadership; a person's own staff file; any care role for premises and children's documents; a child's family for their own child's documents, and a consenting adult may upload into that folder |
 | `photos` | `{centre}/p/{photo}/full.jpg` (gallery), `{centre}/{child}/profile.jpg` | JPEG only, 5 MB. Care staff; a family only for what `app.photo_visible_to_family` allows |
 
 Paths are parsed with `app.path_uuid(name, segment)`, which returns null rather than raising on a non-UUID segment (§9).
@@ -430,7 +430,7 @@ Until both exist the dispatcher returns **`not configured`** — nothing is sile
 
 | Suite | Count | Runs in CI? |
 |---|---|---|
-| **pgTAP** (`supabase/tests/`, 30 files) | **683** | ❌ **No** |
+| **pgTAP** (`supabase/tests/`, 32 files) | **750** | ❌ **No** |
 | Domain (`packages/domain/test/`) | 90 | ✅ |
 | Design tokens (`packages/ui-tokens/test/`) | 60 | ✅ |
 | Mobile offline queue (`apps/mobile/test/`) | 15 | ✅ |
@@ -463,7 +463,7 @@ A ratio written in a document is a claim; a ratio in a test is a rule.
 
 ### Where this is weak
 
-- **The 683 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
+- **The 750 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
 - **No coverage gate is enforced** despite the architecture note asking for ≥ 90 % on the rule engine.
 - **The seed is a test surface nobody counts.** It caught a real bug — a `db reset` refused to load when the new sleep rule met a demo nap with no position — but that is luck, not design.
 - **No end-to-end test of either app.** The 15 mobile tests cover the offline queue only; every screen is verified by hand in a browser.

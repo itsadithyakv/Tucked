@@ -1,6 +1,6 @@
 # Compliance test report — O. Reg. 137/15 full sweep
 
-*Audit date: 2026-08-30. Scope: every section of [03-features-records-and-obligations.md](../references/03-features-records-and-obligations.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **716 pgTAP tests across 31 suites** (`supabase/tests/`), 90 domain tests (`packages/domain/test/`), 60 design-token tests (`packages/ui-tokens/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
+*Audit date: 2026-08-30. Scope: every section of [03-features-records-and-obligations.md](../references/03-features-records-and-obligations.md) checked against the schema, the RPCs, the screens, and the automated proof. Test evidence: **750 pgTAP tests across 32 suites** (`supabase/tests/`), 90 domain tests (`packages/domain/test/`), 60 design-token tests (`packages/ui-tokens/test/`) and 15 offline-queue tests (`apps/mobile/test/`), all green on this date. Verdicts: ✅ built and machine-proven · 🔶 built, partially proven or partially built · ⬜ not built (phased per the build plan) — an honest ⬜ beats a decorative ✅.*
 
 Run the proof yourself:
 
