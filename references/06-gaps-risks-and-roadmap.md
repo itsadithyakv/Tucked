@@ -59,9 +59,9 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 
 | # | Work | Why it is first |
 |---|---|---|
-| 1 | **Click through the room screen and the family Home on a device.** New interactions landed on both — the story note, the nap position and the sleep check in the room; "not coming today" / "running late" and the moved illness card on Home — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
+| 1 | **Click through the room screen and the family Home on a device.** New interactions landed on both — the story note, the nap position and the sleep check in the room; "not coming today" / "running late", the moved illness card and the plan-review answer on Home — all typechecked with their RPCs proven against a live database, none ever tapped. Expo web will not accept automated taps, so this needs the same dev build the airplane-mode runbook needs | Three of the most-used interactions in the product are unverified at the surface. The rules underneath them are proven; the buttons are not |
 | 2 | **Deploy `notify` and set the two `app_setting` rows** per environment, then run remote push to a real device | Now alerts are the safety-critical channel. Everything is built and proven; nothing has ever left the building |
-| 3 | **Run pgTAP in CI** | The 750 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
+| 3 | **Run pgTAP in CI** | The 800 most valuable tests in the repository are run by hand. One forgotten run ships a regression in regulated behaviour |
 | 4 | **Run the airplane-mode runbook** (§7) on a dev build | s. 82(2) is a licensing condition. Everything is proven against a mocked AsyncStorage; a real radio and a real backgrounded app are untested |
 
 ### Tier 2 — would embarrass in an inspection or a demo
@@ -71,7 +71,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | 5 | ~~**Document attachments on children's records (s. 72(1))**~~ | **Built (0042).** Family photos of signed forms from the app, staff PDFs from the console; replaced never overwritten; a new document re-opens verification |
 | 6 | **Child profile photo upload** | Gallery photos landed (0041) and the profile path's storage policy is written; no surface uploads one. Rooms show initials |
 | 7 | **Allergen cross-check against menus** | s. 43(3) allergies and the ss. 42–44 menu are separate. Nothing warns that Tuesday's lunch contains an allergen a child on the posted list reacts to. The highest-value safety feature not built |
-| 8 | **Recording an annual plan review** | ss. 39/39.1/52 require at least annual review. The clock exists and is flagged once overdue; a review that changes nothing still forces a new plan version and a fresh parent agreement, and nothing warns before the date |
+| 8 | ~~**Recording a plan review**~~ | **Built (0043).** A review that changes nothing moves the clock without a new version; staff record one or the family answers in the app; due-soon and changes-needed flags. It also corrected this row: the regulation sets no annual review, only an up-to-date plan, so the interval is now the centre's setting |
 | 9 | **A "give the advisor everything" export bundle** | Exports are per-module and printing is the browser's. There is no single artefact for inspection day |
 
 ### Tier 3 — real, not urgent
@@ -90,6 +90,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | 19 | **"Record absent from this notice"** on the Rooms board — today a family's notice and the register's absence are entered twice |
 | 20 | **The late-notice grace window as a centre setting** beside `safe_arrival_cutoff` — s. 50 makes safe arrival the centre's own policy |
 | 21 | **A lint rule banning `toISOString().slice(0, 10)` in `apps/`** — 24 UTC-date bugs were removed by grep; nothing stops the 25th |
+| 22 | **Say the plan review interval in the handbook** — the licensing manual's best practice for s. 39.1. Make it a sourced sentence like the anaphylaxis policy, so the handbook cannot contradict `centre.plan_review_months` |
 
 ---
 
@@ -105,7 +106,6 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | **Fee subsidy administration** | A subsidy payment can be *recorded*; the subsidy relationship — eligibility, the City's portion vs the family's, reconciliation — is not modelled | `fee_charge`/`fee_payment` extension |
 | **Employer duty to report RECE matters to the College** | Not modelled at all | New workflow |
 | **PIPEDA access and deletion requests** | RLS gives every family read access to their own child's record, which covers the spirit. There is no request-and-response record, no 30-day SLA tracker, and **no consent-withdrawal cascade** | New module |
-| **Recording an annual plan review** | ss. 39/39.1/52 require annual review. The clock exists (`review_due_on`, flagged when overdue); recording a review that changes nothing still forces a new version and a new parent agreement, and there is no due-soon warning | `individualised_plan` |
 | **Immunisation schedule modelling** | "Which schedule, to which visit" is free text; nothing knows a child is due | `immunisation_record` |
 
 ### 3.2 Platform and product — Not yet
@@ -190,7 +190,7 @@ Not gaps exactly — decisions with a consequence somebody should be able to exp
 
 | Risk | Likelihood | Impact | Mitigation today | Gap |
 |---|---|---|---|---|
-| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 750 tests exist and are fast | They do not run in CI. Backlog #3 |
+| **A database regression ships because pgTAP was not run** | Medium | **High** — regulated behaviour | 800 tests exist and are fast | They do not run in CI. Backlog #3 |
 | **A migration breaks every centre at once** | Low | **High** | One project is one blast radius; pgTAP + local reset | No staging environment. Backlog #11 |
 | **`create or replace function` drops an earlier amendment** | Medium | High | Happened once, caught by the suite | Nothing prevents it. [04 §9.2](04-data-security-and-platform.md) |
 | **A `security_invoker` view reasons about absence and lies** | Medium | Medium | Hit three times, each fixed with a definer helper and a tombstone test | No lint. [04 §9.1](04-data-security-and-platform.md) |

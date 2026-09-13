@@ -430,7 +430,7 @@ Until both exist the dispatcher returns **`not configured`** — nothing is sile
 
 | Suite | Count | Runs in CI? |
 |---|---|---|
-| **pgTAP** (`supabase/tests/`, 32 files) | **750** | ❌ **No** |
+| **pgTAP** (`supabase/tests/`, 33 files) | **800** | ❌ **No** |
 | Domain (`packages/domain/test/`) | 90 | ✅ |
 | Design tokens (`packages/ui-tokens/test/`) | 60 | ✅ |
 | Mobile offline queue (`apps/mobile/test/`) | 15 | ✅ |
@@ -463,7 +463,7 @@ A ratio written in a document is a claim; a ratio in a test is a rule.
 
 ### Where this is weak
 
-- **The 750 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
+- **The 800 most valuable tests in the repository do not run in CI.** This is the single biggest quality gap in the project. A database regression is caught only by whoever remembers to run the suite.
 - **No coverage gate is enforced** despite the architecture note asking for ≥ 90 % on the rule engine.
 - **The seed is a test surface nobody counts.** It caught a real bug — a `db reset` refused to load when the new sleep rule met a demo nap with no position — but that is luck, not design.
 - **No end-to-end test of either app.** The 15 mobile tests cover the offline queue only; every screen is verified by hand in a browser.

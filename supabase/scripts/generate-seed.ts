@@ -258,7 +258,9 @@ lines.push(
 );
 
 // ── individualised plans + allergy list (ss. 39, 39.1, 52; s. 43(3)) ────────
-// Ivan: an ACTIVE anaphylaxis plan agreed in-app by the demo parent.
+// Ivan: an ACTIVE anaphylaxis plan agreed in-app by the demo parent 340 days
+// ago, so on the centre's 12-month schedule its review is due in about three
+// weeks and the due-soon warning has something real to show.
 // Rosa: a DRAFT medical-needs plan awaiting agreement (family in-app loop).
 // Two dietary restrictions round out the posted allergy list.
 const ivan = f.children.find((ch) => demoChildIds.has(ch.id) && ch.fullName.startsWith('Ivan'))!;
@@ -271,7 +273,7 @@ lines.push(
   '-- individualised plans + allergy list',
   `update public.centre set anaphylaxis_policy = 'Every staff member and volunteer reviews this policy at orientation and annually. Epinephrine auto-injectors travel with the child (room, playground, trips). Any suspected reaction: administer epinephrine, call 911, contact the family — in that order.' where id = '${c.id}';`,
   `insert into public.individualised_plan (id, centre_id, child_id, plan_type, version, condition, allergens, signs, emergency_procedure, exposure_reduction, devices_instructions, evacuation_procedure, developed_with, status, parent_agreed_at, parent_agreed_by, agreement_method, review_due_on, recorded_by)`,
-  `values ('aa000000-0000-4000-8000-000000000002', '${c.id}', '${ivan.id}', 'anaphylaxis', 1, 'Anaphylaxis — peanut and tree nut allergy', array['peanuts','tree nuts'], 'Hives, swelling of lips or face, coughing or wheezing, vomiting', 'Give the EpiPen Jr immediately into the outer thigh, call 911, then the family. A second dose after 5 minutes if symptoms persist.', 'Nut-free room; Ivan''s snacks come from home in a labelled container; tables wiped before he sits.', 'EpiPen Jr in the marked pouch on the Preschool room go-bag; expires checked monthly.', 'The go-bag (with the EpiPen) leaves with the room on every evacuation and outing.', 'Alex Osei (parent) and Dr. Patel (paediatrician)', 'active', now() - interval '30 days', '${demoParent.id}', 'in_app', (current_date + interval '11 months')::date, '${supervisor.id}');`,
+  `values ('aa000000-0000-4000-8000-000000000002', '${c.id}', '${ivan.id}', 'anaphylaxis', 1, 'Anaphylaxis — peanut and tree nut allergy', array['peanuts','tree nuts'], 'Hives, swelling of lips or face, coughing or wheezing, vomiting', 'Give the EpiPen Jr immediately into the outer thigh, call 911, then the family. A second dose after 5 minutes if symptoms persist.', 'Nut-free room; Ivan''s snacks come from home in a labelled container; tables wiped before he sits.', 'EpiPen Jr in the marked pouch on the Preschool room go-bag; expires checked monthly.', 'The go-bag (with the EpiPen) leaves with the room on every evacuation and outing.', 'Alex Osei (parent) and Dr. Patel (paediatrician)', 'active', now() - interval '340 days', '${demoParent.id}', 'in_app', app.next_plan_review('${c.id}', app.centre_date('${c.id}', now() - interval '340 days')), '${supervisor.id}');`,
   `insert into public.individualised_plan (id, centre_id, child_id, plan_type, version, condition, emergency_procedure, devices_instructions, developed_with, status, recorded_by)`,
   `values ('${DRAFT_PLAN_ID}', '${c.id}', '${rosa.id}', 'medical_needs', 1, 'Asthma', 'Two puffs of salbutamol via the spacer; repeat after 5 minutes if breathing has not eased; 911 if a second dose is needed.', 'Blue inhaler and spacer in the labelled bin on the Preschool room shelf.', 'Alex Osei (parent)', 'draft', '${supervisor.id}');`,
   `insert into public.notification (centre_id, child_id, recipient_person_id, channel, event_type, title, body, requires_acknowledgement, created_by, ref_id)`,

@@ -155,7 +155,7 @@ Feeds s. 72(1) item 8 and the **s. 72(6) medical-officer-of-health export**.
 - **s. 39** — an anaphylaxis plan naming the allergens, the signs of a reaction and the emergency procedure.
 - **s. 39.1** — a medical-needs plan with an emergency procedure.
 - **s. 52** — a special-needs plan describing supports and strategies.
-- All developed **with the parent**, **agreed before implementation**, and **annually reviewed**.
+- All developed **with the parent** and **agreed before implementation**, and kept **up to date**: s. 52's compliance indicator asks for an "up-to-date" plan. **The regulation sets no review frequency.** The licensing manual's best practice for s. 39.1 is that the parent handbook tells families how often plans are reviewed. (Until 2026-09-13 this document said "annually reviewed". That was wrong; checked against Parts 5 and 7 of the Child Care Centre Licensing Manual.)
 - **s. 43(3)** — a list of every child's allergies and food restrictions, **posted** where food is prepared and served.
 
 ### What Tucked does
@@ -163,6 +163,15 @@ Feeds s. 72(1) item 8 and the **s. 72(6) medical-officer-of-health export**.
 `individualised_plan` is **versioned and content-immutable**. A plan is not edited; a new version supersedes it. A plan **cannot be active before a parent agreement is recorded** — that is the "agreed before implementation" rule as a constraint.
 
 The parent agrees **in the app** (`agree_individualised_plan`), or staff record an out-of-band agreement (`record_plan_agreement`).
+
+**Reviews (0043).** How often a plan is reviewed is the **centre's own setting**, `centre.plan_review_months` (1 to 24, default 12), edited on the Plans page. An agreement starts the clock from the centre-local day it was made; for a signed paper, that is the day it was signed, not the day it was typed in. A review is an append-only `individualised_plan_review` row on one **active** version, held with an adult who can consent for the child:
+
+- **Still accurate** moves `review_due_on` to the review date plus the interval. No new version, no new agreement request. A backdated review never moves the clock behind a later one.
+- **Changes needed** does not move the clock, and must say what changed. The plan is flagged until a new version supersedes it (which goes to the family to agree, as always), or a later review finds it accurate after all.
+
+Staff record a review held in person, by phone or on signed paper (`record_plan_review`, PIN-signed), or ask in the app (`request_plan_review`). Each consenting adult then gets a Now alert showing the plan in full and answers **"Yes, it is still right"** or **"Something has changed"** with a note (`answer_plan_review`). The answer *is* the review: method `in_app`, named and dated. `plan_reviews_due(centre)` gives the console the list in the centre's calendar: changes waiting on a new version, overdue, and due within 30 days.
+
+Neither the agreement button nor the review buttons appear on the family's alert until the plan itself has loaded. Before 0043 the "I agree to this plan" button rendered while the plan was still loading, so a quick tap could agree to words the parent had not been shown.
 
 `allergy_list` is a **live view** that unions plan allergens and `dietary_restriction` rows — so the posted sheet cannot drift from the plans. A **draft** plan's allergens are already on the list (`s43_3_draft_plan_allergens_already_on_the_list`), because a child's allergy does not wait for paperwork.
 
@@ -186,10 +195,31 @@ Room mode caches the allergy list for the offline evacuation screen.
 | Ending an ended restriction | `already ended` |
 | A draft anaphylaxis plan exists | Its allergens are **already on the posted list** |
 | Awaiting agreement | Console home: **Due** — "N individualised plans awaiting parent agreement" |
+| Signed paper dated in the future | `an agreement is recorded once it has been signed — that date is in the future` |
+| Reviewing a draft | `this plan is still awaiting agreement; a plan is reviewed once it is in practice` |
+| Reviewing a superseded or ended version | `this plan version is no longer in practice; review the current one` |
+| Reviewing with an adult who cannot consent | `a plan is reviewed with an adult who can consent for this child` |
+| A review dated in the future | `a review is recorded once it has happened; <date> is in the future` |
+| A review dated before the agreement | `a review cannot come before the agreement it reviews` |
+| "Changes needed" with no note (staff or family) | `say what has changed; the next version is written from it` |
+| Staff recording an "in the app" review | `staff record a review held in person, by phone or on signed paper; in the app, the family answers for themselves` |
+| Asking the family twice | Nobody already asked and not yet answered is asked again; the console says "Already asked" |
+| Asking a family with no consenting adult | `nobody in this family can consent in the app; record a review held in person instead` |
+| A view-only adult answering | `only an adult who can consent for this child can answer for the family` |
+| A family answering a review nobody asked for | `the centre has not asked you to review this plan` |
+| A request about a version since replaced | The family sees "nothing to review here" and an Acknowledge button |
+| Editing or deleting a review | `a plan review is never edited; record another review`; deletes are append-only refusals |
+| Review due within 30 days | Console home and Plans: **Due** — "review due soon" |
+| Review date passed | **Due** — "past the date your review schedule set". The centre's own promise, not a regulatory breach |
+| Latest review found changes | Console home: **Now** — "found out of date at review and still in practice"; Plans shows the note |
+| Retention (s. 72(5)) | Review notes become `[anonymised]`; the rows that say a review happened survive |
 
 ### Where this is weak
 
-- **A review cannot be recorded without a new plan.** The clock exists — `review_due_on` is set a year out when a parent agrees, and the console home and the Plans page both flag it once passed. (This document said until 2026-09-13 that there was no clock; that was wrong.) What is missing is the review itself: the only way to reset an overdue clock is a new plan version and a fresh parent agreement, even when nothing about the plan changed. There is also no *due soon* warning, only *overdue*.
+- **Changing the interval does not re-date existing plans.** A centre moving from 12 to 6 months sees the new schedule only as each plan is next agreed or reviewed. Deliberate, since a date a family was told stays true, but a centre tightening its schedule may expect otherwise. The Plans page says so under the setting.
+- **The handbook does not state the interval.** The manual suggests it should; `plan_review_months` is not yet a sourced handbook sentence the way the anaphylaxis policy is, so a handbook can still promise "every year" while the setting says six months.
+- **"Changes needed" is a flag, not a message.** Nobody is notified; it waits on the console home and the Plans page.
+- **A review request is never withdrawn.** If the centre supersedes the plan first, the family's alert stays until they acknowledge it.
 - **The posted list is a print view**, so a centre that reprints monthly has a stale sheet on the kitchen wall and Tucked cannot know.
 - **No allergen cross-check against menus** — see [02 §8](02-features-daily-care.md).
 

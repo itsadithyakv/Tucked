@@ -43,11 +43,13 @@ export default function ExceptionsHome() {
   const [openOccurrences, setOpenOccurrences] = useState<
     { id: string; category: string; ccls_deadline_at: string; ccls_filed_at: string | null }[]
   >([]);
-  const [planFlags, setPlanFlags] = useState<{ drafts: number; reviewsOverdue: number; policyMissing: boolean }>({
-    drafts: 0,
-    reviewsOverdue: 0,
-    policyMissing: false,
-  });
+  const [planFlags, setPlanFlags] = useState<{
+    drafts: number;
+    changesNeeded: number;
+    reviewsOverdue: number;
+    reviewsSoon: number;
+    policyMissing: boolean;
+  }>({ drafts: 0, changesNeeded: 0, reviewsOverdue: 0, reviewsSoon: 0, policyMissing: false });
   const [breakGlass, setBreakGlass] = useState<BreakGlass[]>([]);
   const [bgTick, setBgTick] = useState(0);
   const [immMissing, setImmMissing] = useState(0);
@@ -146,13 +148,19 @@ export default function ExceptionsHome() {
     })();
 
     (async () => {
-      const [{ data: livePlans }, { data: centreRow }] = await Promise.all([
-        sb.from('individualised_plan').select('status, review_due_on').eq('centre_id', centre.id).in('status', ['draft', 'active']),
+      // Review dates follow the centre's own schedule (the regulation sets
+      // none), read in the centre's calendar by the database
+      const [{ count: drafts }, { data: dueRows }, { data: centreRow }] = await Promise.all([
+        sb.from('individualised_plan').select('id', { count: 'exact', head: true }).eq('centre_id', centre.id).eq('status', 'draft'),
+        sb.rpc('plan_reviews_due', { p_centre: centre.id }),
         sb.from('centre').select('anaphylaxis_policy').eq('id', centre.id).maybeSingle(),
       ]);
+      const states = ((dueRows as { state: string }[]) ?? []).map((d) => d.state);
       setPlanFlags({
-        drafts: (livePlans ?? []).filter((p) => p.status === 'draft').length,
-        reviewsOverdue: (livePlans ?? []).filter((p) => p.status === 'active' && p.review_due_on && p.review_due_on < today).length,
+        drafts: drafts ?? 0,
+        changesNeeded: states.filter((s) => s === 'changes_needed').length,
+        reviewsOverdue: states.filter((s) => s === 'overdue').length,
+        reviewsSoon: states.filter((s) => s === 'due_soon').length,
         policyMissing: !(centreRow?.anaphylaxis_policy ?? '').trim(),
       });
     })();
@@ -475,10 +483,26 @@ export default function ExceptionsHome() {
             parent agreement — <Link href="/plans">plans</Link>
           </p>
         ) : null}
+        {planFlags.changesNeeded > 0 ? (
+          <p>
+            <span className="pill now">Now</span> {planFlags.changesNeeded} individualised plan
+            {planFlags.changesNeeded === 1 ? ' was' : 's were'} found out of date at review and{' '}
+            {planFlags.changesNeeded === 1 ? 'is' : 'are'} still in practice — write the new version —{' '}
+            <Link href="/plans">plans</Link>
+          </p>
+        ) : null}
         {planFlags.reviewsOverdue > 0 ? (
           <p>
-            <span className="pill due">Due</span> {planFlags.reviewsOverdue} plan review{planFlags.reviewsOverdue === 1 ? '' : 's'} overdue
-            (annual) — <Link href="/plans">plans</Link>
+            <span className="pill due">Due</span> {planFlags.reviewsOverdue} plan review
+            {planFlags.reviewsOverdue === 1 ? ' is' : 's are'} past the date your review schedule set —{' '}
+            <Link href="/plans">plans</Link>
+          </p>
+        ) : null}
+        {planFlags.reviewsSoon > 0 ? (
+          <p>
+            <span className="pill due">Due</span> {planFlags.reviewsSoon} plan review
+            {planFlags.reviewsSoon === 1 ? ' falls' : 's fall'} due in the next 30 days —{' '}
+            <Link href="/plans">plans</Link>
           </p>
         ) : null}
         {unclosed !== null && unclosed > 0 ? (

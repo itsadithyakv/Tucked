@@ -40,7 +40,7 @@ A left rail with **one fixed icon per regulated concept**. It auto-collapses bel
 | **`/daily-record`** | The s. 37 record: today's composed draft, a **Moved on** badge when the day has changed since drafting, Redraft, and a PIN-gated close |
 | **`/accidents`** | s. 36(4) reports and the parent acknowledgement that is the evidence |
 | **`/serious-occurrences`** | s. 38: the 24-hour CCLS clock, filing, the CCLS-down fallback, updates, the anonymised posting, closing |
-| **`/plans`** | ss. 39/39.1/52 plans, agreements, and the printable s. 43(3) allergy list |
+| **`/plans`** | ss. 39/39.1/52 plans, agreements, reviews on the centre's own schedule (record one, or ask the family in the app), and the printable s. 43(3) allergy list |
 | **`/illness`** | s. 36 exclusions, contact attempts, clearance, and public health orders with the advisor deadline |
 | **`/menus`** | ss. 42–44: this week and next, posting, substitutions, feeding instructions, printable menu |
 | **`/outdoor`** | s. 47: minutes per room and per child, shortfalls with reasons, exemptions |

@@ -2,8 +2,11 @@
 
 /** ss. 39, 39.1, 52: individualised plans — anaphylaxis, medical needs,
  * special needs. New plans start as drafts and go active only once a parent
- * agreement is recorded (in-app or signed paper). s. 43(3): the allergy and
- * food-restriction list, printable per room and for the kitchen. */
+ * agreement is recorded (in-app or signed paper). A plan has to stay up to
+ * date; the regulation sets no review frequency, so the centre sets its own,
+ * and a review that changes nothing is recorded without a new version.
+ * s. 43(3): the allergy and food-restriction list, printable per room and for
+ * the kitchen. */
 
 import { useCallback, useEffect, useState } from 'react';
 import { localDateISO } from '@tucked/domain';
@@ -14,6 +17,13 @@ const TYPE_LABELS: Record<string, string> = {
   anaphylaxis: 'Anaphylaxis',
   medical_needs: 'Medical needs',
   special_needs: 'Special needs',
+};
+
+const METHOD_LABELS: Record<string, string> = {
+  in_app: 'in the app',
+  in_person: 'in person',
+  phone: 'by phone',
+  signed_paper: 'on signed paper',
 };
 
 interface Plan {
@@ -36,6 +46,24 @@ interface Plan {
   review_due_on: string | null;
   child: { full_name: string } | null;
   agreed_person: { full_name: string } | null;
+}
+
+/** One row of plan_reviews_due: the database reads the clock in the centre's calendar. */
+interface DueRow {
+  plan_id: string;
+  state: 'changes_needed' | 'overdue' | 'due_soon';
+  review_due_on: string | null;
+  last_reviewed_on: string | null;
+  last_note: string | null;
+}
+
+interface ReviewRow {
+  id: string;
+  reviewed_on: string;
+  outcome: 'still_accurate' | 'changes_needed';
+  method: string;
+  note: string | null;
+  reviewed_person: { full_name: string } | null;
 }
 
 interface ChildRow {
@@ -65,12 +93,15 @@ interface ListRow {
 export default function PlansPage() {
   const { centre, personId } = useConsole();
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [due, setDue] = useState<Map<string, DueRow>>(new Map());
   const [children, setChildren] = useState<ChildRow[]>([]);
   const [restrictions, setRestrictions] = useState<Restriction[]>([]);
   const [list, setList] = useState<ListRow[]>([]);
   const [rooms, setRooms] = useState<{ id: string; name: string }[]>([]);
   const [policy, setPolicy] = useState<string>('');
   const [policySaved, setPolicySaved] = useState(false);
+  const [reviewMonths, setReviewMonths] = useState('12');
+  const [monthsSaved, setMonthsSaved] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   const load = useCallback(() => {
@@ -83,6 +114,8 @@ export default function PlansPage() {
       .in('status', ['draft', 'active'])
       .order('created_at', { ascending: false })
       .then(({ data }) => setPlans((data as never) ?? []));
+    sb.rpc('plan_reviews_due', { p_centre: centre.id })
+      .then(({ data }) => setDue(new Map(((data as DueRow[]) ?? []).map((d) => [d.plan_id, d]))));
     sb.from('child')
       .select('id, full_name, room:current_room_id(name)')
       .eq('centre_id', centre.id)
@@ -101,19 +134,42 @@ export default function PlansPage() {
       .then(({ data }) => setList((data as ListRow[]) ?? []));
     sb.from('room').select('id, name').eq('centre_id', centre.id).order('name')
       .then(({ data }) => setRooms(data ?? []));
-    sb.from('centre').select('anaphylaxis_policy').eq('id', centre.id).maybeSingle()
-      .then(({ data }) => setPolicy(data?.anaphylaxis_policy ?? ''));
+    sb.from('centre').select('anaphylaxis_policy, plan_review_months').eq('id', centre.id).maybeSingle()
+      .then(({ data }) => {
+        setPolicy(data?.anaphylaxis_policy ?? '');
+        setReviewMonths(String(data?.plan_review_months ?? 12));
+      });
   }, [centre.id]);
 
   useEffect(load, [load]);
 
+  // An update RLS refuses is not an error: it matches no rows and says nothing.
+  // Asking for the row back is the only way to tell "saved" from "silently not".
+  async function saveCentre(patch: Record<string, unknown>): Promise<boolean> {
+    const { data, error } = await getSupabase().from('centre').update(patch).eq('id', centre.id).select('id');
+    if (error) {
+      setNotice(error.message);
+      return false;
+    }
+    if ((data ?? []).length === 0) {
+      setNotice('Only a supervisor can change this.');
+      return false;
+    }
+    setNotice(null);
+    return true;
+  }
+
   async function savePolicy() {
-    const { error } = await getSupabase()
-      .from('centre')
-      .update({ anaphylaxis_policy: policy.trim() || null })
-      .eq('id', centre.id);
-    setPolicySaved(!error);
-    setNotice(error ? error.message : null);
+    setPolicySaved(await saveCentre({ anaphylaxis_policy: policy.trim() || null }));
+  }
+
+  async function saveMonths() {
+    const months = Number(reviewMonths);
+    if (!Number.isInteger(months) || months < 1 || months > 24) {
+      setNotice('Choose a review interval between 1 and 24 months.');
+      return;
+    }
+    setMonthsSaved(await saveCentre({ plan_review_months: months }));
   }
 
   return (
@@ -133,13 +189,40 @@ export default function PlansPage() {
         </p>
       </section>
 
+      <section className="card">
+        <h2>How often plans are reviewed</h2>
+        <p className="muted">
+          The regulation does not set a review frequency: a plan has to stay up to date, and the licensing manual
+          suggests telling families in the handbook how often you check. This is that promise. Each plan comes up for
+          review this long after it was agreed, or last found still accurate.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'end' }}>
+          <label>
+            Review every (months)
+            <input
+              type="number"
+              min={1}
+              max={24}
+              value={reviewMonths}
+              onChange={(e) => { setReviewMonths(e.target.value); setMonthsSaved(false); }}
+              style={{ width: 96 }}
+            />
+          </label>
+          <button type="button" onClick={() => void saveMonths()}>Save</button>
+          {monthsSaved ? <span className="pill ok">Saved</span> : null}
+        </div>
+        <p className="caption">
+          A change applies from each plan&apos;s next agreement or review. Dates already set stay as they are.
+        </p>
+      </section>
+
       <PlanForm centreId={centre.id} personId={personId} children={children} onDone={() => { setNotice('Plan recorded as a draft — the family has been asked to agree.'); load(); }} />
 
       <section className="card">
         <h2>Live plans</h2>
         {plans.length === 0 ? <p className="muted">No individualised plans yet.</p> : null}
         {plans.map((p) => (
-          <PlanRow key={p.id} p={p} personId={personId} onChanged={load} />
+          <PlanRow key={p.id} p={p} due={due.get(p.id)} personId={personId} onChanged={load} />
         ))}
       </section>
 
@@ -312,25 +395,32 @@ function PlanForm({
 
 function PlanRow({
   p,
+  due,
   personId,
   onChanged,
 }: {
   p: Plan;
+  due: DueRow | undefined;
   personId: string;
   onChanged: () => void;
 }) {
   const { centre } = useConsole();
   const [open, setOpen] = useState(false);
   const [pin, setPin] = useState('');
-  const [paperParent, setPaperParent] = useState('');
+  const [familyAdult, setFamilyAdult] = useState('');
   const [members, setMembers] = useState<{ person_id: string; full_name: string }[]>([]);
+  const [reviews, setReviews] = useState<ReviewRow[]>([]);
+  const [reviewTick, setReviewTick] = useState(0);
+  const [reviewOn, setReviewOn] = useState(() => localDateISO(centre.timezone));
+  const [method, setMethod] = useState('in_person');
+  const [outcome, setOutcome] = useState<'still_accurate' | 'changes_needed'>('still_accurate');
+  const [reviewNote, setReviewNote] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const reviewOverdue = p.status === 'active' && p.review_due_on !== null && p.review_due_on < localDateISO(centre.timezone);
-
   useEffect(() => {
-    if (!open || p.status !== 'draft') return;
-    // consenting adults for the signed-paper path
+    if (!open) return;
+    // the adults who can consent: who signs a paper agreement, and who a plan
+    // is reviewed with
     getSupabase()
       .from('child_household')
       .select('household:household_id(household_member(person_id, can_consent, revoked_at, person:person_id(full_name)))')
@@ -342,16 +432,54 @@ function PlanRow({
             .filter((m) => m.can_consent && !m.revoked_at && m.person)
             .map((m) => ({ person_id: m.person_id, full_name: m.person!.full_name }));
         setMembers(rows);
-        setPaperParent((cur) => cur || rows[0]?.person_id || '');
+        setFamilyAdult((cur) => cur || rows[0]?.person_id || '');
       });
-  }, [open, p.child_id, p.status]);
+  }, [open, p.child_id]);
+
+  useEffect(() => {
+    if (!open || p.status !== 'active') return;
+    getSupabase()
+      .from('individualised_plan_review')
+      .select('id, reviewed_on, outcome, method, note, reviewed_person:reviewed_with(full_name)')
+      .eq('plan_id', p.id)
+      .order('reviewed_on', { ascending: false })
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setReviews((data as never as ReviewRow[]) ?? []));
+  }, [open, p.id, p.status, reviewTick]);
 
   async function call(fn: string, args: Record<string, unknown>, done: string) {
     setError(null);
     const { error: err } = await getSupabase().rpc(fn, { ...args, p_recorder: personId, p_pin: pin });
     if (err) setError(err.message);
-    else { setError(done); setPin(''); onChanged(); }
+    else {
+      setError(done);
+      setPin('');
+      setReviewNote('');
+      setReviewTick((n) => n + 1);
+      onChanged();
+    }
   }
+
+  async function askFamily() {
+    setError(null);
+    const { data, error: err } = await getSupabase().rpc('request_plan_review', {
+      p_plan: p.id,
+      p_recorder: personId,
+      p_pin: pin,
+    });
+    if (err) { setError(err.message); return; }
+    setPin('');
+    setError(
+      data === 0
+        ? 'Already asked — waiting on the family to answer in the app.'
+        : 'Asked in the app. Their answer is recorded here as a review.',
+    );
+    onChanged();
+  }
+
+  const pinInput = (
+    <label>PIN<input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} autoComplete="off" /></label>
+  );
 
   return (
     <div style={{ borderTop: '1px solid var(--line, #dbe4f0)', padding: '10px 0' }}>
@@ -359,18 +487,28 @@ function PlanRow({
         <strong>{p.child?.full_name}</strong> · {TYPE_LABELS[p.plan_type]} v{p.version} — {p.condition}{' '}
         {p.status === 'draft' ? (
           <span className="pill due">Awaiting agreement</span>
-        ) : reviewOverdue ? (
-          <span className="pill now">Review overdue</span>
+        ) : due?.state === 'changes_needed' ? (
+          <span className="pill now">Changes needed</span>
+        ) : due?.state === 'overdue' ? (
+          <span className="pill due">Review overdue</span>
+        ) : due?.state === 'due_soon' ? (
+          <span className="pill due">Review due soon</span>
         ) : (
           <span className="pill ok">Active</span>
         )}
       </p>
       <p className="muted" style={{ margin: '2px 0 0' }}>
         {p.parent_agreed_at
-          ? `Agreed ${fmtDate(p.parent_agreed_at)} by ${p.agreed_person?.full_name} (${p.agreement_method === 'in_app' ? 'in app' : 'signed paper'}) · review due ${fmtDate(p.review_due_on)}`
+          ? `Agreed ${fmtDate(p.parent_agreed_at)} by ${p.agreed_person?.full_name} (${p.agreement_method === 'in_app' ? 'in app' : 'signed paper'}) · next review ${fmtDate(p.review_due_on)}`
           : 'The family has been asked to agree in the app — or record a signed paper below.'}
         {' '}· developed with {p.developed_with}
       </p>
+      {due?.state === 'changes_needed' ? (
+        <p style={{ margin: '4px 0 0' }}>
+          Found out of date on {fmtDate(due.last_reviewed_on)}: “{due.last_note}”. Record the new version above — the
+          family will be asked to agree to it, and this version stays in practice until then.
+        </p>
+      ) : null}
       <p style={{ margin: '6px 0 0' }}>
         <button type="button" className="quiet" onClick={() => setOpen(!open)}>{open ? 'Close' : 'Details'}</button>
       </p>
@@ -387,18 +525,92 @@ function PlanRow({
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'end' }}>
               <label>
                 Signed paper from
-                <select value={paperParent} onChange={(e) => setPaperParent(e.target.value)}>
+                <select value={familyAdult} onChange={(e) => setFamilyAdult(e.target.value)}>
                   {members.map((m) => <option key={m.person_id} value={m.person_id}>{m.full_name}</option>)}
                 </select>
               </label>
-              <label>PIN<input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} autoComplete="off" /></label>
-              <button type="button" onClick={() => void call('record_plan_agreement', { p_plan: p.id, p_parent: paperParent, p_agreed_at: new Date().toISOString() }, 'Signed paper recorded — the plan is active.')}>Record signed paper</button>
+              {pinInput}
+              <button type="button" onClick={() => void call('record_plan_agreement', { p_plan: p.id, p_parent: familyAdult, p_agreed_at: new Date().toISOString() }, 'Signed paper recorded — the plan is active.')}>Record signed paper</button>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'end' }}>
-              <label>PIN<input type="password" inputMode="numeric" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={6} autoComplete="off" /></label>
-              <button type="button" className="quiet" onClick={() => void call('end_individualised_plan', { p_plan: p.id, p_note: 'ended from console' }, 'Plan ended (kept on file).')}>End plan</button>
-            </div>
+            <>
+              <h4 style={{ margin: '8px 0 0' }}>Reviews</h4>
+              {reviews.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>Not reviewed since it was agreed.</p>
+              ) : (
+                reviews.map((r) => (
+                  <p key={r.id} style={{ margin: 0 }}>
+                    <span className={`pill ${r.outcome === 'still_accurate' ? 'ok' : 'now'}`}>
+                      {r.outcome === 'still_accurate' ? 'Still accurate' : 'Changes needed'}
+                    </span>{' '}
+                    {fmtDate(r.reviewed_on)} with {r.reviewed_person?.full_name ?? 'the family'}{' '}
+                    {METHOD_LABELS[r.method] ?? r.method}
+                    {r.note ? ` — “${r.note}”` : ''}
+                  </p>
+                ))
+              )}
+              {members.length === 0 ? (
+                <p className="muted" style={{ margin: 0 }}>
+                  Nobody in this child&apos;s family can consent, so there is nobody to review the plan with. Add a
+                  consenting adult to the household first.
+                </p>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'end' }}>
+                    <label>
+                      Reviewed with
+                      <select value={familyAdult} onChange={(e) => setFamilyAdult(e.target.value)}>
+                        {members.map((m) => <option key={m.person_id} value={m.person_id}>{m.full_name}</option>)}
+                      </select>
+                    </label>
+                    <label>
+                      On
+                      <input type="date" value={reviewOn} max={localDateISO(centre.timezone)} onChange={(e) => setReviewOn(e.target.value)} />
+                    </label>
+                    <label>
+                      How
+                      <select value={method} onChange={(e) => setMethod(e.target.value)}>
+                        <option value="in_person">In person</option>
+                        <option value="phone">By phone</option>
+                        <option value="signed_paper">Signed paper</option>
+                      </select>
+                    </label>
+                    <label>
+                      Outcome
+                      <select value={outcome} onChange={(e) => setOutcome(e.target.value as 'still_accurate' | 'changes_needed')}>
+                        <option value="still_accurate">Still accurate</option>
+                        <option value="changes_needed">Changes needed</option>
+                      </select>
+                    </label>
+                  </div>
+                  <label>
+                    {outcome === 'changes_needed' ? 'What has changed (the new version is written from this)' : 'Note (optional)'}
+                    <textarea value={reviewNote} onChange={(e) => setReviewNote(e.target.value)} rows={2} maxLength={1000} />
+                  </label>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'end' }}>
+                    {pinInput}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        void call(
+                          'record_plan_review',
+                          { p_plan: p.id, p_reviewed_with: familyAdult, p_reviewed_on: reviewOn, p_method: method, p_outcome: outcome, p_note: reviewNote },
+                          outcome === 'still_accurate'
+                            ? 'Review recorded. The plan stays as it is, and its next review date has moved.'
+                            : 'Review recorded. Record the new version when it is ready.',
+                        )
+                      }
+                    >
+                      Record review
+                    </button>
+                    <button type="button" className="quiet" onClick={() => void askFamily()}>Ask the family in the app</button>
+                  </div>
+                </>
+              )}
+              <div style={{ borderTop: '1px solid var(--line, #dbe4f0)', paddingTop: 8, marginTop: 4 }}>
+                <button type="button" className="quiet" onClick={() => void call('end_individualised_plan', { p_plan: p.id, p_note: 'ended from console' }, 'Plan ended (kept on file).')}>End plan (PIN above)</button>
+              </div>
+            </>
           )}
           {error ? <p className="muted">{error}</p> : null}
         </div>

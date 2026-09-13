@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { Avatar } from '@/ui/SwipeChildCard';
 import { ChildSwitcher } from '@/ui/ChildSwitcher';
 import { PhotoStrip } from '@/ui/PhotoStrip';
-import { Body, Button, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
+import { Body, Button, Caption, Card, Field, Heading, Pill, Screen, Title } from '@/ui/components';
 
 interface NowAlert {
   id: string;
@@ -48,6 +48,7 @@ interface ReportDetail {
 
 interface PlanDetail {
   id: string;
+  status: string;
   plan_type: string;
   condition: string;
   allergens: string[];
@@ -121,6 +122,10 @@ export default function FamilyHome() {
   const [reportDetails, setReportDetails] = useState<Map<string, ReportDetail>>(new Map());
   const [planDetails, setPlanDetails] = useState<Map<string, PlanDetail>>(new Map());
   const [busyAlert, setBusyAlert] = useState<string | null>(null);
+  // a plan review the family is answering "something has changed" to
+  const [changing, setChanging] = useState<string | null>(null);
+  const [changeNote, setChangeNote] = useState('');
+  const [alertError, setAlertError] = useState<{ id: string; message: string } | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [exclusions, setExclusions] = useState<Exclusion[]>([]);
   const [noticeMode, setNoticeMode] = useState<null | 'absent' | 'late'>(null);
@@ -161,13 +166,15 @@ export default function FamilyHome() {
               setReportDetails(new Map(((reports as never as ReportDetail[]) ?? []).map((r) => [r.id, r]))),
             );
         }
-        // a plan asks for real agreement — show it in full before the button
-        const planIds = rows.filter((a) => a.event_type === 'plan_agreement' && a.ref_id).map((a) => a.ref_id!);
+        // a plan asks for real agreement, or a real review — show it in full before the buttons
+        const planIds = rows
+          .filter((a) => (a.event_type === 'plan_agreement' || a.event_type === 'plan_review') && a.ref_id)
+          .map((a) => a.ref_id!);
         if (planIds.length > 0) {
           void supabase
             .from('individualised_plan')
             .select(
-              'id, plan_type, condition, allergens, signs, emergency_procedure, devices_instructions, supports, developed_with, child:child_id(full_name)',
+              'id, status, plan_type, condition, allergens, signs, emergency_procedure, devices_instructions, supports, developed_with, child:child_id(full_name)',
             )
             .in('id', planIds)
             .then(({ data: plansRows }) =>
@@ -241,6 +248,27 @@ export default function FamilyHome() {
     refresh();
   }
 
+  /** The plan is still right, or it is not and here is what changed. Either
+   * way the family's answer IS the review: named, dated, in writing. */
+  async function answerReview(alert: NowAlert, stillRight: boolean) {
+    if (!alert.ref_id) return;
+    setBusyAlert(alert.id);
+    setAlertError(null);
+    const { error } = await supabase.rpc('answer_plan_review', {
+      p_plan: alert.ref_id,
+      p_still_accurate: stillRight,
+      p_note: stillRight ? null : changeNote,
+    });
+    setBusyAlert(null);
+    if (error) {
+      setAlertError({ id: alert.id, message: error.message });
+      return;
+    }
+    setChanging(null);
+    setChangeNote('');
+    refresh();
+  }
+
   /** s. 50: tell the room before anybody has to phone. */
   async function giveNotice(kind: 'absent' | 'late', opts: { reason?: string; inMinutes?: number }) {
     if (!selected || !tz) return;
@@ -282,7 +310,10 @@ export default function FamilyHome() {
 
         {alerts.map((alert) => {
           const report = alert.ref_id ? reportDetails.get(alert.ref_id) : undefined;
-          const plan = alert.event_type === 'plan_agreement' && alert.ref_id ? planDetails.get(alert.ref_id) : undefined;
+          const isPlanAlert = alert.event_type === 'plan_agreement' || alert.event_type === 'plan_review';
+          const plan = isPlanAlert && alert.ref_id ? planDetails.get(alert.ref_id) : undefined;
+          // asked to review a version the centre has since replaced
+          const staleReview = alert.event_type === 'plan_review' && plan !== undefined && plan.status !== 'active';
           return (
             <View key={alert.id} style={styles.nowCard}>
               <Pill kind="now">Now</Pill>
@@ -305,23 +336,71 @@ export default function FamilyHome() {
                   {plan.emergency_procedure ? <Body muted>{`Emergency: ${plan.emergency_procedure}`}</Body> : null}
                   {plan.devices_instructions ? <Body muted>{`Devices: ${plan.devices_instructions}`}</Body> : null}
                   {plan.supports ? <Body muted>{`Supports: ${plan.supports}`}</Body> : null}
-                  <Caption>{`Developed with ${plan.developed_with}. Agreeing puts this plan into practice.`}</Caption>
+                  <Caption>
+                    {alert.event_type === 'plan_review'
+                      ? staleReview
+                        ? 'The centre has since replaced this version, so there is nothing to review here.'
+                        : `Developed with ${plan.developed_with}. If it is still right, say so. If something has changed, tell the centre what; nothing changes until you both agree a new version.`
+                      : `Developed with ${plan.developed_with}. Agreeing puts this plan into practice.`}
+                  </Caption>
                 </View>
               ) : (
                 <Body>{alert.body}</Body>
               )}
               <Caption>{`Sent ${fmt12(alert.created_at, tz ?? undefined)}`}</Caption>
-              <Button
-                label={
-                  alert.event_type === 'accident_report'
-                    ? 'I have read the report'
-                    : alert.event_type === 'plan_agreement'
-                      ? 'I agree to this plan'
-                      : 'Acknowledge'
-                }
-                busy={busyAlert === alert.id}
-                onPress={() => void acknowledge(alert)}
-              />
+              {isPlanAlert && !plan ? (
+                // No button until the plan itself is on screen: agreeing to, or
+                // confirming, words the parent has not been shown is not consent.
+                <Caption>Loading the plan…</Caption>
+              ) : alert.event_type === 'plan_review' && !staleReview ? (
+                changing === alert.id ? (
+                  <>
+                    <Field
+                      value={changeNote}
+                      onChangeText={setChangeNote}
+                      placeholder="What has changed? A new allergy, a new medication, a new doctor's letter…"
+                      multiline
+                      maxLength={1000}
+                      autoCapitalize="sentences"
+                    />
+                    <Button
+                      label="Send to the centre"
+                      busy={busyAlert === alert.id}
+                      onPress={() => void answerReview(alert, false)}
+                    />
+                    <Button label="Cancel" kind="quiet" onPress={() => setChanging(null)} />
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      label="Yes, it is still right"
+                      busy={busyAlert === alert.id}
+                      onPress={() => void answerReview(alert, true)}
+                    />
+                    <Button
+                      label="Something has changed"
+                      kind="quiet"
+                      onPress={() => {
+                        setChanging(alert.id);
+                        setChangeNote('');
+                      }}
+                    />
+                  </>
+                )
+              ) : (
+                <Button
+                  label={
+                    alert.event_type === 'accident_report'
+                      ? 'I have read the report'
+                      : alert.event_type === 'plan_agreement'
+                        ? 'I agree to this plan'
+                        : 'Acknowledge'
+                  }
+                  busy={busyAlert === alert.id}
+                  onPress={() => void acknowledge(alert)}
+                />
+              )}
+              {alertError?.id === alert.id ? <Caption>{alertError.message}</Caption> : null}
             </View>
           );
         })}
