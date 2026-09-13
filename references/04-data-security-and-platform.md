@@ -203,17 +203,20 @@ Two private buckets. No public bucket exists.
 | Bucket | Path shape | Read access |
 |---|---|---|
 | `evidence` | `{centre}/{person}/…` for staff files; `{centre}/centre/…` for premises documents | The person themself, or centre leadership |
-| `photos` | `{centre}/{child}/…` | Consent-gated, family and care staff |
+| `photos` | `{centre}/p/{photo}/full.jpg` (gallery), `{centre}/{child}/profile.jpg` | JPEG only, 5 MB. Care staff; a family only for what `app.photo_visible_to_family` allows |
 
 Paths are parsed with `app.path_uuid(name, segment)`, which returns null rather than raising on a non-UUID segment (§9).
 
-**Client-side image discipline** (also the cost rule): long edge 2560 px, quality ≈ 85, EXIF stripped **except capture time** — the dated-photos promise. Feeds serve thumbnails; the stored original moves only on explicit download or zoom.
+**Client-side image discipline** (also the cost rule): long edge 2560 px, quality 0.85, re-encoded through `expo-image-manipulator`, which writes no EXIF — so a phone's location never leaves the device. Capture time is read from the original's EXIF first and stored as `photo.captured_at`: the dated-photos promise survives as data. **Feeds do not serve thumbnails yet** — the family strip loads the full image into a 96 px tile, which the cost model assumed would not happen.
 
-**Consent is enforced at query level.** A child without group-photo consent is excluded from the relevant reads. Photo visibility follows `consent` rows, not client filtering. A removed household member loses photo access immediately because signed URLs are short-lived and re-authorised on every read.
+**Photo consent is enforced at capture and at read** (0041; [03 §2](03-features-records-and-obligations.md)). The read check is `SECURITY DEFINER` because it must look at other families' consent rows, which a parent cannot SELECT — a `security_invoker` version would see no consent for anyone else's child and hide every group photo from everybody. A removed household member cannot sign a new URL, but **a URL already issued stays valid until it expires**: an hour on the family app, ten minutes on the console. When the policy denies a read, the storage API answers "Object not found", so a family cannot learn that a photo they may not see exists.
+
+**A family screen asks the family question, not the RLS one.** `photo_select` and `photos_read` both have a care-staff branch, so an adult who is a parent *and* an educator gets the staff answer from a plain select or a signed URL — including a withdrawn photo, and a group photo another family has since withdrawn consent for. On their personal family Home that is a consent breach, even though their staff role may see the file. The family strip therefore reads through `family_photos(child, date)`, which applies `app.photo_visible_to_family` explicitly and ignores the staff branch (`photo_family_photos_gives_the_family_answer_instead`). The general rule — RLS answers "may this person see the row", a family surface needs "would their family" — is the one the dual-role child picker hit first.
 
 ### Where this is weak
 
-- **The `photos` bucket is entirely unused.** Policies written in migration 0012, consent-gated, and **no surface uploads a photo.** The `photo` care-log type exists and nothing produces one.
+- **The server cannot prove EXIF is gone.** The bucket refuses anything but `image/jpeg`, which stops a raw HEIC, but a client that skipped the re-encode could upload a JPEG that still carries metadata. SQL cannot parse an image.
+- **A refused tag leaves an orphan file.** The device uploads before `record_photo` checks consent, so a refusal the tagging sheet did not foresee (it cannot know households) leaves bytes with no row. Staff can see such a file; no family can.
 - **No virus or content scanning** on uploads.
 - **No storage quota per centre.**
 

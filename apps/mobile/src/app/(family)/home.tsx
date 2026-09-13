@@ -8,6 +8,7 @@ import { useFamily } from '@/lib/childTheme';
 import { supabase } from '@/lib/supabase';
 import { Avatar } from '@/ui/SwipeChildCard';
 import { ChildSwitcher } from '@/ui/ChildSwitcher';
+import { PhotoStrip } from '@/ui/PhotoStrip';
 import { Body, Button, Caption, Card, Heading, Pill, Screen, Title } from '@/ui/components';
 
 interface NowAlert {
@@ -432,6 +433,8 @@ export default function FamilyHome() {
                       <Button label="Take back" kind="quiet" onPress={() => void takeBack(n.id)} />
                     </View>
                   ))}
+
+                  <PhotoStrip childId={selected.id} firstName={selected.firstName} timeZone={selected.timeZone} />
 
                   {story ? (
                     <View style={styles.story}>

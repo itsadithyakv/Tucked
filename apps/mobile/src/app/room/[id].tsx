@@ -23,6 +23,7 @@ import {
   Sheet,
   Title,
 } from '@/ui/components';
+import { PhotoSheet } from '@/ui/PhotoSheet';
 import { SwipeChildCard } from '@/ui/SwipeChildCard';
 
 interface PickupOption {
@@ -76,6 +77,8 @@ function Board() {
   const [day, setDay] = useState<RoomDay | null>(null);
   const [busyChild, setBusyChild] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  // the child whose card opened the photo sheet — tagged to start with
+  const [photoFor, setPhotoFor] = useState<string | null>(null);
 
   // sheets
   const [pickupFor, setPickupFor] = useState<{ childId: string; options: PickupOption[] } | null>(null);
@@ -762,6 +765,7 @@ function Board() {
                       <Button label="End nap" kind="quiet" onPress={() => void careLog(item.id, 'nap_end', {})} />
                     </>
                   ) : null}
+                  <Button label="Photo" kind="quiet" onPress={() => setPhotoFor(item.id)} />
                   <Button
                     label="More"
                     kind="quiet"
@@ -1223,6 +1227,21 @@ function Board() {
           }}
         />
       </Sheet>
+
+      {day ? (
+        <PhotoSheet
+          visible={photoFor !== null}
+          onClose={() => setPhotoFor(null)}
+          centreId={day.centre.id}
+          roomId={roomId}
+          childId={photoFor}
+          getRecorder={getRecorder}
+          onDone={(message) => {
+            setNotice(message);
+            refresh();
+          }}
+        />
+      ) : null}
 
       <Sheet visible={headOpen} onClose={() => setHeadOpen(false)} title="Headcount">
         <Body muted>

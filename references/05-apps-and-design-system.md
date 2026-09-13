@@ -87,7 +87,7 @@ Supporting screens: `enrolment/[childId]`, `handbook`, `messages/[id]`, `reports
 ### Where this is weak
 
 - **None of the family screens has been tapped on a device.** They typecheck and their queries and RPCs are proven against a live database, but Expo web will not accept automated taps.
-- **No photo upload and no photo feed**, so the "dated lifetime archive" promise has no surface.
+- **Photos are today's only.** Home shows the day's photos of the selected child with a full-screen viewer; there is no archive over time and **no way to save a photo to the phone** — precisely the complaint Lillio's reviewers make. Both are follow-ups.
 - **Light-only.** The web console has dark mode; the Expo app does not, because its tokens are a TypeScript object and React Native has no CSS custom properties. It needs a theme context threaded through the component library, not a token swap.
 - **No web fallback** for a family without a smartphone.
 

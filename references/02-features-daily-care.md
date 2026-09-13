@@ -256,7 +256,7 @@ Each type has a **typed payload validated in SQL** by `app.validate_care_log_pay
 | `health_observation` | `observation` (non-empty) | `parent_reported`, `symptoms[]` |
 | `activity` | `description` (non-empty) | — |
 | `note` | `text` (non-empty) | — |
-| `photo` | `storage_path`, `captured_at` | — |
+| `photo` | `storage_path`, `captured_at` | `photo_id` — written by `record_photo`, one per child in the picture, never directly |
 
 ### Every case
 

@@ -69,7 +69,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | # | Work | Why |
 |---|---|---|
 | 5 | **Document attachments on children's records (s. 72(1))** | A signed application exists as a *status*, not as the scan. The staff file closed exactly this gap in migration 0032; the child side is still open |
-| 6 | **Child profile photo upload** | The bucket, the policies and the column all exist and are unused. Rooms show initials |
+| 6 | **Child profile photo upload** | Gallery photos landed (0041) and the profile path's storage policy is written; no surface uploads one. Rooms show initials |
 | 7 | **Allergen cross-check against menus** | s. 43(3) allergies and the ss. 42–44 menu are separate. Nothing warns that Tuesday's lunch contains an allergen a child on the posted list reacts to. The highest-value safety feature not built |
 | 8 | **Annual review clock on individualised plans** | ss. 39/39.1/52 require at least annual review. There is no clock and no reminder |
 | 9 | **A "give the advisor everything" export bundle** | Exports are per-module and printing is the browser's. There is no single artefact for inspection day |
@@ -118,6 +118,7 @@ Ordered by *what would hurt most in a pilot next month*, not by size.
 | **Multi-site licensee view** | One centre per console session. `licensee` exists and owns centres; nothing aggregates |
 | **Manitoba and Quebec rule packs** | `jurisdiction` seeds both as `planned`/inactive and `admin_create_centre` refuses until a pack is `implemented` (pgTAP-proven). Every rule pack that would need rows already exists as data — handbook sections, outdoor minutes, staff requirements, CWELCC parameters, policy specs, document kinds, statutory holidays — so **a province is largely rows plus a requirements document.** Quebec additionally needs French-first UI and Law 25 workflows |
 | **In-app messaging attachments** | Messages are text |
+| **Photo archive, thumbnails and saving** | Families see today's photos only; the strip loads full-size images into small tiles; there is no save-to-phone. Removing the file behind a withdrawn photo needs the storage API with the service role |
 | **Dark mode in the mobile app** | The console has a three-state toggle and a contrast-checked dark palette. The Expo app does not: `tokens.ts` is a TypeScript object and React Native has no CSS custom properties |
 | **A parent-facing web app** | Families are mobile-only by design; there is no fallback for a family with no smartphone |
 | **An audit reader** | `audit_event` is populated on every regulated write and **nothing surfaces it** |
@@ -132,8 +133,8 @@ These exist in the tree and do nothing today.
 | ~~**The daily story**~~ | **Wired** (migration 0039). Composed by `app.story_compose`, published by a `depart` trigger, with `app.publish_daily_stories()` hourly as the floor. Proven by 29 pgTAP tests, including one that breaks the composer on purpose and then signs a child out |
 | ~~**The educator's story note**~~ | **Wired.** Room mode → a child's More → Today's story, showing the composed draft and saving the note through `save_story_note` |
 | **Notification opt-up preferences** | `routeNotification` accepts a `prefs.realtimeOptIn` set and is unit-tested. **No table holds it and nothing passes it.** Every family gets the default (quiet), which is why this has stayed invisible |
-| **The `photos` storage bucket** | Policies written in migration 0012, consent-gated, never used. No upload surface anywhere |
-| **The `photo` care-log type** | Validated, never produced |
+| ~~**The `photos` storage bucket**~~ | **Wired** (0041). Room → a child's card → Photo; the family Home shows the day's photos; console Photos takes one down. Consent enforced at capture and at read |
+| ~~**The `photo` care-log type**~~ | **Produced** by `record_photo`, one line per child in the picture |
 | **`sleep_placement_options`** | Written and tested; the nap board does not call it |
 | **`notify` Edge Function** | Written and correct. Needs `supabase functions deploy notify` with a `PUSH_SHARED_SECRET` and two `app_setting` rows **per environment**. Until then the dispatcher returns `not configured` — nothing is silently dropped |
 | **`staff_document.kind`** values `policy_acknowledgement`, `contract`, `other` | Accepted by the schema; no surface writes them |

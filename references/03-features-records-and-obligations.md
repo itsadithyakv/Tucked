@@ -71,7 +71,7 @@ Two completion paths: a **parent** completes their own items through the enrolme
 ### Where this is weak
 
 - **No document attachments against a record item.** This is the same gap the staff file closed in migration 0032, still open on the child side. A signed application exists as a *status*, not as the scan of the signed page. This is the largest single gap in this module.
-- **Child profile photo upload does not exist.** `child.photo_path` is a column, the `photos` bucket and its consent-gated policies were written in migration 0012, and **no surface uploads.** Rooms fall back to initials.
+- **Child profile photo upload does not exist.** Gallery photos landed in migration 0041, and the storage policy already governs `photos/{centre}/{child}/profile.jpg` (the child's own family, and only with `photo_internal`), but **no surface uploads a profile photo.** Rooms still fall back to initials.
 - **The symptoms log (item 9) is satisfied by the illness module** rather than being its own artefact, which is defensible but means the item's status is a manual assertion.
 
 ---
@@ -92,7 +92,7 @@ Every consent row carries a **`purpose`** — consent without a stated purpose i
 
 **Enrolment completes with every optional consent declined.** That is a tested invariant, not a hope.
 
-Consent is enforced **at query level**, not by client filtering. A child without group-photo consent is excluded from the relevant reads; photo visibility follows `consent` rows.
+**Photo consent is enforced in the database, twice** (migration 0041). At capture, `record_photo` refuses — by name — a child without `photo_internal`, and a child without `photo_group` when a child from another household is in the picture (two siblings are not a group photo). At read, one `SECURITY DEFINER` function decides visibility for both RLS and the storage policy, so a withdrawn consent takes a photo out of other families' galleries immediately, with no cascade job to forget. **Until 0041 this paragraph claimed enforcement that did not exist:** the three photo consents were collected at enrolment and read nowhere. The other consent types (`field_trip`, `sunscreen_blanket`, …) remain records a person consults; nothing in the schema gates on them.
 
 ### Every case
 
@@ -108,7 +108,7 @@ Consent is enforced **at query level**, not by client filtering. A child without
 
 ### Where this is weak
 
-- **No consent-withdrawal cascade.** Revoking photo consent stops *future* reads, and existing photos of that child are not retrospectively hidden or removed anywhere. For a family exercising a PIPEDA right this is the wrong behaviour, and there is no workflow for it ([06](06-gaps-risks-and-roadmap.md)).
+- **The withdrawal cascade covers photos only.** Revoking `photo_internal` or `photo_group` hides existing photos at read time (0041). A hidden or taken-down photo is not purged: deleting a `storage.objects` row in SQL does not remove the file from the storage backend, so the bytes stay until a service-role purge exists. No other consent type cascades into anything, and there is still no access-or-deletion request workflow ([06](06-gaps-risks-and-roadmap.md)).
 - **`purpose` is free text**, so two centres describe the same consent differently and nothing can compare them.
 
 ---
